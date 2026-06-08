@@ -1,21 +1,59 @@
 export const STAGES = ['Detección', 'Análisis', 'Confirmación'];
 
-export const STAGE_STYLES = {
-  0: { pill: 'stage-1', label: 'Detección' },
-  1: { pill: 'stage-2', label: 'Análisis' },
-  2: { pill: 'stage-3', label: 'Confirmación' },
-};
+// Hitos estándar del proceso — igual para todos los productos
+export const HITOS_TEMPLATE = [
+  { etapa: 0, label: 'Definición MKT' },
+  { etapa: 0, label: 'Compliance' },
+  { etapa: 0, label: 'AARR' },
+  { etapa: 0, label: 'Presupuesto' },
+  { etapa: 1, label: 'Inventario PT' },
+  { etapa: 1, label: 'Producción en curso' },
+  { etapa: 1, label: 'Inventario materiales' },
+  { etapa: 1, label: 'Costo destrucción' },
+  { etapa: 1, label: 'Última OC' },
+  { etapa: 2, label: 'Confirmación MKT' },
+  { etapa: 2, label: 'Plan desagote' },
+  { etapa: 2, label: 'Inactivación código' },
+  { etapa: 2, label: 'Notificación final' },
+];
+
+export function makeHitos(overrides = []) {
+  return HITOS_TEMPLATE.map((t, i) => {
+    const ov = overrides.find((o) => o.label === t.label) || {};
+    return {
+      id: `H${i}_${Date.now()}`,
+      etapa: t.etapa,
+      label: t.label,
+      responsable: ov.responsable || '',
+      done: ov.done || false,
+      fechaCompromiso: ov.fechaCompromiso || '-',
+      fechaReal: ov.fechaReal || '-',
+    };
+  });
+}
+
+export function calcEtapaActual(hitos) {
+  const doneByEtapa = [0, 1, 2].map((e) => {
+    const etapaHitos = hitos.filter((h) => h.etapa === e);
+    return etapaHitos.length > 0 && etapaHitos.every((h) => h.done);
+  });
+  if (doneByEtapa[0] && doneByEtapa[1]) return 2;
+  if (doneByEtapa[0]) return 1;
+  return 0;
+}
 
 const initialData = {
   products: [
     {
       id: 'CU-125678',
+      sku: '002-001-1077',
       nombre: 'Rowe Comp 500mg',
-      pais: 'Uruguay',
-      area: 'Marketing',
+      paisCompania: 'Uruguay',
+      paisPlanta: 'Uruguay',
+      areaTerapeutica: 'Antibióticos',
       etapaActual: 1,
       progreso: 60,
-      ultimoHito: 'Inventario PT validado',
+      ultimoHito: 'Inventario PT',
       fechaUltimoHito: '20/05/2025',
       fechaInicio: '01/05/2025',
       etapas: [
@@ -24,18 +62,19 @@ const initialData = {
         { nombre: 'Confirmación', estado: 'pendiente' },
       ],
       hitos: [
-        { id: 'H001', label: 'Definición MKT', area: 'Mkt Corp', done: true, date: '15/05/2025' },
-        { id: 'H002', label: 'Compliance validado', area: 'Compliance', done: true, date: '16/05/2025' },
-        { id: 'H003', label: 'AARR confirmado', area: 'AARR', done: true, date: '16/05/2025' },
-        { id: 'H004', label: 'Presupuesto incluido', area: 'Finanzas', done: false, date: '-' },
-        { id: 'H005', label: 'Template completado', area: 'Mkt Corp', done: true, date: '18/05/2025' },
-        { id: 'H006', label: 'Consolida S&OP', area: 'S&OP Global', done: true, date: '19/05/2025' },
-        { id: 'H007', label: 'Inventario PT', area: 'Planta', done: true, date: '20/05/2025' },
-        { id: 'H008', label: 'Costo destrucciones', area: 'Planta', done: false, date: '-' },
-        { id: 'H009', label: 'Confirmación MKT', area: 'Mkt Corp', done: false, date: '-' },
-        { id: 'H010', label: 'Plan de desagote', area: 'Supply Corp', done: false, date: '-' },
-        { id: 'H011', label: 'Código inactivado', area: 'Supply Corp', done: false, date: '-' },
-        { id: 'H012', label: 'Notificación final', area: 'S&OP', done: false, date: '-' },
+        { id: 'H001', etapa: 0, label: 'Definición MKT', responsable: 'Mkt Corp', done: true, fechaCompromiso: '10/05/2025', fechaReal: '15/05/2025' },
+        { id: 'H002', etapa: 0, label: 'Compliance', responsable: 'Compliance', done: true, fechaCompromiso: '12/05/2025', fechaReal: '16/05/2025' },
+        { id: 'H003', etapa: 0, label: 'AARR', responsable: 'AARR', done: true, fechaCompromiso: '12/05/2025', fechaReal: '16/05/2025' },
+        { id: 'H004', etapa: 0, label: 'Presupuesto', responsable: 'Finanzas', done: false, fechaCompromiso: '20/05/2025', fechaReal: '-' },
+        { id: 'H005', etapa: 1, label: 'Inventario PT', responsable: 'Planta', done: true, fechaCompromiso: '18/05/2025', fechaReal: '20/05/2025' },
+        { id: 'H006', etapa: 1, label: 'Producción en curso', responsable: 'Planta', done: false, fechaCompromiso: '25/05/2025', fechaReal: '-' },
+        { id: 'H007', etapa: 1, label: 'Inventario materiales', responsable: 'Planta', done: false, fechaCompromiso: '25/05/2025', fechaReal: '-' },
+        { id: 'H008', etapa: 1, label: 'Costo destrucción', responsable: 'Planta', done: false, fechaCompromiso: '30/05/2025', fechaReal: '-' },
+        { id: 'H009', etapa: 1, label: 'Última OC', responsable: 'Supply Corp', done: false, fechaCompromiso: '30/05/2025', fechaReal: '-' },
+        { id: 'H010', etapa: 2, label: 'Confirmación MKT', responsable: 'Mkt Corp', done: false, fechaCompromiso: '-', fechaReal: '-' },
+        { id: 'H011', etapa: 2, label: 'Plan desagote', responsable: 'Supply Corp', done: false, fechaCompromiso: '-', fechaReal: '-' },
+        { id: 'H012', etapa: 2, label: 'Inactivación código', responsable: 'Supply Corp', done: false, fechaCompromiso: '-', fechaReal: '-' },
+        { id: 'H013', etapa: 2, label: 'Notificación final', responsable: 'S&OP', done: false, fechaCompromiso: '-', fechaReal: '-' },
       ],
       actividades: [
         { id: 'A001', text: 'Inventario PT completado — Planta UY', time: '20/05 14:30' },
@@ -45,12 +84,14 @@ const initialData = {
     },
     {
       id: 'CU-125432',
+      sku: '003-002-0543',
       nombre: 'Selenin Jar 250ml',
-      pais: 'Argentina',
-      area: 'S&OP Global',
+      paisCompania: 'Argentina',
+      paisPlanta: 'Argentina',
+      areaTerapeutica: 'Dermatología',
       etapaActual: 2,
       progreso: 85,
-      ultimoHito: 'Plan de desagote aprobado',
+      ultimoHito: 'Plan desagote',
       fechaUltimoHito: '18/05/2025',
       fechaInicio: '10/04/2025',
       etapas: [
@@ -59,12 +100,19 @@ const initialData = {
         { nombre: 'Confirmación', estado: 'en_progreso' },
       ],
       hitos: [
-        { id: 'H013', label: 'Definición MKT', area: 'Mkt Corp', done: true, date: '15/04/2025' },
-        { id: 'H014', label: 'Compliance validado', area: 'Compliance', done: true, date: '18/04/2025' },
-        { id: 'H015', label: 'Inventario PT', area: 'Planta', done: true, date: '25/04/2025' },
-        { id: 'H016', label: 'Plan de desagote', area: 'Supply Corp', done: true, date: '18/05/2025' },
-        { id: 'H017', label: 'Código inactivado', area: 'Supply Corp', done: false, date: '-' },
-        { id: 'H018', label: 'Notificación final', area: 'S&OP', done: false, date: '-' },
+        { id: 'H014', etapa: 0, label: 'Definición MKT', responsable: 'Mkt Corp', done: true, fechaCompromiso: '15/04/2025', fechaReal: '15/04/2025' },
+        { id: 'H015', etapa: 0, label: 'Compliance', responsable: 'Compliance', done: true, fechaCompromiso: '18/04/2025', fechaReal: '18/04/2025' },
+        { id: 'H016', etapa: 0, label: 'AARR', responsable: 'AARR', done: true, fechaCompromiso: '18/04/2025', fechaReal: '20/04/2025' },
+        { id: 'H017', etapa: 0, label: 'Presupuesto', responsable: 'Finanzas', done: true, fechaCompromiso: '22/04/2025', fechaReal: '22/04/2025' },
+        { id: 'H018', etapa: 1, label: 'Inventario PT', responsable: 'Planta', done: true, fechaCompromiso: '25/04/2025', fechaReal: '25/04/2025' },
+        { id: 'H019', etapa: 1, label: 'Producción en curso', responsable: 'Planta', done: true, fechaCompromiso: '28/04/2025', fechaReal: '28/04/2025' },
+        { id: 'H020', etapa: 1, label: 'Inventario materiales', responsable: 'Planta', done: true, fechaCompromiso: '05/05/2025', fechaReal: '05/05/2025' },
+        { id: 'H021', etapa: 1, label: 'Costo destrucción', responsable: 'Planta', done: true, fechaCompromiso: '10/05/2025', fechaReal: '10/05/2025' },
+        { id: 'H022', etapa: 1, label: 'Última OC', responsable: 'Supply Corp', done: true, fechaCompromiso: '12/05/2025', fechaReal: '14/05/2025' },
+        { id: 'H023', etapa: 2, label: 'Confirmación MKT', responsable: 'Mkt Corp', done: true, fechaCompromiso: '16/05/2025', fechaReal: '16/05/2025' },
+        { id: 'H024', etapa: 2, label: 'Plan desagote', responsable: 'Supply Corp', done: true, fechaCompromiso: '18/05/2025', fechaReal: '18/05/2025' },
+        { id: 'H025', etapa: 2, label: 'Inactivación código', responsable: 'Supply Corp', done: false, fechaCompromiso: '25/05/2025', fechaReal: '-' },
+        { id: 'H026', etapa: 2, label: 'Notificación final', responsable: 'S&OP', done: false, fechaCompromiso: '30/05/2025', fechaReal: '-' },
       ],
       actividades: [
         { id: 'A004', text: 'Plan de desagote aprobado por Supply Corp', time: '18/05 09:00' },
@@ -73,12 +121,14 @@ const initialData = {
     },
     {
       id: 'CU-125100',
+      sku: '001-003-0210',
       nombre: 'Nexol Tabs 10mg',
-      pais: 'Chile',
-      area: 'Planta',
+      paisCompania: 'Chile',
+      paisPlanta: 'Uruguay',
+      areaTerapeutica: 'Cardiovascular',
       etapaActual: 0,
       progreso: 25,
-      ultimoHito: 'Compliance notificado',
+      ultimoHito: 'Compliance',
       fechaUltimoHito: '10/05/2025',
       fechaInicio: '02/05/2025',
       etapas: [
@@ -86,24 +136,26 @@ const initialData = {
         { nombre: 'Análisis', estado: 'pendiente' },
         { nombre: 'Confirmación', estado: 'pendiente' },
       ],
-      hitos: [
-        { id: 'H019', label: 'Definición MKT', area: 'Mkt Corp', done: true, date: '05/05/2025' },
-        { id: 'H020', label: 'Compliance validado', area: 'Compliance', done: false, date: '-' },
-        { id: 'H021', label: 'AARR confirmado', area: 'AARR', done: false, date: '-' },
-        { id: 'H022', label: 'Template completado', area: 'Mkt Corp', done: false, date: '-' },
-      ],
+      hitos: makeHitos([
+        { label: 'Definición MKT', done: true, fechaReal: '05/05/2025', responsable: 'Mkt Corp' },
+        { label: 'Compliance', done: false, responsable: 'Compliance' },
+        { label: 'AARR', done: false, responsable: 'AARR' },
+        { label: 'Presupuesto', done: false, responsable: 'Finanzas' },
+      ]),
       actividades: [
         { id: 'A006', text: 'Compliance notificado del inicio del proceso', time: '10/05 13:45' },
       ],
     },
     {
       id: 'CU-124980',
+      sku: '004-001-0980',
       nombre: 'Biocal Caps 500',
-      pais: 'Brasil',
-      area: 'Marketing',
+      paisCompania: 'Brasil',
+      paisPlanta: 'Brasil',
+      areaTerapeutica: 'Vitaminas',
       etapaActual: 1,
       progreso: 50,
-      ultimoHito: 'Template enviado a S&OP',
+      ultimoHito: 'Inventario materiales',
       fechaUltimoHito: '12/05/2025',
       fechaInicio: '25/04/2025',
       etapas: [
@@ -111,23 +163,25 @@ const initialData = {
         { nombre: 'Análisis', estado: 'en_progreso' },
         { nombre: 'Confirmación', estado: 'pendiente' },
       ],
-      hitos: [
-        { id: 'H023', label: 'Definición MKT', area: 'Mkt Corp', done: true, date: '28/04/2025' },
-        { id: 'H024', label: 'Compliance validado', area: 'Compliance', done: true, date: '30/04/2025' },
-        { id: 'H025', label: 'Template completado', area: 'Mkt Corp', done: true, date: '12/05/2025' },
-        { id: 'H026', label: 'Consolida S&OP', area: 'S&OP Global', done: false, date: '-' },
-        { id: 'H027', label: 'Inventario PT', area: 'Planta', done: false, date: '-' },
-        { id: 'H028', label: 'Costo destrucciones', area: 'Planta', done: false, date: '-' },
-      ],
+      hitos: makeHitos([
+        { label: 'Definición MKT', done: true, fechaReal: '28/04/2025', responsable: 'Mkt Corp' },
+        { label: 'Compliance', done: true, fechaReal: '30/04/2025', responsable: 'Compliance' },
+        { label: 'AARR', done: true, fechaReal: '02/05/2025', responsable: 'AARR' },
+        { label: 'Presupuesto', done: true, fechaReal: '05/05/2025', responsable: 'Finanzas' },
+        { label: 'Inventario PT', done: true, fechaReal: '10/05/2025', responsable: 'Planta' },
+        { label: 'Inventario materiales', done: true, fechaReal: '12/05/2025', responsable: 'Planta' },
+      ]),
       actividades: [
-        { id: 'A007', text: 'Template enviado a S&OP Global para consolidación', time: '12/05 11:00' },
+        { id: 'A007', text: 'Inventario materiales confirmado por Planta BR', time: '12/05 11:00' },
       ],
     },
     {
       id: 'CU-124750',
+      sku: '005-002-0750',
       nombre: 'Gastrolab 20mg',
-      pais: 'Paraguay',
-      area: 'Mkt Local',
+      paisCompania: 'Paraguay',
+      paisPlanta: 'Uruguay',
+      areaTerapeutica: 'Gastroenterología',
       etapaActual: 0,
       progreso: 10,
       ultimoHito: 'Inicio proceso',
@@ -138,22 +192,21 @@ const initialData = {
         { nombre: 'Análisis', estado: 'pendiente' },
         { nombre: 'Confirmación', estado: 'pendiente' },
       ],
-      hitos: [
-        { id: 'H029', label: 'Definición MKT', area: 'Mkt Corp', done: false, date: '-' },
-        { id: 'H030', label: 'Compliance validado', area: 'Compliance', done: false, date: '-' },
-      ],
+      hitos: makeHitos(),
       actividades: [
         { id: 'A008', text: 'Proceso de discontinuado iniciado por Mkt Local', time: '05/05 09:00' },
       ],
     },
     {
       id: 'CU-124530',
+      sku: '001-001-0530',
       nombre: 'Vitazen D3 1000',
-      pais: 'Uruguay',
-      area: 'Supply Corp',
+      paisCompania: 'Uruguay',
+      paisPlanta: 'Uruguay',
+      areaTerapeutica: 'Vitaminas',
       etapaActual: 1,
       progreso: 70,
-      ultimoHito: 'Análisis impacto graneles',
+      ultimoHito: 'Última OC',
       fechaUltimoHito: '17/05/2025',
       fechaInicio: '15/04/2025',
       etapas: [
@@ -161,29 +214,32 @@ const initialData = {
         { nombre: 'Análisis', estado: 'en_progreso' },
         { nombre: 'Confirmación', estado: 'pendiente' },
       ],
-      hitos: [
-        { id: 'H031', label: 'Definición MKT', area: 'Mkt Corp', done: true, date: '18/04/2025' },
-        { id: 'H032', label: 'Compliance validado', area: 'Compliance', done: true, date: '20/04/2025' },
-        { id: 'H033', label: 'Template completado', area: 'Mkt Corp', done: true, date: '28/04/2025' },
-        { id: 'H034', label: 'Consolida S&OP', area: 'S&OP Global', done: true, date: '05/05/2025' },
-        { id: 'H035', label: 'Inventario PT', area: 'Planta', done: true, date: '10/05/2025' },
-        { id: 'H036', label: 'Análisis impacto graneles', area: 'Supply Corp', done: true, date: '17/05/2025' },
-        { id: 'H037', label: 'Costo destrucciones', area: 'Planta', done: false, date: '-' },
-        { id: 'H038', label: 'Plan de desagote', area: 'Supply Corp', done: false, date: '-' },
-      ],
+      hitos: makeHitos([
+        { label: 'Definición MKT', done: true, fechaReal: '18/04/2025', responsable: 'Mkt Corp' },
+        { label: 'Compliance', done: true, fechaReal: '20/04/2025', responsable: 'Compliance' },
+        { label: 'AARR', done: true, fechaReal: '22/04/2025', responsable: 'AARR' },
+        { label: 'Presupuesto', done: true, fechaReal: '25/04/2025', responsable: 'Finanzas' },
+        { label: 'Inventario PT', done: true, fechaReal: '05/05/2025', responsable: 'Planta' },
+        { label: 'Producción en curso', done: true, fechaReal: '08/05/2025', responsable: 'Planta' },
+        { label: 'Inventario materiales', done: true, fechaReal: '10/05/2025', responsable: 'Planta' },
+        { label: 'Costo destrucción', done: true, fechaReal: '14/05/2025', responsable: 'Planta' },
+        { label: 'Última OC', done: true, fechaReal: '17/05/2025', responsable: 'Supply Corp' },
+      ]),
       actividades: [
-        { id: 'A009', text: 'Análisis de impacto en graneles completado', time: '17/05 15:20' },
-        { id: 'A010', text: 'Inventario PT confirmado por Planta UY', time: '10/05 10:00' },
+        { id: 'A009', text: 'Última OC confirmada — Supply Corp', time: '17/05 15:20' },
+        { id: 'A010', text: 'Inventario PT confirmado por Planta UY', time: '05/05 10:00' },
       ],
     },
     {
       id: 'CU-124210',
+      sku: '006-003-0210',
       nombre: 'Cardiomax 5mg',
-      pais: 'Colombia',
-      area: 'Marketing',
+      paisCompania: 'Colombia',
+      paisPlanta: 'Uruguay',
+      areaTerapeutica: 'Cardiovascular',
       etapaActual: 0,
       progreso: 15,
-      ultimoHito: 'Detección MKT Corp',
+      ultimoHito: 'Definición MKT',
       fechaUltimoHito: '08/05/2025',
       fechaInicio: '07/05/2025',
       etapas: [
@@ -191,23 +247,23 @@ const initialData = {
         { nombre: 'Análisis', estado: 'pendiente' },
         { nombre: 'Confirmación', estado: 'pendiente' },
       ],
-      hitos: [
-        { id: 'H039', label: 'Definición MKT', area: 'Mkt Corp', done: true, date: '08/05/2025' },
-        { id: 'H040', label: 'Compliance validado', area: 'Compliance', done: false, date: '-' },
-        { id: 'H041', label: 'AARR confirmado', area: 'AARR', done: false, date: '-' },
-      ],
+      hitos: makeHitos([
+        { label: 'Definición MKT', done: true, fechaReal: '08/05/2025', responsable: 'Mkt Corp' },
+      ]),
       actividades: [
         { id: 'A011', text: 'MKT Corp detectó caída de demanda sostenida', time: '08/05 14:00' },
       ],
     },
     {
       id: 'CU-123900',
+      sku: '007-001-0900',
       nombre: 'Inflamed Gel 30g',
-      pais: 'Ecuador',
-      area: 'Planta',
+      paisCompania: 'Ecuador',
+      paisPlanta: 'Argentina',
+      areaTerapeutica: 'Dermatología',
       etapaActual: 1,
       progreso: 45,
-      ultimoHito: 'Revisión inventario materiales',
+      ultimoHito: 'Inventario materiales',
       fechaUltimoHito: '14/05/2025',
       fechaInicio: '20/04/2025',
       etapas: [
@@ -215,29 +271,28 @@ const initialData = {
         { nombre: 'Análisis', estado: 'en_progreso' },
         { nombre: 'Confirmación', estado: 'pendiente' },
       ],
-      hitos: [
-        { id: 'H042', label: 'Definición MKT', area: 'Mkt Corp', done: true, date: '22/04/2025' },
-        { id: 'H043', label: 'Compliance validado', area: 'Compliance', done: true, date: '25/04/2025' },
-        { id: 'H044', label: 'Template completado', area: 'Mkt Corp', done: false, date: '-' },
-        { id: 'H045', label: 'Inventario materiales revisado', area: 'Planta', done: true, date: '14/05/2025' },
-        { id: 'H046', label: 'Costo destrucciones', area: 'Planta', done: false, date: '-' },
-      ],
+      hitos: makeHitos([
+        { label: 'Definición MKT', done: true, fechaReal: '22/04/2025', responsable: 'Mkt Corp' },
+        { label: 'Compliance', done: true, fechaReal: '25/04/2025', responsable: 'Compliance' },
+        { label: 'AARR', done: true, fechaReal: '28/04/2025', responsable: 'AARR' },
+        { label: 'Presupuesto', done: true, fechaReal: '30/04/2025', responsable: 'Finanzas' },
+        { label: 'Inventario PT', done: true, fechaReal: '08/05/2025', responsable: 'Planta' },
+        { label: 'Inventario materiales', done: true, fechaReal: '14/05/2025', responsable: 'Planta' },
+      ]),
       actividades: [
-        { id: 'A012', text: 'Inventario de materiales revisado — hay stock para 3 meses', time: '14/05 16:30' },
+        { id: 'A012', text: 'Inventario de materiales revisado — stock para 3 meses', time: '14/05 16:30' },
       ],
     },
   ],
 };
 
-const STORAGE_KEY = 'megalabs_discontinuados_v2';
+const STORAGE_KEY = 'megalabs_discontinuados_v3';
 
 export function loadData() {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) return JSON.parse(stored);
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
   saveData(initialData);
   return initialData;
 }

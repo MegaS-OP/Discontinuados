@@ -47,7 +47,7 @@ export function AppProvider({ children }) {
           if (h.id !== hitoId) return h;
           const now = new Date();
           const date = now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + '/' + now.getFullYear();
-          return { ...h, done: !h.done, date: !h.done ? date : '-' };
+          return { ...h, done: !h.done, fechaReal: !h.done ? date : '-' };
         });
         const done = hitos.filter((h) => h.done).length;
         const progreso = Math.round((done / hitos.length) * 100);
@@ -100,8 +100,16 @@ export function AppProvider({ children }) {
     });
   }, [updateData]);
 
+  const addProduct = useCallback((product) => {
+    updateData((prev) => ({ ...prev, products: [...prev.products, product] }));
+  }, [updateData]);
+
+  const addProducts = useCallback((newProducts) => {
+    updateData((prev) => ({ ...prev, products: [...prev.products, ...newProducts] }));
+  }, [updateData]);
+
   return (
-    <AppContext.Provider value={{ data, addComment, toggleHito, advanceStage }}>
+    <AppContext.Provider value={{ data, addComment, toggleHito, advanceStage, addProduct, addProducts }}>
       {children}
     </AppContext.Provider>
   );

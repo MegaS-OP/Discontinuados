@@ -139,7 +139,7 @@ export default function ProductDetail({ productId, onBack }) {
               <div style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 3 }}>{product.id}</div>
               <div style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A' }}>{product.nombre}</div>
               <div style={{ fontSize: 11, color: '#5F5E5A', marginTop: 2 }}>
-                País: {product.pais} · Área: {product.area} · Inicio: {product.fechaInicio}
+                SKU: {product.sku} · Cía: {product.paisCompania} · Planta: {product.paisPlanta} · {product.areaTerapeutica} · Inicio: {product.fechaInicio}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -158,48 +158,35 @@ export default function ProductDetail({ productId, onBack }) {
           {/* Stepper */}
           <Stepper etapas={product.etapas} etapaActual={product.etapaActual} />
 
-          {/* Milestones */}
-          <div style={{ padding: '10px 16px', borderBottom: BORDER }}>
-            <div style={{ fontSize: 11, fontWeight: 500, color: '#5F5E5A', marginBottom: 8 }}>Hitos del proceso</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {product.hitos.map((h) => (
-                <div
-                  key={h.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '7px 10px',
-                    borderRadius: 6,
-                    background: BG_SEC,
-                  }}
-                >
-                  <button
-                    onClick={() => toggleHito(product.id, h.id)}
-                    style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: '50%',
-                      border: `1.5px solid ${h.done ? ML_GREEN : '#D3D1C7'}`,
-                      background: h.done ? ML_GREEN : 'transparent',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 10,
-                      color: h.done ? '#fff' : 'transparent',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
-                  >
-                    ✓
-                  </button>
-                  <span style={{ fontSize: 12, color: '#1A1A1A', flex: 1 }}>{h.label}</span>
-                  <span style={{ fontSize: 10, color: '#5F5E5A' }}>{h.area}</span>
-                  <span style={{ fontSize: 10, color: '#5F5E5A', marginLeft: 'auto' }}>{h.date}</span>
+          {/* Milestones por etapa */}
+          {[0, 1, 2].map((etapaIdx) => {
+            const hitosEtapa = product.hitos.filter((h) => h.etapa === etapaIdx);
+            const etapaColors = ['#185FA5', '#854F0B', '#3B6D11'];
+            const color = etapaColors[etapaIdx];
+            const doneCount = hitosEtapa.filter((h) => h.done).length;
+            return (
+              <div key={etapaIdx} style={{ borderBottom: BORDER }}>
+                <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: etapaIdx === product.etapaActual ? BG_SEC : '#fff' }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color }}>{stageLabels[etapaIdx]}</span>
+                  <span style={{ fontSize: 10, color: '#5F5E5A' }}>{doneCount}/{hitosEtapa.length} completados</span>
                 </div>
-              ))}
-            </div>
-          </div>
+                <div style={{ padding: '4px 16px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {hitosEtapa.map((h) => (
+                    <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 6, background: BG_SEC }}>
+                      <button
+                        onClick={() => toggleHito(product.id, h.id)}
+                        style={{ width: 18, height: 18, borderRadius: '50%', border: `1.5px solid ${h.done ? ML_GREEN : '#D3D1C7'}`, background: h.done ? ML_GREEN : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: h.done ? '#fff' : 'transparent', cursor: 'pointer', flexShrink: 0 }}
+                      >✓</button>
+                      <span style={{ fontSize: 12, color: '#1A1A1A', flex: 1 }}>{h.label}</span>
+                      <span style={{ fontSize: 10, color: '#5F5E5A' }}>{h.responsable}</span>
+                      {h.fechaCompromiso !== '-' && <span style={{ fontSize: 10, color: '#9B9895' }}>📅 {h.fechaCompromiso}</span>}
+                      {h.fechaReal !== '-' && <span style={{ fontSize: 10, color: ML_GREEN }}>✓ {h.fechaReal}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
 
           {/* Activity */}
           <div style={{ padding: '10px 16px', borderBottom: BORDER }}>
