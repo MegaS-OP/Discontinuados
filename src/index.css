@@ -1,18 +1,11 @@
 @import "tailwindcss";
 
-@theme {
-  --color-brand-green: #0F6E56;
-  --color-brand-teal: #006B70;
-  --color-brand-orange: #F5A623;
-  --color-brand-green-light: #E8F5F1;
-  --color-brand-teal-light: #E6F2F2;
-  --color-brand-orange-light: #FEF5E7;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  margin: 0;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-  background: #F5F5F5;
+  font-size: 13px;
+  background: #F1EFE8;
   color: #1A1A1A;
   -webkit-font-smoothing: antialiased;
 }
@@ -20,4 +13,29 @@ body {
 #root {
   width: 100%;
   min-height: 100vh;
+}
+
+/* Stage pills */
+.stage-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.stage-1 { background: #E6F1FB; color: #185FA5; }
+.stage-2 { background: #FAEEDA; color: #854F0B; }
+.stage-3 { background: #EAF3DE; color: #3B6D11; }
+.stage-done { background: #E1F5EE; color: #0F6E56; }
+
+/* Stepper connector */
+.step-connector {
+  position: absolute;
+  top: 12px;
+  left: 60%;
+  width: 80%;
+  height: 2px;
+  z-index: 0;
 }
