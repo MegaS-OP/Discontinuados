@@ -1,107 +1,135 @@
-import { createContext, useContext, useState, useCallback } from 'react';
-import { loadData, saveData } from '../data/db';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { initialProducts } from '../data/db';
+import { spLoadProducts, spUpdateProduct, spInitializeIfEmpty } from '../data/sharepoint';
+
+const IS_LOCAL = Boolean(import.meta.env.VITE_SP_SITE_URL === undefined && import.meta.env.DEV);
 
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
-  const [data, setData] = useState(() => loadData());
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const updateData = useCallback((updater) => {
-    setData((prev) => {
-      const next = updater(prev);
-      saveData(next);
-      return next;
-    });
+  // Carga inicial
+  useEffect(() => {
+    async function load() {
+      try {
+        if (IS_LOCAL) {
+          // Desarrollo local: usa localStorage
+          const stored = localStorage.getItem('mgl_dev_data');
+          setProducts(stored ? JSON.parse(stored) : initialProducts);
+        } else {
+          // SharePoint
+          const data = await spInitializeIfEmpty(initialProducts);
+          setProducts(data);
+        }
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
 
-  const addComment = useCallback((productId, text) => {
-    updateData((prev) => {
-      const now = new Date();
-      const ts =
-        now.getDate().toString().padStart(2, '0') +
-        '/' +
-        (now.getMonth() + 1).toString().padStart(2, '0') +
-        ' ' +
-        now.getHours().toString().padStart(2, '0') +
-        ':' +
-        now.getMinutes().toString().padStart(2, '0');
-      const products = prev.products.map((p) => {
-        if (p.id !== productId) return p;
-        return {
-          ...p,
-          actividades: [
-            { id: `A${Date.now()}`, text: `Ariana S. (S&OP Global): ${text}`, time: ts },
-            ...p.actividades,
-          ],
-        };
+  // Persiste un producto actualizado
+  const persistProduct = useCallback(async (updated) => {
+    if (IS_LOCAL) {
+      setProducts((prev) => {
+        const next = prev.map((p) => (p.id === updated.id ? updated : p));
+        localStorage.setItem('mgl_dev_data', JSON.stringify(next));
+        return next;
       });
-      return { ...prev, products };
-    });
-  }, [updateData]);
+    } else {
+      setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      await spUpdateProduct(updated._spId, updated);
+    }
+  }, []);
 
-  const toggleHito = useCallback((productId, hitoId) => {
-    updateData((prev) => {
-      const products = prev.products.map((p) => {
-        if (p.id !== productId) return p;
-        const hitos = p.hitos.map((h) => {
-          if (h.id !== hitoId) return h;
-          const now = new Date();
-          const date = now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + '/' + now.getFullYear();
-          return { ...h, done: !h.done, date: !h.done ? date : '-' };
-        });
-        const done = hitos.filter((h) => h.done).length;
-        const progreso = Math.round((done / hitos.length) * 100);
-        const lastDone = [...hitos].reverse().find((h) => h.done);
-        return {
-          ...p,
-          hitos,
-          progreso,
-          ultimoHito: lastDone ? lastDone.label : p.ultimoHito,
-        };
-      });
-      return { ...prev, products };
-    });
-  }, [updateData]);
+  const addComment = useCallback(async (productId, text) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+    const now = new Date();
+    const ts =
+      now.getDate().toString().padStart(2, '0') +
+      '/' +
+      (now.getMonth() + 1).toString().padStart(2, '0') +
+      ' ' +
+      now.getHours().toString().padStart(2, '0') +
+      ':' +
+      now.getMinutes().toString().padStart(2, '0');
+    const updated = {
+      ...product,
+      actividades: [
+        { id: `A${Date.now()}`, text: `${text}`, time: ts },
+        ...product.actividades,
+      ],
+    };
+    await persistProduct(updated);
+  }, [products, persistProduct]);
 
-  const advanceStage = useCallback((productId) => {
-    updateData((prev) => {
-      const products = prev.products.map((p) => {
-        if (p.id !== productId || p.etapaActual >= 2) return p;
-        const next = p.etapaActual + 1;
-        const etapas = p.etapas.map((e, i) => {
-          if (i === p.etapaActual) return { ...e, estado: 'completado' };
-          if (i === next) return { ...e, estado: 'en_progreso' };
-          return e;
-        });
-        const now = new Date();
-        const ts =
-          now.getDate().toString().padStart(2, '0') +
-          '/' +
-          (now.getMonth() + 1).toString().padStart(2, '0') +
-          ' ' +
-          now.getHours().toString().padStart(2, '0') +
-          ':' +
-          now.getMinutes().toString().padStart(2, '0');
-        return {
-          ...p,
-          etapaActual: next,
-          etapas,
-          actividades: [
-            {
-              id: `A${Date.now()}`,
-              text: `Avance de etapa: ${p.etapas[p.etapaActual].nombre} → ${p.etapas[next].nombre}`,
-              time: ts,
-            },
-            ...p.actividades,
-          ],
-        };
-      });
-      return { ...prev, products };
+  const toggleHito = useCallback(async (productId, hitoId) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+    const now = new Date();
+    const date =
+      now.getDate().toString().padStart(2, '0') +
+      '/' +
+      (now.getMonth() + 1).toString().padStart(2, '0') +
+      '/' +
+      now.getFullYear();
+    const hitos = product.hitos.map((h) => {
+      if (h.id !== hitoId) return h;
+      return { ...h, done: !h.done, date: !h.done ? date : '-' };
     });
-  }, [updateData]);
+    const done = hitos.filter((h) => h.done).length;
+    const progreso = Math.round((done / hitos.length) * 100);
+    const lastDone = [...hitos].reverse().find((h) => h.done);
+    const updated = {
+      ...product,
+      hitos,
+      progreso,
+      ultimoHito: lastDone ? lastDone.label : product.ultimoHito,
+    };
+    await persistProduct(updated);
+  }, [products, persistProduct]);
+
+  const advanceStage = useCallback(async (productId) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product || product.etapaActual >= 2) return;
+    const next = product.etapaActual + 1;
+    const now = new Date();
+    const ts =
+      now.getDate().toString().padStart(2, '0') +
+      '/' +
+      (now.getMonth() + 1).toString().padStart(2, '0') +
+      ' ' +
+      now.getHours().toString().padStart(2, '0') +
+      ':' +
+      now.getMinutes().toString().padStart(2, '0');
+    const updated = {
+      ...product,
+      etapaActual: next,
+      etapas: product.etapas.map((e, i) => {
+        if (i === product.etapaActual) return { ...e, estado: 'completado' };
+        if (i === next) return { ...e, estado: 'en_progreso' };
+        return e;
+      }),
+      actividades: [
+        {
+          id: `A${Date.now()}`,
+          text: `Avance: ${product.etapas[product.etapaActual].nombre} → ${product.etapas[next].nombre}`,
+          time: ts,
+        },
+        ...product.actividades,
+      ],
+    };
+    await persistProduct(updated);
+  }, [products, persistProduct]);
 
   return (
-    <AppContext.Provider value={{ data, addComment, toggleHito, advanceStage }}>
+    <AppContext.Provider value={{ products, loading, error, addComment, toggleHito, advanceStage }}>
       {children}
     </AppContext.Provider>
   );

@@ -73,10 +73,10 @@ function Stepper({ etapas, etapaActual }) {
 }
 
 export default function ProductDetail({ productId, onBack }) {
-  const { data, addComment, toggleHito, advanceStage } = useApp();
+  const { products, addComment, toggleHito, advanceStage } = useApp();
   const [comment, setComment] = useState('');
 
-  const product = data.products.find((p) => p.id === productId);
+  const product = products.find((p) => p.id === productId);
   if (!product) return null;
 
   const allCurrentDone = product.hitos.filter((h) => {
