@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import { AppProvider } from './context/AppContext';
+import { UserProvider, useUsers } from './context/UserContext';
 import Sidebar from './components/Sidebar';
+import LoginScreen from './components/LoginScreen';
 import Dashboard from './pages/Dashboard';
 import ProductDetail from './pages/ProductDetail';
+import Configuracion from './pages/Configuracion';
+import Reportes from './pages/Reportes';
+import { useApp } from './context/AppContext';
 import './index.css';
 
 const BORDER = '0.5px solid #D3D1C7';
@@ -10,6 +15,10 @@ const BORDER = '0.5px solid #D3D1C7';
 function AppShell() {
   const [view, setView] = useState('dashboard');
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const { currentUser } = useUsers();
+  const { data } = useApp();
+
+  if (!currentUser) return <LoginScreen />;
 
   const handleOpenDetail = (id) => {
     setSelectedProduct(id);
@@ -22,30 +31,40 @@ function AppShell() {
   };
 
   const handleNavigate = (newView) => {
-    if (newView === 'dashboard') handleBack();
-    else setView(newView);
+    if (newView === 'dashboard') {
+      setSelectedProduct(null);
+      setView('dashboard');
+    } else {
+      setView(newView);
+    }
   };
 
+  const activeNav = view === 'detail' ? 'dashboard' : view;
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        height: '100vh',
-        border: BORDER,
-        borderRadius: 10,
-        overflow: 'hidden',
-        background: '#F1EFE8',
-        maxWidth: 1200,
-        margin: '0 auto',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
-      }}
-    >
+    <div style={{
+      display: 'flex',
+      height: '100vh',
+      border: BORDER,
+      borderRadius: 10,
+      overflow: 'hidden',
+      background: '#F1EFE8',
+      maxWidth: 1200,
+      margin: '0 auto',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
+    }}>
       <Sidebar
-        activeView={view === 'detail' ? 'dashboard' : view}
+        activeView={activeNav}
         onNavigate={handleNavigate}
+        productCount={data.products.length}
       />
+
       {view === 'detail' && selectedProduct ? (
         <ProductDetail productId={selectedProduct} onBack={handleBack} />
+      ) : view === 'settings' ? (
+        <Configuracion />
+      ) : view === 'reports' ? (
+        <Reportes />
       ) : (
         <Dashboard onOpenDetail={handleOpenDetail} />
       )}
@@ -56,9 +75,11 @@ function AppShell() {
 export default function App() {
   return (
     <div style={{ minHeight: '100vh', background: '#E8E6DF', padding: '20px' }}>
-      <AppProvider>
-        <AppShell />
-      </AppProvider>
+      <UserProvider>
+        <AppProvider>
+          <AppShell />
+        </AppProvider>
+      </UserProvider>
     </div>
   );
 }
