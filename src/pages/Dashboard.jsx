@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { LoadingScreen, ErrorScreen } from '../components/StateScreens';
 
 const ML_GREEN = '#0F6E56';
 const ML_GREEN_LIGHT = '#E1F5EE';
@@ -22,7 +21,8 @@ const stageLabels = { 0: 'Detección', 1: 'Análisis', 2: 'Confirmación' };
 const stageClasses = { 0: 'stage-1', 1: 'stage-2', 2: 'stage-3' };
 
 export default function Dashboard({ onOpenDetail }) {
-  const { products, loading, error } = useApp();
+  const { data } = useApp();
+  const products = data.products;
   const [activeFilter, setActiveFilter] = useState('all');
 
   const counts = {
@@ -42,9 +42,6 @@ export default function Dashboard({ onOpenDetail }) {
     { key: '1', label: 'Análisis' },
     { key: '2', label: 'Confirmación' },
   ];
-
-  if (loading) return <LoadingScreen message="Cargando productos desde SharePoint..." />;
-  if (error) return <ErrorScreen message={error} />;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

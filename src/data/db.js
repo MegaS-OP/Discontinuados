@@ -6,7 +6,8 @@ export const STAGE_STYLES = {
   2: { pill: 'stage-3', label: 'Confirmación' },
 };
 
-export const initialProducts = [
+const initialData = {
+  products: [
     {
       id: 'CU-125678',
       nombre: 'Rowe Comp 500mg',
@@ -225,4 +226,22 @@ export const initialProducts = [
         { id: 'A012', text: 'Inventario de materiales revisado — hay stock para 3 meses', time: '14/05 16:30' },
       ],
     },
-];
+  ],
+};
+
+const STORAGE_KEY = 'megalabs_discontinuados_v2';
+
+export function loadData() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {
+    // ignore
+  }
+  saveData(initialData);
+  return initialData;
+}
+
+export function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
