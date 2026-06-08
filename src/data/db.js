@@ -1,0 +1,516 @@
+export const STAGES = ['Detección', 'Análisis', 'Confirmación'];
+
+export const STATUS_LABELS = {
+  pendiente: 'Pendiente',
+  en_progreso: 'En Progreso',
+  completado: 'Completado',
+  bloqueado: 'Bloqueado',
+};
+
+export const PRIORITY_LABELS = {
+  alta: 'Alta',
+  media: 'Media',
+  baja: 'Baja',
+};
+
+const initialData = {
+  products: [
+    {
+      id: 'P001',
+      nombre: 'AMOXIDAL 500mg Cápsulas',
+      laboratorio: 'Megalabs Uruguay',
+      categoria: 'Antibióticos',
+      sku: 'MGL-AMX-500-30',
+      etapaActual: 1,
+      prioridad: 'alta',
+      responsable: 'María González',
+      fechaInicio: '2025-01-15',
+      fechaEstimada: '2025-04-30',
+      etapas: [
+        {
+          nombre: 'Detección',
+          estado: 'completado',
+          fechaInicio: '2025-01-15',
+          fechaFin: '2025-02-10',
+          hitos: [
+            {
+              id: 'H001',
+              titulo: 'Identificación de bajo rendimiento en ventas',
+              responsable: 'Lucía Martínez',
+              estado: 'completado',
+              fechaLimite: '2025-01-25',
+              fechaCompletado: '2025-01-22',
+              notas: 'Caída del 35% en ventas respecto al año anterior',
+            },
+            {
+              id: 'H002',
+              titulo: 'Revisión de inventario actual',
+              responsable: 'Carlos Pérez',
+              estado: 'completado',
+              fechaLimite: '2025-02-05',
+              fechaCompletado: '2025-02-03',
+              notas: 'Stock: 12,500 unidades en 3 depósitos',
+            },
+            {
+              id: 'H003',
+              titulo: 'Notificación a equipos de ventas regionales',
+              responsable: 'María González',
+              estado: 'completado',
+              fechaLimite: '2025-02-10',
+              fechaCompletado: '2025-02-09',
+              notas: '',
+            },
+          ],
+        },
+        {
+          nombre: 'Análisis',
+          estado: 'en_progreso',
+          fechaInicio: '2025-02-11',
+          fechaFin: null,
+          hitos: [
+            {
+              id: 'H004',
+              titulo: 'Análisis de impacto financiero',
+              responsable: 'Roberto Silva',
+              estado: 'completado',
+              fechaLimite: '2025-03-01',
+              fechaCompletado: '2025-02-28',
+              notas: 'Pérdida estimada: USD 45,000 si se discontinúa ahora',
+            },
+            {
+              id: 'H005',
+              titulo: 'Evaluación de alternativas terapéuticas',
+              responsable: 'Dra. Ana Ruiz',
+              estado: 'en_progreso',
+              fechaLimite: '2025-03-20',
+              fechaCompletado: null,
+              notas: 'Revisando 4 productos sustitutos del portfolio',
+            },
+            {
+              id: 'H006',
+              titulo: 'Consulta con equipos regulatorios',
+              responsable: 'Jorge Mendoza',
+              estado: 'pendiente',
+              fechaLimite: '2025-04-01',
+              fechaCompletado: null,
+              notas: '',
+            },
+          ],
+        },
+        {
+          nombre: 'Confirmación',
+          estado: 'pendiente',
+          fechaInicio: null,
+          fechaFin: null,
+          hitos: [
+            {
+              id: 'H007',
+              titulo: 'Aprobación del comité de portafolio',
+              responsable: 'Directorio',
+              estado: 'pendiente',
+              fechaLimite: '2025-04-15',
+              fechaCompletado: null,
+              notas: '',
+            },
+            {
+              id: 'H008',
+              titulo: 'Comunicación oficial a distribuidores',
+              responsable: 'María González',
+              estado: 'pendiente',
+              fechaLimite: '2025-04-25',
+              fechaCompletado: null,
+              notas: '',
+            },
+            {
+              id: 'H009',
+              titulo: 'Gestión de stock remanente',
+              responsable: 'Carlos Pérez',
+              estado: 'pendiente',
+              fechaLimite: '2025-04-30',
+              fechaCompletado: null,
+              notas: '',
+            },
+          ],
+        },
+      ],
+      actividades: [
+        {
+          id: 'A001',
+          tipo: 'comentario',
+          autor: 'María González',
+          fecha: '2025-02-28T10:30:00',
+          contenido: 'El análisis financiero confirma la tendencia negativa. Necesitamos avanzar con la evaluación de alternativas.',
+        },
+        {
+          id: 'A002',
+          tipo: 'hito',
+          autor: 'Sistema',
+          fecha: '2025-02-28T09:00:00',
+          contenido: 'Hito completado: Análisis de impacto financiero',
+        },
+        {
+          id: 'A003',
+          tipo: 'cambio_etapa',
+          autor: 'Sistema',
+          fecha: '2025-02-11T08:00:00',
+          contenido: 'Producto avanzó de Detección a Análisis',
+        },
+        {
+          id: 'A004',
+          tipo: 'comentario',
+          autor: 'Roberto Silva',
+          fecha: '2025-02-05T14:15:00',
+          contenido: 'Confirmo inventario levantado. Coordinando con logística para el conteo final.',
+        },
+      ],
+    },
+    {
+      id: 'P002',
+      nombre: 'CARDIOMAX 10mg Comprimidos',
+      laboratorio: 'Megalabs Chile',
+      categoria: 'Cardiovascular',
+      sku: 'MGL-CDX-010-60',
+      etapaActual: 0,
+      prioridad: 'media',
+      responsable: 'Juan Torres',
+      fechaInicio: '2025-03-01',
+      fechaEstimada: '2025-06-30',
+      etapas: [
+        {
+          nombre: 'Detección',
+          estado: 'en_progreso',
+          fechaInicio: '2025-03-01',
+          fechaFin: null,
+          hitos: [
+            {
+              id: 'H010',
+              titulo: 'Alerta de demanda decreciente',
+              responsable: 'Valentina Ríos',
+              estado: 'completado',
+              fechaLimite: '2025-03-10',
+              fechaCompletado: '2025-03-08',
+              notas: 'Demanda cayó 28% en el último trimestre',
+            },
+            {
+              id: 'H011',
+              titulo: 'Auditoría de fechas de vencimiento',
+              responsable: 'Juan Torres',
+              estado: 'en_progreso',
+              fechaLimite: '2025-03-25',
+              fechaCompletado: null,
+              notas: 'El 60% del stock vence antes de julio 2025',
+            },
+            {
+              id: 'H012',
+              titulo: 'Reporte preliminar a gerencia',
+              responsable: 'Juan Torres',
+              estado: 'pendiente',
+              fechaLimite: '2025-03-31',
+              fechaCompletado: null,
+              notas: '',
+            },
+          ],
+        },
+        {
+          nombre: 'Análisis',
+          estado: 'pendiente',
+          fechaInicio: null,
+          fechaFin: null,
+          hitos: [
+            {
+              id: 'H013',
+              titulo: 'Estudio de mercado regional',
+              responsable: 'Valentina Ríos',
+              estado: 'pendiente',
+              fechaLimite: '2025-04-30',
+              fechaCompletado: null,
+              notas: '',
+            },
+            {
+              id: 'H014',
+              titulo: 'Análisis de impacto en pacientes crónicos',
+              responsable: 'Dra. Patricia Vega',
+              estado: 'pendiente',
+              fechaLimite: '2025-05-15',
+              fechaCompletado: null,
+              notas: '',
+            },
+          ],
+        },
+        {
+          nombre: 'Confirmación',
+          estado: 'pendiente',
+          fechaInicio: null,
+          fechaFin: null,
+          hitos: [
+            {
+              id: 'H015',
+              titulo: 'Decisión final del comité',
+              responsable: 'Directorio',
+              estado: 'pendiente',
+              fechaLimite: '2025-06-15',
+              fechaCompletado: null,
+              notas: '',
+            },
+            {
+              id: 'H016',
+              titulo: 'Plan de transición para pacientes',
+              responsable: 'Juan Torres',
+              estado: 'pendiente',
+              fechaLimite: '2025-06-30',
+              fechaCompletado: null,
+              notas: '',
+            },
+          ],
+        },
+      ],
+      actividades: [
+        {
+          id: 'A005',
+          tipo: 'comentario',
+          autor: 'Juan Torres',
+          fecha: '2025-03-08T11:00:00',
+          contenido: 'Confirmada la caída en demanda. El equipo de ventas en Chile reporta competencia fuerte de genéricos.',
+        },
+        {
+          id: 'A006',
+          tipo: 'hito',
+          autor: 'Sistema',
+          fecha: '2025-03-08T09:00:00',
+          contenido: 'Hito completado: Alerta de demanda decreciente',
+        },
+      ],
+    },
+    {
+      id: 'P003',
+      nombre: 'VITAMINOL Complex Jarabe',
+      laboratorio: 'Megalabs Paraguay',
+      categoria: 'Vitaminas',
+      sku: 'MGL-VTC-JAR-200',
+      etapaActual: 2,
+      prioridad: 'baja',
+      responsable: 'Sofia Herrera',
+      fechaInicio: '2024-11-01',
+      fechaEstimada: '2025-03-31',
+      etapas: [
+        {
+          nombre: 'Detección',
+          estado: 'completado',
+          fechaInicio: '2024-11-01',
+          fechaFin: '2024-12-15',
+          hitos: [
+            {
+              id: 'H017',
+              titulo: 'Identificación de obsolescencia de fórmula',
+              responsable: 'Dr. Miguel Acosta',
+              estado: 'completado',
+              fechaLimite: '2024-11-20',
+              fechaCompletado: '2024-11-18',
+              notas: '',
+            },
+            {
+              id: 'H018',
+              titulo: 'Mapeo de clientes afectados',
+              responsable: 'Sofia Herrera',
+              estado: 'completado',
+              fechaLimite: '2024-12-10',
+              fechaCompletado: '2024-12-08',
+              notas: '45 farmacias y 12 distribuidores impactados',
+            },
+          ],
+        },
+        {
+          nombre: 'Análisis',
+          estado: 'completado',
+          fechaInicio: '2024-12-16',
+          fechaFin: '2025-02-28',
+          hitos: [
+            {
+              id: 'H019',
+              titulo: 'Análisis de reemplazos disponibles',
+              responsable: 'Dr. Miguel Acosta',
+              estado: 'completado',
+              fechaLimite: '2025-01-20',
+              fechaCompletado: '2025-01-17',
+              notas: 'VITAMINOL Pro identificado como sustituto',
+            },
+            {
+              id: 'H020',
+              titulo: 'Evaluación financiera completa',
+              responsable: 'Roberto Silva',
+              estado: 'completado',
+              fechaLimite: '2025-02-28',
+              fechaCompletado: '2025-02-25',
+              notas: 'Aprobado: ahorro anual estimado USD 120,000',
+            },
+          ],
+        },
+        {
+          nombre: 'Confirmación',
+          estado: 'en_progreso',
+          fechaInicio: '2025-03-01',
+          fechaFin: null,
+          hitos: [
+            {
+              id: 'H021',
+              titulo: 'Aprobación comité ejecutivo',
+              responsable: 'Directorio',
+              estado: 'completado',
+              fechaLimite: '2025-03-10',
+              fechaCompletado: '2025-03-07',
+              notas: 'Aprobado por unanimidad',
+            },
+            {
+              id: 'H022',
+              titulo: 'Notificación formal a canales',
+              responsable: 'Sofia Herrera',
+              estado: 'en_progreso',
+              fechaLimite: '2025-03-25',
+              fechaCompletado: null,
+              notas: '38 de 57 notificaciones enviadas',
+            },
+            {
+              id: 'H023',
+              titulo: 'Liquidación y cierre de inventario',
+              responsable: 'Carlos Pérez',
+              estado: 'pendiente',
+              fechaLimite: '2025-03-31',
+              fechaCompletado: null,
+              notas: '',
+            },
+          ],
+        },
+      ],
+      actividades: [
+        {
+          id: 'A007',
+          tipo: 'hito',
+          autor: 'Sistema',
+          fecha: '2025-03-07T09:00:00',
+          contenido: 'Hito completado: Aprobación comité ejecutivo',
+        },
+        {
+          id: 'A008',
+          tipo: 'cambio_etapa',
+          autor: 'Sistema',
+          fecha: '2025-03-01T08:00:00',
+          contenido: 'Producto avanzó de Análisis a Confirmación',
+        },
+        {
+          id: 'A009',
+          tipo: 'comentario',
+          autor: 'Sofia Herrera',
+          fecha: '2025-02-26T15:30:00',
+          contenido: 'El directorio revisará la propuesta en la reunión del 7 de marzo. Documentación lista.',
+        },
+      ],
+    },
+    {
+      id: 'P004',
+      nombre: 'DERMASOFT Crema 50g',
+      laboratorio: 'Megalabs Argentina',
+      categoria: 'Dermatología',
+      sku: 'MGL-DRM-CRM-50',
+      etapaActual: 0,
+      prioridad: 'alta',
+      responsable: 'Pablo Sosa',
+      fechaInicio: '2025-03-10',
+      fechaEstimada: '2025-07-15',
+      etapas: [
+        {
+          nombre: 'Detección',
+          estado: 'en_progreso',
+          fechaInicio: '2025-03-10',
+          fechaFin: null,
+          hitos: [
+            {
+              id: 'H024',
+              titulo: 'Reporte de quejas de calidad',
+              responsable: 'QA - Beatriz Lemos',
+              estado: 'completado',
+              fechaLimite: '2025-03-18',
+              fechaCompletado: '2025-03-15',
+              notas: '12 quejas en los últimos 2 meses por cambio de textura',
+            },
+            {
+              id: 'H025',
+              titulo: 'Evaluación de viabilidad de reformulación',
+              responsable: 'I+D - Hernán Paz',
+              estado: 'bloqueado',
+              fechaLimite: '2025-04-01',
+              fechaCompletado: null,
+              notas: 'Bloqueado: proveedor de ingrediente activo sin stock',
+            },
+          ],
+        },
+        {
+          nombre: 'Análisis',
+          estado: 'pendiente',
+          fechaInicio: null,
+          fechaFin: null,
+          hitos: [
+            {
+              id: 'H026',
+              titulo: 'Análisis de alternativas de proveedor',
+              responsable: 'Compras - Laura Núñez',
+              estado: 'pendiente',
+              fechaLimite: '2025-05-01',
+              fechaCompletado: null,
+              notas: '',
+            },
+          ],
+        },
+        {
+          nombre: 'Confirmación',
+          estado: 'pendiente',
+          fechaInicio: null,
+          fechaFin: null,
+          hitos: [
+            {
+              id: 'H027',
+              titulo: 'Decisión: reformular o discontinuar',
+              responsable: 'Directorio',
+              estado: 'pendiente',
+              fechaLimite: '2025-07-01',
+              fechaCompletado: null,
+              notas: '',
+            },
+          ],
+        },
+      ],
+      actividades: [
+        {
+          id: 'A010',
+          tipo: 'comentario',
+          autor: 'Pablo Sosa',
+          fecha: '2025-03-16T09:45:00',
+          contenido: 'URGENTE: El bloqueo en I+D puede retrasar todo el proceso. Escalando a gerencia de compras.',
+        },
+        {
+          id: 'A011',
+          tipo: 'hito',
+          autor: 'Sistema',
+          fecha: '2025-03-15T08:00:00',
+          contenido: 'Hito completado: Reporte de quejas de calidad',
+        },
+      ],
+    },
+  ],
+};
+
+const STORAGE_KEY = 'megalabs_discontinuados';
+
+export function loadData() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {
+    // ignore
+  }
+  saveData(initialData);
+  return initialData;
+}
+
+export function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
