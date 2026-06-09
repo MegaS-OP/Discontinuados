@@ -12,9 +12,9 @@ function downloadTemplate() {
 
   // Hoja Discontinuados
   const prodData = [
-    ['Cia', 'Producto', 'BU', 'Fabricante', 'Observaciones', 'Codigo'],
-    ['Arg-Mlb', 'Ejemplo Producto 1', 'Primary', 'Roe-Arg', '', ''],
-    ['Bol-Mlb', 'Ejemplo Producto 2', 'Consumer', 'Urufarma', 'Reemplazado por X', '002-001-1077'],
+    ['Cia', 'Producto', 'BU', 'Fabricante', 'Observaciones', 'Codigo', 'MPH'],
+    ['Arg-Mlb', 'Ejemplo Producto 1', 'Primary', 'Roe-Arg', '', '', ''],
+    ['Bol-Mlb', 'Ejemplo Producto 2', 'Consumer', 'Urufarma', 'Reemplazado por X', '002-001-1077', 'ABC'],
   ];
   const ws1 = XLSX.utils.aoa_to_sheet(prodData);
   ws1['!cols'] = [{ wch: 12 }, { wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 36 }, { wch: 16 }];
@@ -50,6 +50,7 @@ function parseExcel(file) {
           fabricante: headers.findIndex((h) => h.includes('fabricante') || h.includes('planta')),
           bu: headers.findIndex((h) => h.includes('bu') || h.includes('business') || h.includes('area')),
           obs: headers.findIndex((h) => h.includes('observ')),
+          mph: headers.findIndex((h) => h === 'mph'),
         };
 
         const products = [];
@@ -70,6 +71,7 @@ function parseExcel(file) {
           products.push({
             id: `CU-${Date.now().toString().slice(-6)}${i}`,
             codigo: idx.codigo >= 0 ? String(row[idx.codigo] ?? '').trim() : '',
+            mph: idx.mph >= 0 ? String(row[idx.mph] ?? '').trim() : '',
             nombre,
             paisCompania: String(row[idx.paisCia] ?? '').trim() || '',
             paisPlanta: String(row[idx.fabricante] ?? '').trim() || '',

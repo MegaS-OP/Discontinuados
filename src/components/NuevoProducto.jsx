@@ -25,7 +25,7 @@ const inputStyle = {
 export default function NuevoProducto({ onClose }) {
   const { addProduct } = useApp();
   const [form, setForm] = useState({
-    codigo: '', nombre: '', paisCompania: '', paisPlanta: '', bu: '', observaciones: '',
+    codigo: '', nombre: '', paisCompania: '', paisPlanta: '', bu: '', mph: '', observaciones: '',
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -61,6 +61,7 @@ export default function NuevoProducto({ onClose }) {
       paisCompania: form.paisCompania,
       paisPlanta: form.paisPlanta,
       bu: form.bu,
+      mph: form.mph.trim(),
       observaciones: form.observaciones.trim(),
       etapaActual: 0,
       progreso: 0,
@@ -124,13 +125,18 @@ export default function NuevoProducto({ onClose }) {
             </Field>
           </div>
 
-          <Field label="BU" required>
-            <select value={form.bu} onChange={set('bu')} style={{ ...inputStyle, borderColor: errors.bu ? '#C0392B' : undefined, cursor: 'pointer' }}>
-              <option value="">Seleccionar...</option>
-              {BUS.map((b) => <option key={b}>{b}</option>)}
-            </select>
-            {errors.bu && <span style={{ fontSize: 10, color: '#C0392B' }}>{errors.bu}</span>}
-          </Field>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
+            <Field label="BU" required>
+              <select value={form.bu} onChange={set('bu')} style={{ ...inputStyle, borderColor: errors.bu ? '#C0392B' : undefined, cursor: 'pointer' }}>
+                <option value="">Seleccionar...</option>
+                {BUS.map((b) => <option key={b}>{b}</option>)}
+              </select>
+              {errors.bu && <span style={{ fontSize: 10, color: '#C0392B' }}>{errors.bu}</span>}
+            </Field>
+            <Field label="MPH">
+              <input value={form.mph} onChange={set('mph')} placeholder="—" style={inputStyle} />
+            </Field>
+          </div>
 
           <Field label="Observaciones">
             <textarea
