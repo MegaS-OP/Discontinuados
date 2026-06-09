@@ -187,7 +187,17 @@ export default function ProductDetail({ productId, onBack }) {
                           {h.fechaReal !== '-' && <span style={{ fontSize: 10, color: ML_GREEN }}>✓ {h.fechaReal}</span>}
                         </div>
                         {hasExtras && (
-                          <div style={{ padding: '0 10px 8px 36px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <div style={{
+                            margin: '0 10px 8px 36px',
+                            padding: '8px 10px',
+                            borderRadius: 4,
+                            background: h.label === 'Análisis de granel' ? '#EEF4FF' : '#FFF8EE',
+                            border: `0.5px solid ${h.label === 'Análisis de granel' ? '#B8D4F0' : '#F0D4A0'}`,
+                            display: 'flex', flexDirection: 'column', gap: 6,
+                          }}>
+                            <div style={{ fontSize: 10, fontWeight: 600, color: h.label === 'Análisis de granel' ? '#185FA5' : '#854F0B', marginBottom: 2 }}>
+                              {h.label === 'Análisis de granel' ? '📊 Oficina de Estrategia' : '🏭 Planta'}
+                            </div>
                             <textarea
                               value={h.notas || ''}
                               onChange={(e) => updateHitoExtras(product.id, h.id, { notas: e.target.value })}
