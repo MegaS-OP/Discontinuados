@@ -14,7 +14,7 @@ export const FABRICANTES = [
   'Uru-Cel', 'Uru-Icl', 'Uru-Mlb', 'Uru-Pdc', 'Urufarma', 'Usa-Mlb',
 ];
 
-export const BUS = ['Primary', 'Consumer', 'Divise', 'Hi-Tech', 'Nutraceuitcal'];
+export const BUS = ['Primary', 'Consumer', 'Divise', 'Hi-Tech', 'Nutraceutical'];
 
 // Hitos estándar del proceso — igual para todos los productos
 export const HITOS_TEMPLATE = [
@@ -1835,7 +1835,7 @@ const initialData = {
       nombre: 'ENTEREX PLUS VAINILLA 237 ML',
       paisCompania: 'Col-Mlb',
       paisPlanta: 'Usa-Mlb',
-      bu: 'Nutraceuitcal',
+      bu: 'Nutraceutical',
       observaciones: '',
       mph: '',
       etapaActual: 0,
@@ -1857,7 +1857,7 @@ const initialData = {
       nombre: 'ENTEREX TOTAL LIQUIDO FRESA 237 ML',
       paisCompania: 'Col-Mlb',
       paisPlanta: 'Usa-Mlb',
-      bu: 'Nutraceuitcal',
+      bu: 'Nutraceutical',
       observaciones: '',
       mph: '',
       etapaActual: 0,
@@ -1879,7 +1879,7 @@ const initialData = {
       nombre: 'ENTEREX TOTAL LIQUIDO VAINILLA 237 ML',
       paisCompania: 'Col-Mlb',
       paisPlanta: 'Usa-Mlb',
-      bu: 'Nutraceuitcal',
+      bu: 'Nutraceutical',
       observaciones: '',
       mph: '',
       etapaActual: 0,
@@ -2800,7 +2800,7 @@ const initialData = {
       nombre: 'Glutapak 5R Polvo 7.5 grs (50/CS)',
       paisCompania: 'Mex-Mlb',
       paisPlanta: 'Usa-Mlb',
-      bu: 'Nutraceuitcal',
+      bu: 'Nutraceutical',
       observaciones: '',
       mph: '',
       etapaActual: 0,
