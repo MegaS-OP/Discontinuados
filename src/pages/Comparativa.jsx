@@ -48,10 +48,22 @@ function BarChart({ rows, year, color, max }) {
   );
 }
 
-function KpiCard({ label, value, color, bg }) {
+function KpiCard({ label, value, color, bg, active, onClick }) {
   return (
-    <div style={{ background: bg, border: BORDER, borderRadius: 8, padding: '12px 16px' }}>
-      <div style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 3 }}>{label}</div>
+    <div
+      onClick={onClick}
+      style={{
+        background: active ? bg : '#fff',
+        border: active ? `2px solid ${color}` : BORDER,
+        borderRadius: 8, padding: '12px 16px',
+        cursor: 'pointer', transition: 'all 0.15s',
+        boxShadow: active ? `0 2px 10px ${color}33` : 'none',
+      }}
+    >
+      <div style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+        {label}
+        {active && <span style={{ fontSize: 9, background: color, color: '#fff', borderRadius: 8, padding: '1px 5px', fontWeight: 600 }}>activo</span>}
+      </div>
       <div style={{ fontSize: 26, fontWeight: 600, color }}>{value || '—'}</div>
     </div>
   );
@@ -98,6 +110,9 @@ export default function Comparativa() {
   const [filterBu, setFilterBu] = useState('');
   const [vista, setVista] = useState('cia'); // 'cia' | 'bu'
   const [expanded, setExpanded] = useState(null);
+  const [selectedYear, setSelectedYear] = useState(null); // 2024 | 2025 | 2026 | null
+
+  const toggleYear = (y) => setSelectedYear((prev) => prev === y ? null : y);
 
   useEffect(() => { localStorage.setItem(HIST_KEY, JSON.stringify(hist)); }, [hist]);
   useEffect(() => {
@@ -194,20 +209,28 @@ export default function Comparativa() {
 
         {/* KPI strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
-          <KpiCard label="Discontinuados 2024" value={total2024} color={Y_COLORS[2024]} bg={Y_BG[2024]} />
-          <KpiCard label="Discontinuados 2025" value={total2025} color={Y_COLORS[2025]} bg={Y_BG[2025]} />
-          <KpiCard label="Discontinuados 2026" value={total2026} color={Y_COLORS[2026]} bg={Y_BG[2026]} />
+          <KpiCard label="Discontinuados 2024" value={total2024} color={Y_COLORS[2024]} bg={Y_BG[2024]} active={selectedYear === 2024} onClick={() => toggleYear(2024)} />
+          <KpiCard label="Discontinuados 2025" value={total2025} color={Y_COLORS[2025]} bg={Y_BG[2025]} active={selectedYear === 2025} onClick={() => toggleYear(2025)} />
+          <KpiCard label="Discontinuados 2026" value={total2026} color={Y_COLORS[2026]} bg={Y_BG[2026]} active={selectedYear === 2026} onClick={() => toggleYear(2026)} />
         </div>
 
         {/* Chart + Table layout */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12, marginBottom: 12 }}>
 
           {/* Chart */}
-          <div style={{ background: '#fff', border: BORDER, borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ background: '#fff', border: selectedYear ? `2px solid ${Y_COLORS[selectedYear]}` : BORDER, borderRadius: 8, padding: '12px 14px', transition: 'border 0.2s' }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: '#1A1A1A', marginBottom: 10 }}>
-              2026 · {vista === 'cia' ? 'Por Compañía' : 'Por BU'}
+              {selectedYear || 2026} · {vista === 'cia' ? 'Por Compañía' : 'Por BU'}
             </div>
-            <BarChart rows={chartRows} color={ML_GREEN} max={chartMax} />
+            <BarChart
+              rows={selectedYear === 2024
+                ? (vista === 'cia' ? CIAS.filter(c => !filterCia || c === filterCia).map(c => ({ label: c, value: parseInt(hist[c]?.y2024) || 0 })) : buRows)
+                : selectedYear === 2025
+                  ? (vista === 'cia' ? CIAS.filter(c => !filterCia || c === filterCia).map(c => ({ label: c, value: parseInt(hist[c]?.y2025) || 0 })) : buRows)
+                  : chartRows}
+              color={Y_COLORS[selectedYear || 2026]}
+              max={null}
+            />
           </div>
 
           {/* Table */}
@@ -220,11 +243,11 @@ export default function Comparativa() {
                   </th>
                   {vista === 'cia' && (
                     <>
-                      <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, fontSize: 11, color: Y_COLORS[2024], borderBottom: BORDER }}>2024</th>
-                      <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, fontSize: 11, color: Y_COLORS[2025], borderBottom: BORDER }}>2025</th>
+                      <th onClick={() => toggleYear(2024)} style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, fontSize: 11, color: Y_COLORS[2024], borderBottom: BORDER, cursor: 'pointer', background: selectedYear === 2024 ? Y_BG[2024] : 'transparent' }}>2024 {selectedYear === 2024 ? '▲' : ''}</th>
+                      <th onClick={() => toggleYear(2025)} style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, fontSize: 11, color: Y_COLORS[2025], borderBottom: BORDER, cursor: 'pointer', background: selectedYear === 2025 ? Y_BG[2025] : 'transparent' }}>2025 {selectedYear === 2025 ? '▲' : ''}</th>
                     </>
                   )}
-                  <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, fontSize: 11, color: Y_COLORS[2026], borderBottom: BORDER }}>2026</th>
+                  <th onClick={() => toggleYear(2026)} style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, fontSize: 11, color: Y_COLORS[2026], borderBottom: BORDER, cursor: 'pointer', background: selectedYear === 2026 ? Y_BG[2026] : 'transparent' }}>2026 {selectedYear === 2026 ? '▲' : ''}</th>
                   <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, fontSize: 11, color: '#5F5E5A', borderBottom: BORDER }}>% del total</th>
                   <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, fontSize: 11, color: '#5F5E5A', borderBottom: BORDER }}></th>
                 </tr>
@@ -248,10 +271,10 @@ export default function Comparativa() {
                       </td>
                       {vista === 'cia' && (
                         <>
-                          <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                          <td style={{ padding: '8px 10px', textAlign: 'center', background: selectedYear === 2024 ? Y_BG[2024] : 'transparent', opacity: selectedYear && selectedYear !== 2024 ? 0.3 : 1, transition: 'opacity 0.2s' }}>
                             <EditableNum value={v24 || ''} onChange={(val) => setHistField(cia, 'y2024', val)} color={Y_COLORS[2024]} bg={Y_BG[2024]} />
                           </td>
-                          <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                          <td style={{ padding: '8px 10px', textAlign: 'center', background: selectedYear === 2025 ? Y_BG[2025] : 'transparent', opacity: selectedYear && selectedYear !== 2025 ? 0.3 : 1, transition: 'opacity 0.2s' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                               <EditableNum value={v25 || ''} onChange={(val) => setHistField(cia, 'y2025', val)} color={Y_COLORS[2025]} bg={Y_BG[2025]} />
                               {trend !== null && (
@@ -263,7 +286,7 @@ export default function Comparativa() {
                           </td>
                         </>
                       )}
-                      <td style={{ padding: '8px 10px', textAlign: 'center', fontWeight: v26 ? 600 : 400, color: v26 ? ML_GREEN : '#C0C0C0', fontSize: 13 }}>{v26 || '—'}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'center', fontWeight: v26 ? 600 : 400, color: v26 ? ML_GREEN : '#C0C0C0', fontSize: 13, background: selectedYear === 2026 ? Y_BG[2026] : 'transparent', opacity: selectedYear && selectedYear !== 2026 ? 0.3 : 1, transition: 'opacity 0.2s' }}>{v26 || '—'}</td>
                       <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                         {v26 > 0 ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}>
