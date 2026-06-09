@@ -11,11 +11,35 @@ export const HITOS_TEMPLATE = [
   { etapa: 1, label: 'Inventario materiales' },
   { etapa: 1, label: 'Costo destrucción' },
   { etapa: 1, label: 'Última OC' },
+  { etapa: 1, label: 'Análisis de granel' },
+  { etapa: 1, label: 'Análisis de impacto planta' },
   { etapa: 2, label: 'Confirmación MKT' },
   { etapa: 2, label: 'Plan desagote' },
   { etapa: 2, label: 'Inactivación código' },
   { etapa: 2, label: 'Notificación final' },
 ];
+
+const RESPONSABLES_DEFAULT = {
+  'Definición MKT': 'Mkt Corp',
+  'Compliance': 'Compliance',
+  'AARR': 'AARR',
+  'Presupuesto': 'Finanzas',
+  'Inventario PT': 'Planta',
+  'Producción en curso': 'Planta',
+  'Inventario materiales': 'Planta',
+  'Costo destrucción': 'Planta',
+  'Última OC': 'Supply Corp',
+  'Análisis de granel': 'Oficina de Estrategia',
+  'Análisis de impacto planta': 'Planta',
+  'Confirmación MKT': 'Mkt Corp',
+  'Plan desagote': 'Supply Corp',
+  'Inactivación código': 'Supply Corp',
+  'Notificación final': 'S&OP',
+};
+
+function defaultResponsable(label) {
+  return RESPONSABLES_DEFAULT[label] || '';
+}
 
 export function makeHitos(overrides = []) {
   return HITOS_TEMPLATE.map((t, i) => {
@@ -24,7 +48,7 @@ export function makeHitos(overrides = []) {
       id: `H${i}_${Date.now()}`,
       etapa: t.etapa,
       label: t.label,
-      responsable: ov.responsable || '',
+      responsable: ov.responsable || defaultResponsable(t.label),
       done: ov.done || false,
       fechaCompromiso: ov.fechaCompromiso || '-',
       fechaReal: ov.fechaReal || '-',
@@ -71,6 +95,8 @@ const initialData = {
         { id: 'H007', etapa: 1, label: 'Inventario materiales', responsable: 'Planta', done: false, fechaCompromiso: '25/05/2025', fechaReal: '-' },
         { id: 'H008', etapa: 1, label: 'Costo destrucción', responsable: 'Planta', done: false, fechaCompromiso: '30/05/2025', fechaReal: '-' },
         { id: 'H009', etapa: 1, label: 'Última OC', responsable: 'Supply Corp', done: false, fechaCompromiso: '30/05/2025', fechaReal: '-' },
+        { id: 'H009b', etapa: 1, label: 'Análisis de granel', responsable: 'Oficina de Estrategia', done: false, fechaCompromiso: '-', fechaReal: '-' },
+        { id: 'H009c', etapa: 1, label: 'Análisis de impacto planta', responsable: 'Planta', done: false, fechaCompromiso: '-', fechaReal: '-' },
         { id: 'H010', etapa: 2, label: 'Confirmación MKT', responsable: 'Mkt Corp', done: false, fechaCompromiso: '-', fechaReal: '-' },
         { id: 'H011', etapa: 2, label: 'Plan desagote', responsable: 'Supply Corp', done: false, fechaCompromiso: '-', fechaReal: '-' },
         { id: 'H012', etapa: 2, label: 'Inactivación código', responsable: 'Supply Corp', done: false, fechaCompromiso: '-', fechaReal: '-' },
@@ -109,6 +135,8 @@ const initialData = {
         { id: 'H020', etapa: 1, label: 'Inventario materiales', responsable: 'Planta', done: true, fechaCompromiso: '05/05/2025', fechaReal: '05/05/2025' },
         { id: 'H021', etapa: 1, label: 'Costo destrucción', responsable: 'Planta', done: true, fechaCompromiso: '10/05/2025', fechaReal: '10/05/2025' },
         { id: 'H022', etapa: 1, label: 'Última OC', responsable: 'Supply Corp', done: true, fechaCompromiso: '12/05/2025', fechaReal: '14/05/2025' },
+        { id: 'H022b', etapa: 1, label: 'Análisis de granel', responsable: 'Oficina de Estrategia', done: true, fechaCompromiso: '15/05/2025', fechaReal: '15/05/2025' },
+        { id: 'H022c', etapa: 1, label: 'Análisis de impacto planta', responsable: 'Planta', done: true, fechaCompromiso: '16/05/2025', fechaReal: '16/05/2025' },
         { id: 'H023', etapa: 2, label: 'Confirmación MKT', responsable: 'Mkt Corp', done: true, fechaCompromiso: '16/05/2025', fechaReal: '16/05/2025' },
         { id: 'H024', etapa: 2, label: 'Plan desagote', responsable: 'Supply Corp', done: true, fechaCompromiso: '18/05/2025', fechaReal: '18/05/2025' },
         { id: 'H025', etapa: 2, label: 'Inactivación código', responsable: 'Supply Corp', done: false, fechaCompromiso: '25/05/2025', fechaReal: '-' },
@@ -286,7 +314,7 @@ const initialData = {
   ],
 };
 
-const STORAGE_KEY = 'megalabs_discontinuados_v3';
+const STORAGE_KEY = 'megalabs_discontinuados_v4';
 
 export function loadData() {
   try {
