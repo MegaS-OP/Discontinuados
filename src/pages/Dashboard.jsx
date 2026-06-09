@@ -9,15 +9,146 @@ const ML_ORANGE = '#F5A623';
 const BORDER = '0.5px solid #D3D1C7';
 const BG_SEC = '#F1EFE8';
 
-const stageLabels = { 0: 'Detección', 1: 'Análisis', 2: 'Confirmación' };
-const stageClasses = { 0: 'stage-1', 1: 'stage-2', 2: 'stage-3' };
+const STAGES = [
+  { idx: 0, label: 'Detección',    color: '#185FA5', bg: '#E6F1FB', border: '#B8D4F0' },
+  { idx: 1, label: 'Análisis',     color: '#854F0B', bg: '#FAEEDA', border: '#F0D4A0' },
+  { idx: 2, label: 'Confirmación', color: '#3B6D11', bg: '#EAF3DE', border: '#C0D9A0' },
+];
 
-function KpiCard({ label, value, sub, subColor, valueColor }) {
+function ProgressRing({ pct, color, size = 36 }) {
+  const r = (size - 6) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ;
   return (
-    <div style={{ background: '#fff', border: BORDER, borderRadius: 8, padding: '12px 14px' }}>
-      <div style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 500, color: valueColor || '#1A1A1A' }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: subColor || '#5F5E5A', marginTop: 2 }}>{sub}</div>}
+    <svg width={size} height={size} style={{ flexShrink: 0 }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#E5E7EB" strokeWidth={4} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={4}
+        strokeDasharray={circ} strokeDashoffset={offset}
+        strokeLinecap="round"
+        transform={`rotate(-90 ${size/2} ${size/2})`} />
+      <text x={size/2} y={size/2 + 4} textAnchor="middle" fontSize={9} fontWeight={600} fill={color}>{pct}%</text>
+    </svg>
+  );
+}
+
+function ProductCard({ product, color, bg, onOpen }) {
+  const [hovered, setHovered] = useState(false);
+  const doneHitos = product.hitos.filter(h => h.done).length;
+  const totalHitos = product.hitos.length;
+
+  return (
+    <div
+      onClick={() => onOpen(product.id)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: hovered ? '#fff' : '#FAFAF8',
+        border: BORDER,
+        borderLeft: `3px solid ${color}`,
+        borderRadius: 8,
+        padding: '10px 12px',
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+        boxShadow: hovered ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+      }}
+    >
+      {/* SKU + progress */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span style={{ fontSize: 10, fontWeight: 600, color, letterSpacing: '0.3px' }}>{product.id}</span>
+        <ProgressRing pct={product.progreso} color={color} size={34} />
+      </div>
+
+      {/* Nombre */}
+      <div style={{ fontSize: 12, fontWeight: 600, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 4 }}>
+        {product.nombre}
+      </div>
+
+      {/* SKU técnico */}
+      <div style={{ fontSize: 10, color: '#9B9895', marginBottom: 6 }}>{product.sku}</div>
+
+      {/* Meta */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <Tag text={product.paisCompania} />
+        <Tag text={product.areaTerapeutica} />
+      </div>
+
+      {/* Hitos mini bar */}
+      <div style={{ marginTop: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+          <span style={{ fontSize: 9, color: '#9B9895' }}>Hitos</span>
+          <span style={{ fontSize: 9, color: '#9B9895' }}>{doneHitos}/{totalHitos}</span>
+        </div>
+        <div style={{ display: 'flex', gap: 2 }}>
+          {product.hitos.map(h => (
+            <div key={h.id} style={{
+              flex: 1, height: 3, borderRadius: 2,
+              background: h.done ? color : '#E5E7EB',
+            }} />
+          ))}
+        </div>
+      </div>
+
+      {/* Último hito */}
+      <div style={{ marginTop: 6, fontSize: 10, color: '#5F5E5A', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ color: ML_GREEN }}>●</span>
+        {product.ultimoHito}
+        <span style={{ color: '#C0C0C0', marginLeft: 'auto' }}>{product.fechaUltimoHito}</span>
+      </div>
+    </div>
+  );
+}
+
+function Tag({ text }) {
+  return (
+    <span style={{
+      fontSize: 9, padding: '2px 6px', borderRadius: 4,
+      background: BG_SEC, color: '#5F5E5A', border: BORDER,
+    }}>
+      {text}
+    </span>
+  );
+}
+
+function StageColumn({ stage, products, onOpenDetail }) {
+  const { idx, label, color, bg, border } = stage;
+  const stageProducts = products.filter(p => p.etapaActual === idx);
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      {/* Column header */}
+      <div style={{
+        background: bg, border: `1px solid ${border}`,
+        borderRadius: 8, padding: '10px 14px', marginBottom: 10,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
+          <span style={{ fontSize: 13, fontWeight: 600, color }}>{label}</span>
+        </div>
+        <span style={{
+          background: color, color: '#fff',
+          borderRadius: 10, fontSize: 11, fontWeight: 600,
+          padding: '2px 8px',
+        }}>
+          {stageProducts.length}
+        </span>
+      </div>
+
+      {/* Cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+        {stageProducts.map(p => (
+          <ProductCard key={p.id} product={p} color={color} bg={bg} onOpen={onOpenDetail} />
+        ))}
+        {stageProducts.length === 0 && (
+          <div style={{
+            border: `1.5px dashed ${border}`, borderRadius: 8,
+            padding: '24px 12px', textAlign: 'center',
+            color: '#C0C0C0', fontSize: 11,
+          }}>
+            Sin productos en esta etapa
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -25,27 +156,11 @@ function KpiCard({ label, value, sub, subColor, valueColor }) {
 export default function Dashboard({ onOpenDetail }) {
   const { data } = useApp();
   const products = data.products;
-  const [activeFilter, setActiveFilter] = useState('all');
   const [showNuevo, setShowNuevo] = useState(false);
   const [showImport, setShowImport] = useState(false);
 
-  const counts = {
-    total: products.length,
-    det: products.filter((p) => p.etapaActual === 0).length,
-    ana: products.filter((p) => p.etapaActual === 1).length,
-    con: products.filter((p) => p.etapaActual === 2).length,
-  };
-
-  const filtered = activeFilter === 'all'
-    ? products
-    : products.filter((p) => p.etapaActual === parseInt(activeFilter));
-
-  const filters = [
-    { key: 'all', label: 'Todos' },
-    { key: '0', label: 'Detección' },
-    { key: '1', label: 'Análisis' },
-    { key: '2', label: 'Confirmación' },
-  ];
+  const total = products.length;
+  const avgProgreso = total ? Math.round(products.reduce((s, p) => s + p.progreso, 0) / total) : 0;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -53,16 +168,12 @@ export default function Dashboard({ onOpenDetail }) {
       <div style={{ background: '#fff', borderBottom: BORDER, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A' }}>Dashboard — Seguimiento Discontinuados</div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={() => setShowImport(true)}
-            style={{ background: '#fff', color: ML_GREEN, border: `1px solid ${ML_GREEN}`, borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
-          >
+          <button onClick={() => setShowImport(true)}
+            style={{ background: '#fff', color: ML_GREEN, border: `1px solid ${ML_GREEN}`, borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
             ↑ Carga masiva
           </button>
-          <button
-            onClick={() => setShowNuevo(true)}
-            style={{ background: ML_GREEN, color: 'white', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
-          >
+          <button onClick={() => setShowNuevo(true)}
+            style={{ background: ML_GREEN, color: 'white', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
             + Nuevo producto
           </button>
         </div>
@@ -70,57 +181,20 @@ export default function Dashboard({ onOpenDetail }) {
 
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-        {/* KPIs */}
+
+        {/* KPI strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
-          <KpiCard label="Total en proceso" value={counts.total} sub="↑ 2 este mes" subColor={ML_GREEN} />
-          <KpiCard label="En detección" value={counts.det} sub="Etapa 1" valueColor="#185FA5" />
-          <KpiCard label="En análisis" value={counts.ana} sub="⚠ revisar vencidos" subColor={ML_ORANGE} valueColor="#854F0B" />
-          <KpiCard label="En confirmación" value={counts.con} sub="Casi listo" subColor={ML_GREEN} valueColor="#3B6D11" />
+          <KpiCard label="Total en proceso" value={total} sub="productos activos" subColor="#5F5E5A" valueColor={ML_GREEN} />
+          <KpiCard label="En Detección"    value={products.filter(p => p.etapaActual === 0).length} valueColor="#185FA5" sub="Etapa 1" />
+          <KpiCard label="En Análisis"     value={products.filter(p => p.etapaActual === 1).length} valueColor="#854F0B" sub="Etapa 2" subColor={ML_ORANGE} />
+          <KpiCard label="En Confirmación" value={products.filter(p => p.etapaActual === 2).length} valueColor="#3B6D11" sub={`Progreso prom. ${avgProgreso}%`} subColor={ML_GREEN} />
         </div>
 
-        {/* Filters */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <span style={{ fontSize: 13, fontWeight: 500, color: '#1A1A1A' }}>Todos los productos</span>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {filters.map((f) => (
-              <button
-                key={f.key}
-                onClick={() => setActiveFilter(f.key)}
-                style={{
-                  border: BORDER,
-                  background: activeFilter === f.key ? ML_GREEN_LIGHT : '#fff',
-                  borderRadius: 6, padding: '4px 10px', fontSize: 11,
-                  color: activeFilter === f.key ? ML_GREEN : '#5F5E5A',
-                  fontWeight: activeFilter === f.key ? 500 : 400,
-                  cursor: 'pointer',
-                  ...(activeFilter === f.key ? { borderColor: ML_GREEN } : {}),
-                }}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Table */}
-        <div style={{ background: '#fff', border: BORDER, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-            <thead>
-              <tr style={{ background: BG_SEC }}>
-                {['CU #', 'SKU', 'Producto', 'País Cía.', 'País Planta', 'Área Terap.', 'Etapa', 'Progreso', 'Último hito'].map((h) => (
-                  <th key={h} style={{ fontSize: 11, fontWeight: 500, color: '#5F5E5A', padding: '8px 10px', textAlign: 'left', borderBottom: BORDER }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p) => (
-                <TableRow key={p.id} product={p} onOpen={() => onOpenDetail(p.id)} />
-              ))}
-              {filtered.length === 0 && (
-                <tr><td colSpan={9} style={{ padding: '20px', textAlign: 'center', color: '#5F5E5A', fontSize: 12 }}>Sin productos en esta etapa</td></tr>
-              )}
-            </tbody>
-          </table>
+        {/* Kanban */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          {STAGES.map(stage => (
+            <StageColumn key={stage.idx} stage={stage} products={products} onOpenDetail={onOpenDetail} />
+          ))}
         </div>
       </div>
 
@@ -130,31 +204,12 @@ export default function Dashboard({ onOpenDetail }) {
   );
 }
 
-function TableRow({ product: p, onOpen }) {
-  const [hovered, setHovered] = useState(false);
+function KpiCard({ label, value, sub, subColor, valueColor }) {
   return (
-    <tr onClick={onOpen} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      style={{ cursor: 'pointer', background: hovered ? '#F8F7F4' : 'transparent' }}>
-      <td style={{ padding: '8px 10px', borderBottom: BORDER, fontWeight: 500, color: ML_GREEN, fontSize: 11 }}>{p.id}</td>
-      <td style={{ padding: '8px 10px', borderBottom: BORDER, color: '#5F5E5A', fontSize: 11 }}>{p.sku}</td>
-      <td style={{ padding: '8px 10px', borderBottom: BORDER, fontWeight: 500, color: '#1A1A1A' }}>{p.nombre}</td>
-      <td style={{ padding: '8px 10px', borderBottom: BORDER, color: '#5F5E5A' }}>{p.paisCompania}</td>
-      <td style={{ padding: '8px 10px', borderBottom: BORDER, color: '#5F5E5A' }}>{p.paisPlanta}</td>
-      <td style={{ padding: '8px 10px', borderBottom: BORDER, color: '#5F5E5A', fontSize: 11 }}>{p.areaTerapeutica}</td>
-      <td style={{ padding: '8px 10px', borderBottom: BORDER }}>
-        <span className={`stage-pill ${stageClasses[p.etapaActual]}`}>{stageLabels[p.etapaActual]}</span>
-      </td>
-      <td style={{ padding: '8px 10px', borderBottom: BORDER }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ flex: 1, height: 4, background: BG_SEC, borderRadius: 2, overflow: 'hidden' }}>
-            <div style={{ height: '100%', borderRadius: 2, background: p.progreso < 40 ? ML_ORANGE : ML_GREEN, width: `${p.progreso}%` }} />
-          </div>
-          <span style={{ fontSize: 11, color: '#5F5E5A', minWidth: 28, textAlign: 'right' }}>{p.progreso}%</span>
-        </div>
-      </td>
-      <td style={{ padding: '8px 10px', borderBottom: BORDER, fontSize: 11, color: '#5F5E5A' }}>
-        {p.ultimoHito} <span style={{ color: '#9B9895' }}>{p.fechaUltimoHito}</span>
-      </td>
-    </tr>
+    <div style={{ background: '#fff', border: BORDER, borderRadius: 8, padding: '12px 14px' }}>
+      <div style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 500, color: valueColor || '#1A1A1A' }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: subColor || '#5F5E5A', marginTop: 2 }}>{sub}</div>}
+    </div>
   );
 }
