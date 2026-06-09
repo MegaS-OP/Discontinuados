@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { HITOS_CON_EXTRAS } from '../data/db';
 import NuevoProducto from '../components/NuevoProducto';
 import ImportModal from '../components/ImportModal';
 
@@ -32,9 +33,11 @@ function ProgressRing({ pct, color, size = 36 }) {
 }
 
 function ProductCard({ product, color, bg, onOpen }) {
+  const { toggleHito } = useApp();
   const [hovered, setHovered] = useState(false);
   const doneHitos = product.hitos.filter(h => h.done).length;
   const totalHitos = product.hitos.length;
+  const nextHito = product.hitos.find(h => !h.done);
 
   return (
     <div
@@ -88,12 +91,28 @@ function ProductCard({ product, color, bg, onOpen }) {
         </div>
       </div>
 
-      {/* Último hito */}
-      <div style={{ marginTop: 6, fontSize: 10, color: '#5F5E5A', display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span style={{ color: ML_GREEN }}>●</span>
-        {product.ultimoHito}
-        <span style={{ color: '#C0C0C0', marginLeft: 'auto' }}>{product.fechaUltimoHito}</span>
-      </div>
+      {/* Next pending hito */}
+      {nextHito ? (
+        <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleHito(product.id, nextHito.id); }}
+            title="Marcar como completado"
+            style={{
+              width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
+              border: `1.5px solid ${color}`, background: 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 9, color, cursor: 'pointer',
+            }}
+          >✓</button>
+          <span style={{ fontSize: 10, color: '#5F5E5A', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {nextHito.label}
+          </span>
+        </div>
+      ) : (
+        <div style={{ marginTop: 6, fontSize: 10, color: ML_GREEN, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>●</span> Todos los hitos completados
+        </div>
+      )}
     </div>
   );
 }

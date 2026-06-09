@@ -19,7 +19,12 @@ export const HITOS_TEMPLATE = [
   { etapa: 2, label: 'Notificación final' },
 ];
 
-const RESPONSABLES_DEFAULT = {
+// Hitos que tienen campos extra
+export const HITOS_CON_EXTRAS = {
+  'Análisis de impacto planta': { notas: true, costoImpacto: true },
+};
+
+export const RESPONSABLES_DEFAULT = {
   'Definición MKT': 'Mkt Corp',
   'Compliance': 'Compliance',
   'AARR': 'AARR',
@@ -52,6 +57,7 @@ export function makeHitos(overrides = []) {
       done: ov.done || false,
       fechaCompromiso: ov.fechaCompromiso || '-',
       fechaReal: ov.fechaReal || '-',
+      ...(HITOS_CON_EXTRAS[t.label] ? { notas: ov.notas || '', costoImpacto: ov.costoImpacto || '' } : {}),
     };
   });
 }

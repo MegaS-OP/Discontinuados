@@ -63,6 +63,19 @@ export function AppProvider({ children }) {
     });
   }, [updateData]);
 
+  const updateHitoExtras = useCallback((productId, hitoId, extras) => {
+    updateData((prev) => {
+      const products = prev.products.map((p) => {
+        if (p.id !== productId) return p;
+        return {
+          ...p,
+          hitos: p.hitos.map((h) => h.id !== hitoId ? h : { ...h, ...extras }),
+        };
+      });
+      return { ...prev, products };
+    });
+  }, [updateData]);
+
   const advanceStage = useCallback((productId) => {
     updateData((prev) => {
       const products = prev.products.map((p) => {
@@ -109,7 +122,7 @@ export function AppProvider({ children }) {
   }, [updateData]);
 
   return (
-    <AppContext.Provider value={{ data, addComment, toggleHito, advanceStage, addProduct, addProducts }}>
+    <AppContext.Provider value={{ data, addComment, toggleHito, advanceStage, addProduct, addProducts, updateHitoExtras }}>
       {children}
     </AppContext.Provider>
   );
