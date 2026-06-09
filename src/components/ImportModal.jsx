@@ -12,12 +12,12 @@ function downloadTemplate() {
 
   // Hoja Discontinuados
   const prodData = [
-    ['SKU', 'Producto', 'Pais_Compania', 'Pais_Planta', 'Area_Terapeutica'],
-    ['002-001-1077', 'Ejemplo Producto 1', 'Uruguay', 'Uruguay', 'Antibióticos'],
-    ['003-002-0543', 'Ejemplo Producto 2', 'Argentina', 'Brasil', 'Cardiovascular'],
+    ['Cia', 'Producto', 'BU', 'Fabricante', 'Observaciones', 'Codigo'],
+    ['Arg-Mlb', 'Ejemplo Producto 1', 'Primary', 'Roe-Arg', '', ''],
+    ['Bol-Mlb', 'Ejemplo Producto 2', 'Consumer', 'Urufarma', 'Reemplazado por X', '002-001-1077'],
   ];
   const ws1 = XLSX.utils.aoa_to_sheet(prodData);
-  ws1['!cols'] = [{ wch: 16 }, { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 20 }];
+  ws1['!cols'] = [{ wch: 12 }, { wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 36 }, { wch: 16 }];
   XLSX.utils.book_append_sheet(wb, ws1, 'Discontinuados');
 
   // Hoja Hitos (referencia)
@@ -44,30 +44,37 @@ function parseExcel(file) {
 
         const headers = rows[0].map((h) => String(h).trim().toLowerCase().replace(/\s+/g, '_'));
         const idx = {
-          sku: headers.findIndex((h) => h.includes('sku')),
-          nombre: headers.findIndex((h) => h.includes('producto') || h.includes('nombre')),
-          paisCia: headers.findIndex((h) => h.includes('compan') || h.includes('cia') || h.includes('pais_c')),
-          paisPlanta: headers.findIndex((h) => h.includes('planta')),
-          area: headers.findIndex((h) => h.includes('area') || h.includes('terapeu')),
+          codigo: headers.findIndex((h) => h.includes('codigo') || h.includes('sku')),
+          nombre: headers.findIndex((h) => h.includes('producto') || h.includes('nombre') || h.includes('descripcion')),
+          paisCia: headers.findIndex((h) => h.includes('cia') || h.includes('compan') || h.includes('pais_c')),
+          fabricante: headers.findIndex((h) => h.includes('fabricante') || h.includes('planta')),
+          bu: headers.findIndex((h) => h.includes('bu') || h.includes('business') || h.includes('area')),
+          obs: headers.findIndex((h) => h.includes('observ')),
         };
 
         const products = [];
         const now = new Date();
         const fecha = now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + '/' + now.getFullYear();
+        const ts = now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + ' ' + now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
 
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
-          const sku = String(row[idx.sku] ?? '').trim();
           const nombre = String(row[idx.nombre] ?? '').trim();
-          if (!sku || !nombre) continue;
+          if (!nombre) continue;
+          const obs = idx.obs >= 0 ? String(row[idx.obs] ?? '').trim() : '';
+          const actividades = [
+            { id: `A${Date.now()}${i}`, text: 'Producto cargado masivamente', time: ts },
+          ];
+          if (obs) actividades.push({ id: `AO${Date.now()}${i}`, text: `Observación: ${obs}`, time: ts });
 
           products.push({
             id: `CU-${Date.now().toString().slice(-6)}${i}`,
-            sku,
+            codigo: idx.codigo >= 0 ? String(row[idx.codigo] ?? '').trim() : '',
             nombre,
-            paisCompania: String(row[idx.paisCia] ?? '').trim() || 'Sin especificar',
-            paisPlanta: String(row[idx.paisPlanta] ?? '').trim() || 'Sin especificar',
-            areaTerapeutica: String(row[idx.area] ?? '').trim() || 'Sin especificar',
+            paisCompania: String(row[idx.paisCia] ?? '').trim() || '',
+            paisPlanta: String(row[idx.fabricante] ?? '').trim() || '',
+            bu: String(row[idx.bu] ?? '').trim() || '',
+            observaciones: obs,
             etapaActual: 0,
             progreso: 0,
             ultimoHito: 'Inicio proceso',
@@ -79,9 +86,7 @@ function parseExcel(file) {
               { nombre: 'Confirmación', estado: 'pendiente' },
             ],
             hitos: makeHitos(),
-            actividades: [
-              { id: `A${Date.now()}${i}`, text: 'Producto cargado masivamente', time: now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + ' ' + now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0') },
-            ],
+            actividades,
           });
         }
         resolve(products);
@@ -187,7 +192,7 @@ export default function ImportModal({ onClose }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                   <thead>
                     <tr style={{ background: BG_SEC, position: 'sticky', top: 0 }}>
-                      {['SKU', 'Producto', 'País Cía.', 'País Planta', 'Área Terap.'].map((h) => (
+                      {['Código', 'Descripción', 'Cía', 'Fabricante', 'BU'].map((h) => (
                         <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 500, color: '#5F5E5A', borderBottom: BORDER }}>{h}</th>
                       ))}
                     </tr>
@@ -195,18 +200,18 @@ export default function ImportModal({ onClose }) {
                   <tbody>
                     {preview.map((p, i) => (
                       <tr key={i} style={{ borderBottom: BORDER }}>
-                        <td style={{ padding: '6px 10px', color: ML_GREEN, fontWeight: 500 }}>{p.sku}</td>
+                        <td style={{ padding: '6px 10px', color: ML_GREEN, fontWeight: 500 }}>{p.codigo || '—'}</td>
                         <td style={{ padding: '6px 10px' }}>{p.nombre}</td>
                         <td style={{ padding: '6px 10px', color: '#5F5E5A' }}>{p.paisCompania}</td>
                         <td style={{ padding: '6px 10px', color: '#5F5E5A' }}>{p.paisPlanta}</td>
-                        <td style={{ padding: '6px 10px', color: '#5F5E5A' }}>{p.areaTerapeutica}</td>
+                        <td style={{ padding: '6px 10px', color: '#5F5E5A' }}>{p.bu}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
               <p style={{ fontSize: 11, color: '#5F5E5A', marginTop: 8 }}>
-                Cada producto se creará con los 13 hitos estándar en estado Pendiente.
+                Cada producto se creará con los 15 hitos estándar en estado Pendiente.
               </p>
             </>
           )}

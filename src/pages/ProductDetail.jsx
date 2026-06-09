@@ -140,8 +140,13 @@ export default function ProductDetail({ productId, onBack }) {
               <div style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 3 }}>{product.id}</div>
               <div style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A' }}>{product.nombre}</div>
               <div style={{ fontSize: 11, color: '#5F5E5A', marginTop: 2 }}>
-                SKU: {product.sku} · Cía: {product.paisCompania} · Planta: {product.paisPlanta} · {product.areaTerapeutica} · Inicio: {product.fechaInicio}
+                {product.codigo ? `Código: ${product.codigo} · ` : ''}Cía: {product.paisCompania} · Fabricante: {product.paisPlanta} · BU: {product.bu} · Inicio: {product.fechaInicio}
               </div>
+              {product.observaciones && (
+                <div style={{ fontSize: 11, color: '#854F0B', marginTop: 4, background: '#FAEEDA', borderRadius: 4, padding: '3px 8px', display: 'inline-block' }}>
+                  📋 {product.observaciones}
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <span className={`stage-pill ${stageClasses[product.etapaActual]}`}>

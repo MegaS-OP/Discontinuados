@@ -67,12 +67,12 @@ function ProductCard({ product, color, bg, onOpen }) {
       </div>
 
       {/* SKU técnico */}
-      <div style={{ fontSize: 10, color: '#9B9895', marginBottom: 6 }}>{product.sku}</div>
+      {product.codigo && <div style={{ fontSize: 10, color: '#9B9895', marginBottom: 6 }}>{product.codigo}</div>}
 
       {/* Meta */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         <Tag text={product.paisCompania} />
-        <Tag text={product.areaTerapeutica} />
+        <Tag text={product.bu} />
       </div>
 
       {/* Hitos mini bar */}
