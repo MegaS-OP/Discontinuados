@@ -177,15 +177,27 @@ export default function Dashboard({ onOpenDetail }) {
   const products = data.products;
   const [showNuevo, setShowNuevo] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [filterStage, setFilterStage] = useState(null); // null = all
 
   const total = products.length;
   const avgProgreso = total ? Math.round(products.reduce((s, p) => s + p.progreso, 0) / total) : 0;
+
+  const toggleFilter = (idx) => setFilterStage(prev => prev === idx ? null : idx);
+  const visibleStages = filterStage !== null ? STAGES.filter(s => s.idx === filterStage) : STAGES;
+  const filteredProducts = filterStage !== null ? products.filter(p => p.etapaActual === filterStage) : products;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Topbar */}
       <div style={{ background: '#fff', borderBottom: BORDER, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A' }}>Dashboard — Seguimiento Discontinuados</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A' }}>Dashboard — Seguimiento Discontinuados</div>
+          {filterStage !== null && (
+            <button onClick={() => setFilterStage(null)} style={{ fontSize: 11, color: '#5F5E5A', background: BG_SEC, border: BORDER, borderRadius: 10, padding: '2px 8px', cursor: 'pointer' }}>
+              ✕ Limpiar filtro
+            </button>
+          )}
+        </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setShowImport(true)}
             style={{ background: '#fff', color: ML_GREEN, border: `1px solid ${ML_GREEN}`, borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
@@ -203,16 +215,20 @@ export default function Dashboard({ onOpenDetail }) {
 
         {/* KPI strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
-          <KpiCard label="Total en proceso" value={total} sub="productos activos" subColor="#5F5E5A" valueColor={ML_GREEN} />
-          <KpiCard label="En Detección"    value={products.filter(p => p.etapaActual === 0).length} valueColor="#185FA5" sub="Etapa 1" />
-          <KpiCard label="En Análisis"     value={products.filter(p => p.etapaActual === 1).length} valueColor="#854F0B" sub="Etapa 2" subColor={ML_ORANGE} />
-          <KpiCard label="En Confirmación" value={products.filter(p => p.etapaActual === 2).length} valueColor="#3B6D11" sub={`Progreso prom. ${avgProgreso}%`} subColor={ML_GREEN} />
+          <KpiCard label="Total en proceso" value={total} sub="productos activos" subColor="#5F5E5A" valueColor={ML_GREEN}
+            active={filterStage === null} onClick={() => setFilterStage(null)} />
+          <KpiCard label="En Detección"    value={products.filter(p => p.etapaActual === 0).length} valueColor="#185FA5" sub="Etapa 1"
+            active={filterStage === 0} onClick={() => toggleFilter(0)} />
+          <KpiCard label="En Análisis"     value={products.filter(p => p.etapaActual === 1).length} valueColor="#854F0B" sub="Etapa 2" subColor={ML_ORANGE}
+            active={filterStage === 1} onClick={() => toggleFilter(1)} />
+          <KpiCard label="En Confirmación" value={products.filter(p => p.etapaActual === 2).length} valueColor="#3B6D11" sub={`Progreso prom. ${avgProgreso}%`} subColor={ML_GREEN}
+            active={filterStage === 2} onClick={() => toggleFilter(2)} />
         </div>
 
         {/* Kanban */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-          {STAGES.map(stage => (
-            <StageColumn key={stage.idx} stage={stage} products={products} onOpenDetail={onOpenDetail} />
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${visibleStages.length}, 1fr)`, gap: 12 }}>
+          {visibleStages.map(stage => (
+            <StageColumn key={stage.idx} stage={stage} products={filteredProducts} onOpenDetail={onOpenDetail} />
           ))}
         </div>
       </div>
@@ -223,9 +239,20 @@ export default function Dashboard({ onOpenDetail }) {
   );
 }
 
-function KpiCard({ label, value, sub, subColor, valueColor }) {
+function KpiCard({ label, value, sub, subColor, valueColor, active, onClick }) {
   return (
-    <div style={{ background: '#fff', border: BORDER, borderRadius: 8, padding: '12px 14px' }}>
+    <div
+      onClick={onClick}
+      style={{
+        background: active ? (valueColor ? valueColor + '12' : ML_GREEN_LIGHT) : '#fff',
+        border: active ? `1.5px solid ${valueColor || ML_GREEN}` : BORDER,
+        borderRadius: 8,
+        padding: '12px 14px',
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+        boxShadow: active ? `0 0 0 1px ${valueColor || ML_GREEN}22` : 'none',
+      }}
+    >
       <div style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 4 }}>{label}</div>
       <div style={{ fontSize: 22, fontWeight: 500, color: valueColor || '#1A1A1A' }}>{value}</div>
       {sub && <div style={{ fontSize: 11, color: subColor || '#5F5E5A', marginTop: 2 }}>{sub}</div>}
