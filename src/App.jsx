@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import ProductDetail from './pages/ProductDetail';
 import Configuracion from './pages/Configuracion';
 import Reportes from './pages/Reportes';
+import Comparativa from './pages/Comparativa';
 import { useApp } from './context/AppContext';
 import './index.css';
 
@@ -65,6 +66,8 @@ function AppShell() {
         <Configuracion />
       ) : view === 'reports' ? (
         <Reportes />
+      ) : view === 'comparativa' ? (
+        <Comparativa />
       ) : (
         <Dashboard onOpenDetail={handleOpenDetail} />
       )}
