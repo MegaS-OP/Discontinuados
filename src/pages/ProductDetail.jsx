@@ -80,15 +80,22 @@ export default function ProductDetail({ productId, onBack }) {
   const product = data.products.find((p) => p.id === productId);
   if (!product) return null;
 
-  const allCurrentDone = product.hitos.filter((h) => {
-    // heuristic: current stage hitos are those not fully done yet from the total set
-    return true;
-  }) && false; // we'll derive from etapas state instead
-
   const currentEtapa = product.etapas[product.etapaActual];
-  const doneHitos = product.hitos.filter((h) => h.done).length;
-  const totalHitos = product.hitos.length;
-  const canAdvance = product.etapaActual < 2 && doneHitos === totalHitos;
+
+  const hitosEtapaActual = product.hitos.filter((h) => h.etapa === product.etapaActual);
+  let etapaCompleta;
+  if (product.etapaActual === 0) {
+    // Detección: alcanza con que se haya completado al menos una tarea
+    etapaCompleta = hitosEtapaActual.some((h) => h.done);
+  } else if (product.etapaActual === 1) {
+    // Análisis: completo cuando están hechos el análisis de granel y el de impacto en planta
+    const granel = hitosEtapaActual.find((h) => h.label === 'Análisis de granel');
+    const impactoPlanta = hitosEtapaActual.find((h) => h.label === 'Análisis de impacto planta');
+    etapaCompleta = !!granel?.done && !!impactoPlanta?.done;
+  } else {
+    etapaCompleta = hitosEtapaActual.length > 0 && hitosEtapaActual.every((h) => h.done);
+  }
+  const canAdvance = product.etapaActual < 2 && etapaCompleta;
 
   const handleSend = () => {
     if (!comment.trim()) return;
