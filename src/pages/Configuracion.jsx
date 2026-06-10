@@ -10,7 +10,7 @@ export default function Configuracion() {
   const { users, currentUser, addUser, removeUser, updateUser } = useUsers();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({ nombre: '', rol: 'Editor' });
+  const [form, setForm] = useState({ email: '', nombre: '', rol: 'Editor' });
   const [error, setError] = useState('');
 
   const isAdmin = currentUser?.rol === 'Admin';
@@ -18,24 +18,25 @@ export default function Configuracion() {
   const handleSubmit = () => {
     if (!form.nombre.trim()) { setError('El nombre es obligatorio'); return; }
     if (editingId) {
-      updateUser(editingId, form);
+      updateUser(editingId, { nombre: form.nombre, rol: form.rol });
     } else {
-      addUser(form.nombre.trim(), form.rol);
+      if (!form.email.trim()) { setError('El email es obligatorio'); return; }
+      addUser(form.email.trim(), form.nombre.trim(), form.rol);
     }
-    setForm({ nombre: '', rol: 'Editor' });
+    setForm({ email: '', nombre: '', rol: 'Editor' });
     setShowForm(false);
     setEditingId(null);
     setError('');
   };
 
   const startEdit = (user) => {
-    setForm({ nombre: user.nombre, rol: user.rol });
+    setForm({ email: user.email || '', nombre: user.nombre, rol: user.rol });
     setEditingId(user.id);
     setShowForm(true);
   };
 
   const cancel = () => {
-    setForm({ nombre: '', rol: 'Editor' });
+    setForm({ email: '', nombre: '', rol: 'Editor' });
     setShowForm(false);
     setEditingId(null);
     setError('');
@@ -75,7 +76,25 @@ export default function Configuracion() {
               <div style={{ fontSize: 12, fontWeight: 500, color: '#1A1A1A', marginBottom: 10 }}>
                 {editingId ? 'Editar usuario' : 'Nuevo usuario'}
               </div>
+              {!editingId && (
+                <p style={{ fontSize: 11, color: '#854F0B', background: '#FAEEDA', borderRadius: 4, padding: '6px 8px', marginTop: 0, marginBottom: 10 }}>
+                  Importante: este formulario solo registra el perfil (nombre/rol). Para que la persona pueda iniciar sesión, primero creá su cuenta con email y contraseña en <strong>Firebase Console → Authentication → Users → Add user</strong>, usando el mismo email.
+                </p>
+              )}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                {!editingId && (
+                  <div style={{ flex: 1, minWidth: 180 }}>
+                    <label style={{ fontSize: 11, color: '#5F5E5A', display: 'block', marginBottom: 4 }}>Email</label>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+                      placeholder="nombre@megalabs.com"
+                      style={{ width: '100%', border: BORDER, borderRadius: 6, padding: '6px 10px', fontSize: 12, background: '#fff', outline: 'none' }}
+                    />
+                  </div>
+                )}
                 <div style={{ flex: 1, minWidth: 180 }}>
                   <label style={{ fontSize: 11, color: '#5F5E5A', display: 'block', marginBottom: 4 }}>Nombre completo</label>
                   <input

@@ -1,10 +1,26 @@
+import { useState } from 'react';
 import { useUsers } from '../context/UserContext';
 
 const ML_GREEN = '#0F6E56';
 const BORDER = '0.5px solid #D3D1C7';
 
+const inputStyle = {
+  border: BORDER, borderRadius: 6, padding: '8px 10px',
+  fontSize: 13, background: '#fff', outline: 'none', width: '100%', boxSizing: 'border-box',
+};
+
 export default function LoginScreen() {
-  const { users, login } = useUsers();
+  const { login, loginError } = useUsers();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!email.trim() || !password) return;
+    setSubmitting(true);
+    await login(email.trim(), password);
+    setSubmitting(false);
+  };
 
   return (
     <div style={{
@@ -40,52 +56,56 @@ export default function LoginScreen() {
           </div>
         </div>
 
-        <p style={{ fontSize: 13, fontWeight: 500, color: '#1A1A1A', marginBottom: 6 }}>¿Quién sos?</p>
+        <p style={{ fontSize: 13, fontWeight: 500, color: '#1A1A1A', marginBottom: 6 }}>Iniciar sesión</p>
         <p style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 16 }}>
-          Seleccioná tu usuario para registrar tus acciones en la app.
+          Ingresá con tu usuario corporativo para registrar tus acciones en la app.
         </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {users.map((user) => (
-            <button
-              key={user.id}
-              onClick={() => login(user.id)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '10px 14px',
-                border: BORDER,
-                borderRadius: 8,
-                background: '#fff',
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'background 0.15s',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#F8F7F4'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
-            >
-              <div style={{
-                width: 32, height: 32,
-                borderRadius: '50%',
-                background: user.color,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 12, fontWeight: 600, color: '#fff',
-                flexShrink: 0,
-              }}>
-                {user.initials}
-              </div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: '#1A1A1A' }}>{user.nombre}</div>
-                <div style={{ fontSize: 10, color: '#5F5E5A' }}>{user.rol}</div>
-              </div>
-            </button>
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div>
+            <label style={{ fontSize: 11, color: '#5F5E5A', display: 'block', marginBottom: 4 }}>Email</label>
+            <input
+              type="email"
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+              placeholder="nombre@megalabs.com"
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: '#5F5E5A', display: 'block', marginBottom: 4 }}>Contraseña</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+              placeholder="••••••••"
+              style={inputStyle}
+            />
+          </div>
+
+          {loginError && (
+            <p style={{ fontSize: 11, color: '#C0392B', margin: 0 }}>{loginError}</p>
+          )}
+
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            style={{
+              background: ML_GREEN, color: '#fff', border: 'none', borderRadius: 6,
+              padding: '9px 14px', fontSize: 13, fontWeight: 500, cursor: 'pointer',
+              opacity: submitting ? 0.7 : 1, marginTop: 4,
+            }}
+          >
+            {submitting ? 'Ingresando...' : 'Ingresar'}
+          </button>
         </div>
 
-        {users.length === 0 && (
-          <p style={{ fontSize: 12, color: '#5F5E5A', textAlign: 'center', padding: '16px 0' }}>
-            No hay usuarios configurados. Un administrador debe agregar usuarios primero.
-          </p>
-        )}
+        <p style={{ fontSize: 10, color: '#9B9895', marginTop: 16, textAlign: 'center' }}>
+          ¿No tenés cuenta? Pedile a un administrador que te la cree.
+        </p>
       </div>
     </div>
   );

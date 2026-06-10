@@ -32,7 +32,7 @@ export function AppProvider({ children }) {
     });
   }, []);
 
-  const addComment = useCallback((productId, text) => {
+  const addComment = useCallback((productId, text, actor) => {
     updateData((prev) => {
       const now = new Date();
       const ts =
@@ -43,12 +43,13 @@ export function AppProvider({ children }) {
         now.getHours().toString().padStart(2, '0') +
         ':' +
         now.getMinutes().toString().padStart(2, '0');
+      const who = actor || 'Usuario';
       const products = prev.products.map((p) => {
         if (p.id !== productId) return p;
         return {
           ...p,
           actividades: [
-            { id: `A${Date.now()}`, text: `Ariana S. (S&OP Global): ${text}`, time: ts },
+            { id: `A${Date.now()}`, text: `${who}: ${text}`, time: ts },
             ...(p.actividades || []),
           ],
         };
@@ -57,14 +58,27 @@ export function AppProvider({ children }) {
     });
   }, [updateData]);
 
-  const toggleHito = useCallback((productId, hitoId) => {
+  const toggleHito = useCallback((productId, hitoId, actor) => {
     updateData((prev) => {
+      const now = new Date();
+      const ts =
+        now.getDate().toString().padStart(2, '0') +
+        '/' +
+        (now.getMonth() + 1).toString().padStart(2, '0') +
+        ' ' +
+        now.getHours().toString().padStart(2, '0') +
+        ':' +
+        now.getMinutes().toString().padStart(2, '0');
+      const who = actor || 'Usuario';
       const products = prev.products.map((p) => {
         if (p.id !== productId) return p;
+        let hitoLabel = '';
+        let nowDone = false;
         const hitos = p.hitos.map((h) => {
           if (h.id !== hitoId) return h;
-          const now = new Date();
           const date = now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + '/' + now.getFullYear();
+          hitoLabel = h.label;
+          nowDone = !h.done;
           return { ...h, done: !h.done, fechaReal: !h.done ? date : '-' };
         });
         const done = hitos.filter((h) => h.done).length;
@@ -75,6 +89,10 @@ export function AppProvider({ children }) {
           hitos,
           progreso,
           ultimoHito: lastDone ? lastDone.label : p.ultimoHito,
+          actividades: [
+            { id: `A${Date.now()}`, text: `${who}: ${nowDone ? 'completó' : 'reabrió'} el hito "${hitoLabel}"`, time: ts },
+            ...(p.actividades || []),
+          ],
         };
       });
       return { ...prev, products };
@@ -94,7 +112,8 @@ export function AppProvider({ children }) {
     });
   }, [updateData]);
 
-  const advanceStage = useCallback((productId) => {
+  const advanceStage = useCallback((productId, actor) => {
+    const who = actor || 'Usuario';
     updateData((prev) => {
       const products = prev.products.map((p) => {
         if (p.id !== productId || p.etapaActual >= 2) return p;
@@ -120,7 +139,7 @@ export function AppProvider({ children }) {
           actividades: [
             {
               id: `A${Date.now()}`,
-              text: `Avance de etapa: ${p.etapas[p.etapaActual].nombre} → ${p.etapas[next].nombre}`,
+              text: `${who}: avanzó de etapa (${p.etapas[p.etapaActual].nombre} → ${p.etapas[next].nombre})`,
               time: ts,
             },
             ...(p.actividades || []),

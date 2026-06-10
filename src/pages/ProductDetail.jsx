@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useUsers } from '../context/UserContext';
 import { HITOS_CON_EXTRAS } from '../data/db';
 
 const ML_GREEN = '#0F6E56';
@@ -75,6 +76,7 @@ function Stepper({ etapas, etapaActual }) {
 
 export default function ProductDetail({ productId, onBack }) {
   const { data, addComment, toggleHito, advanceStage, updateHitoExtras } = useApp();
+  const { currentUser } = useUsers();
   const [comment, setComment] = useState('');
 
   const product = data.products.find((p) => p.id === productId);
@@ -92,7 +94,7 @@ export default function ProductDetail({ productId, onBack }) {
 
   const handleSend = () => {
     if (!comment.trim()) return;
-    addComment(product.id, comment.trim());
+    addComment(product.id, comment.trim(), currentUser?.nombre);
     setComment('');
   };
 
@@ -106,7 +108,7 @@ export default function ProductDetail({ productId, onBack }) {
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {canAdvance && (
             <button
-              onClick={() => advanceStage(product.id)}
+              onClick={() => advanceStage(product.id, currentUser?.nombre)}
               style={{ background: ML_GREEN, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
             >
               Avanzar a {stageLabels[product.etapaActual + 1]} →
@@ -183,7 +185,7 @@ export default function ProductDetail({ productId, onBack }) {
                       <div key={h.id} style={{ borderRadius: 6, background: BG_SEC, overflow: 'hidden' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px' }}>
                           <button
-                            onClick={() => toggleHito(product.id, h.id)}
+                            onClick={() => toggleHito(product.id, h.id, currentUser?.nombre)}
                             style={{ width: 18, height: 18, borderRadius: '50%', border: `1.5px solid ${h.done ? ML_GREEN : '#D3D1C7'}`, background: h.done ? ML_GREEN : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: h.done ? '#fff' : 'transparent', cursor: 'pointer', flexShrink: 0 }}
                           >✓</button>
                           <span style={{ fontSize: 12, color: '#1A1A1A', flex: 1 }}>{h.label}</span>

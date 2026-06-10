@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useUsers } from '../context/UserContext';
 import { HITOS_CON_EXTRAS, CIAS, FABRICANTES } from '../data/db';
 import NuevoProducto from '../components/NuevoProducto';
 import ImportModal from '../components/ImportModal';
@@ -34,6 +35,7 @@ function ProgressRing({ pct, color, size = 36 }) {
 
 function ProductCard({ product, color, bg, onOpen }) {
   const { toggleHito } = useApp();
+  const { currentUser } = useUsers();
   const [hovered, setHovered] = useState(false);
   const doneHitos = product.hitos.filter(h => h.done).length;
   const totalHitos = product.hitos.length;
@@ -95,7 +97,7 @@ function ProductCard({ product, color, bg, onOpen }) {
       {nextHito ? (
         <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
           <button
-            onClick={(e) => { e.stopPropagation(); toggleHito(product.id, nextHito.id); }}
+            onClick={(e) => { e.stopPropagation(); toggleHito(product.id, nextHito.id, currentUser?.nombre); }}
             title="Marcar como completado"
             style={{
               width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
