@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { useUsers } from '../context/UserContext';
 import { makeHitos, CIAS, FABRICANTES, BUS } from '../data/db';
 
 const ML_GREEN = '#0F6E56';
@@ -25,7 +24,6 @@ const inputStyle = {
 
 export default function NuevoProducto({ onClose }) {
   const { addProduct } = useApp();
-  const { currentUser } = useUsers();
   const [form, setForm] = useState({
     codigo: '', nombre: '', paisCompania: '', paisPlanta: '', bu: '', mph: '', observaciones: '',
   });
@@ -51,7 +49,7 @@ export default function NuevoProducto({ onClose }) {
     const fecha = now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + '/' + now.getFullYear();
     const ts = now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + ' ' + now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
     const actividades = [
-      { id: `A${Date.now()}`, text: `${currentUser?.nombre || 'Usuario'}: ingresó el producto al proceso de discontinuados`, time: ts },
+      { id: `A${Date.now()}`, text: 'Producto ingresado al proceso de discontinuados', time: ts },
     ];
     if (form.observaciones.trim()) {
       actividades.push({ id: `AO${Date.now()}`, text: `Observación: ${form.observaciones.trim()}`, time: ts });

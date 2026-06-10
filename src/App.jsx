@@ -16,18 +16,10 @@ const BORDER = '0.5px solid #D3D1C7';
 function AppShell() {
   const [view, setView] = useState('dashboard');
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const { currentUser, authUser, loading } = useUsers();
+  const { currentUser } = useUsers();
   const { data } = useApp();
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontSize: 14, color: '#5F5E5A' }}>
-        Cargando...
-      </div>
-    );
-  }
-
-  if (!authUser || !currentUser) return <LoginScreen />;
+  if (!currentUser) return <LoginScreen />;
 
   const handleOpenDetail = (id) => {
     setSelectedProduct(id);
