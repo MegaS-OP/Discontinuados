@@ -130,7 +130,7 @@ function Tag({ text }) {
 
 function StageColumn({ stage, products, onOpenDetail }) {
   const { idx, label, color, bg, border } = stage;
-  const stageProducts = baseProducts.filter(p => p.etapaActual === idx);
+  const stageProducts = products.filter(p => p.etapaActual === idx);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
