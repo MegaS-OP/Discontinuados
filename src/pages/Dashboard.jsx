@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { HITOS_CON_EXTRAS } from '../data/db';
+import { HITOS_CON_EXTRAS, CIAS, FABRICANTES } from '../data/db';
 import NuevoProducto from '../components/NuevoProducto';
 import ImportModal from '../components/ImportModal';
 
@@ -130,7 +130,7 @@ function Tag({ text }) {
 
 function StageColumn({ stage, products, onOpenDetail }) {
   const { idx, label, color, bg, border } = stage;
-  const stageProducts = products.filter(p => p.etapaActual === idx);
+  const stageProducts = baseProducts.filter(p => p.etapaActual === idx);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -178,13 +178,24 @@ export default function Dashboard({ onOpenDetail }) {
   const [showNuevo, setShowNuevo] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [filterStage, setFilterStage] = useState(null); // null = all
+  const [filterCompania, setFilterCompania] = useState('');
+  const [filterPlanta, setFilterPlanta] = useState('');
 
-  const total = products.length;
-  const avgProgreso = total ? Math.round(products.reduce((s, p) => s + p.progreso, 0) / total) : 0;
+  const baseProducts = products.filter(p =>
+    (!filterCompania || p.paisCompania === filterCompania) &&
+    (!filterPlanta || p.paisPlanta === filterPlanta)
+  );
+  const total = baseProducts.length;
+  const avgProgreso = total ? Math.round(baseProducts.reduce((s, p) => s + p.progreso, 0) / total) : 0;
 
   const toggleFilter = (idx) => setFilterStage(prev => prev === idx ? null : idx);
   const visibleStages = filterStage !== null ? STAGES.filter(s => s.idx === filterStage) : STAGES;
-  const filteredProducts = filterStage !== null ? products.filter(p => p.etapaActual === filterStage) : products;
+  const filteredProducts = products.filter(p =>
+    (filterStage === null || p.etapaActual === filterStage) &&
+    (!filterCompania || p.paisCompania === filterCompania) &&
+    (!filterPlanta || p.paisPlanta === filterPlanta)
+  );
+  const hasExtraFilters = filterCompania || filterPlanta;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -192,9 +203,25 @@ export default function Dashboard({ onOpenDetail }) {
       <div style={{ background: '#fff', borderBottom: BORDER, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A' }}>Dashboard — Seguimiento Discontinuados</div>
-          {filterStage !== null && (
-            <button onClick={() => setFilterStage(null)} style={{ fontSize: 11, color: '#5F5E5A', background: BG_SEC, border: BORDER, borderRadius: 10, padding: '2px 8px', cursor: 'pointer' }}>
-              ✕ Limpiar filtro
+          <select
+            value={filterCompania}
+            onChange={(e) => setFilterCompania(e.target.value)}
+            style={{ fontSize: 11, color: '#5F5E5A', background: '#fff', border: BORDER, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', outline: 'none' }}
+          >
+            <option value="">Todas las compañías</option>
+            {CIAS.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select
+            value={filterPlanta}
+            onChange={(e) => setFilterPlanta(e.target.value)}
+            style={{ fontSize: 11, color: '#5F5E5A', background: '#fff', border: BORDER, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', outline: 'none' }}
+          >
+            <option value="">Todas las plantas</option>
+            {FABRICANTES.map((f) => <option key={f} value={f}>{f}</option>)}
+          </select>
+          {(filterStage !== null || hasExtraFilters) && (
+            <button onClick={() => { setFilterStage(null); setFilterCompania(''); setFilterPlanta(''); }} style={{ fontSize: 11, color: '#5F5E5A', background: BG_SEC, border: BORDER, borderRadius: 10, padding: '2px 8px', cursor: 'pointer' }}>
+              ✕ Limpiar filtros
             </button>
           )}
         </div>
@@ -217,11 +244,11 @@ export default function Dashboard({ onOpenDetail }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
           <KpiCard label="Total en proceso" value={total} sub="productos activos" subColor="#5F5E5A" valueColor={ML_GREEN}
             active={filterStage === null} onClick={() => setFilterStage(null)} />
-          <KpiCard label="En Detección"    value={products.filter(p => p.etapaActual === 0).length} valueColor="#185FA5" sub="Etapa 1"
+          <KpiCard label="En Detección"    value={baseProducts.filter(p => p.etapaActual === 0).length} valueColor="#185FA5" sub="Etapa 1"
             active={filterStage === 0} onClick={() => toggleFilter(0)} />
-          <KpiCard label="En Análisis"     value={products.filter(p => p.etapaActual === 1).length} valueColor="#854F0B" sub="Etapa 2" subColor={ML_ORANGE}
+          <KpiCard label="En Análisis"     value={baseProducts.filter(p => p.etapaActual === 1).length} valueColor="#854F0B" sub="Etapa 2" subColor={ML_ORANGE}
             active={filterStage === 1} onClick={() => toggleFilter(1)} />
-          <KpiCard label="En Confirmación" value={products.filter(p => p.etapaActual === 2).length} valueColor="#3B6D11" sub={`Progreso prom. ${avgProgreso}%`} subColor={ML_GREEN}
+          <KpiCard label="En Confirmación" value={baseProducts.filter(p => p.etapaActual === 2).length} valueColor="#3B6D11" sub={`Progreso prom. ${avgProgreso}%`} subColor={ML_GREEN}
             active={filterStage === 2} onClick={() => toggleFilter(2)} />
         </div>
 
