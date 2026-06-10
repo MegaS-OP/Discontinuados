@@ -49,7 +49,7 @@ export function AppProvider({ children }) {
           ...p,
           actividades: [
             { id: `A${Date.now()}`, text: `Ariana S. (S&OP Global): ${text}`, time: ts },
-            ...p.actividades,
+            ...(p.actividades || []),
           ],
         };
       });
@@ -123,7 +123,7 @@ export function AppProvider({ children }) {
               text: `Avance de etapa: ${p.etapas[p.etapaActual].nombre} → ${p.etapas[next].nombre}`,
               time: ts,
             },
-            ...p.actividades,
+            ...(p.actividades || []),
           ],
         };
       });

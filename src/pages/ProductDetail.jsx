@@ -233,7 +233,7 @@ export default function ProductDetail({ productId, onBack }) {
           {/* Activity */}
           <div style={{ padding: '10px 16px', borderBottom: BORDER }}>
             <div style={{ fontSize: 11, fontWeight: 500, color: '#5F5E5A', marginBottom: 8 }}>Historial de actividades</div>
-            {product.actividades.length === 0 ? (
+            {!product.actividades || product.actividades.length === 0 ? (
               <div style={{ fontSize: 11, color: '#5F5E5A' }}>Sin actividad registrada.</div>
             ) : (
               product.actividades.map((a) => (
