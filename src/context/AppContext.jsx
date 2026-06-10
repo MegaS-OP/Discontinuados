@@ -1,16 +1,34 @@
-import { createContext, useContext, useState, useCallback } from 'react';
-import { loadData, saveData } from '../data/db';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { ref, onValue, set, get } from 'firebase/database';
+import { db } from '../firebase';
+import { initialData } from '../data/db';
 
 const AppContext = createContext(null);
 
+const DATA_PATH = 'discontinuados';
+
 export function AppProvider({ children }) {
-  const [data, setData] = useState(() => loadData());
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    const dataRef = ref(db, DATA_PATH);
+    const unsubscribe = onValue(dataRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setData(snapshot.val());
+      } else {
+        set(dataRef, initialData);
+        setData(initialData);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const updateData = useCallback((updater) => {
-    setData((prev) => {
+    const dataRef = ref(db, DATA_PATH);
+    get(dataRef).then((snapshot) => {
+      const prev = snapshot.exists() ? snapshot.val() : initialData;
       const next = updater(prev);
-      saveData(next);
-      return next;
+      set(dataRef, next);
     });
   }, []);
 
@@ -120,6 +138,14 @@ export function AppProvider({ children }) {
   const addProducts = useCallback((newProducts) => {
     updateData((prev) => ({ ...prev, products: [...prev.products, ...newProducts] }));
   }, [updateData]);
+
+  if (data === null) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontSize: 14, color: '#5F5E5A' }}>
+        Cargando datos...
+      </div>
+    );
+  }
 
   return (
     <AppContext.Provider value={{ data, addComment, toggleHito, advanceStage, addProduct, addProducts, updateHitoExtras }}>

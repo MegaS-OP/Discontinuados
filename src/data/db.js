@@ -5018,17 +5018,7 @@ const initialData = {
   ],
 };
 
-const STORAGE_KEY = 'megalabs_discontinuados_v6';
+export { initialData };
 
-export function loadData() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch { /* ignore */ }
-  saveData(initialData);
-  return initialData;
-}
-
-export function saveData(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+function _unused() {
 }
