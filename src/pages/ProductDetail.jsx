@@ -220,6 +220,18 @@ export default function ProductDetail({ productId, onBack }) {
                           />
                         </div>
                       )}
+                      {extras.impactoGranel && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: 11, color: '#5F5E5A', whiteSpace: 'nowrap' }}>Impacto sobre Granel</span>
+                          <input
+                            type="text"
+                            value={h.impactoGranel || ''}
+                            onChange={(e) => updateHitoExtras(product.id, h.id, { impactoGranel: e.target.value })}
+                            placeholder="Describir impacto..."
+                            style={{ width: 200, border: '0.5px solid #D3D1C7', borderRadius: 4, padding: '4px 8px', fontSize: 11, background: '#fff', color: '#1A1A1A', outline: 'none' }}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
