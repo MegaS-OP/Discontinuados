@@ -88,10 +88,9 @@ export default function ProductDetail({ productId, onBack }) {
     // Detección: alcanza con que se haya completado al menos una tarea
     etapaCompleta = hitosEtapaActual.some((h) => h.done);
   } else if (product.etapaActual === 1) {
-    // Análisis: completo cuando están hechos el análisis de granel y el de impacto en planta
-    const granel = hitosEtapaActual.find((h) => h.label === 'Análisis de granel');
+    // Análisis: completo cuando está hecho el análisis de impacto en planta
     const impactoPlanta = hitosEtapaActual.find((h) => h.label === 'Análisis de impacto planta');
-    etapaCompleta = !!granel?.done && !!impactoPlanta?.done;
+    etapaCompleta = !!impactoPlanta?.done;
   } else {
     etapaCompleta = hitosEtapaActual.length > 0 && hitosEtapaActual.every((h) => h.done);
   }
@@ -242,16 +241,10 @@ export default function ProductDetail({ productId, onBack }) {
                   {etapaIdx === 1 ? (
                     <>
                       {renderHito(hitosEtapa.find((h) => h.label === 'Inventario PT'))}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
-                        <div style={{ borderRadius: 6, border: '0.5px solid #B8D4F0', background: '#EEF4FF', padding: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <div style={{ fontSize: 10, fontWeight: 600, color: '#185FA5', marginBottom: 2 }}>📊 Análisis de granel — Oficina de Estrategia</div>
-                          {renderHito(hitosEtapa.find((h) => h.label === 'Análisis de granel'), true)}
-                        </div>
-                        <div style={{ borderRadius: 6, border: '0.5px solid #F0D4A0', background: '#FFF8EE', padding: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <div style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', marginBottom: 2 }}>🏭 Análisis de impacto planta — Planta</div>
-                          {['Producción en curso', 'Inventario materiales', 'Costo destrucción', 'Última OC'].map((label) => renderHito(hitosEtapa.find((h) => h.label === label), true))}
-                          {renderHito(hitosEtapa.find((h) => h.label === 'Análisis de impacto planta'), true)}
-                        </div>
+                      <div style={{ borderRadius: 6, border: '0.5px solid #F0D4A0', background: '#FFF8EE', padding: 8, display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', marginBottom: 2 }}>🏭 Análisis de impacto planta — Planta</div>
+                        {['Producción en curso', 'Inventario materiales', 'Costo destrucción', 'Última OC'].map((label) => renderHito(hitosEtapa.find((h) => h.label === label), true))}
+                        {renderHito(hitosEtapa.find((h) => h.label === 'Análisis de impacto planta'), true)}
                       </div>
                     </>
                   ) : (

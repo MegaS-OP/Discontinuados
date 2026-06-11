@@ -27,7 +27,6 @@ export const HITOS_TEMPLATE = [
   { etapa: 1, label: 'Inventario materiales' },
   { etapa: 1, label: 'Costo destrucción' },
   { etapa: 1, label: 'Última OC' },
-  { etapa: 1, label: 'Análisis de granel' },
   { etapa: 1, label: 'Análisis de impacto planta' },
   { etapa: 2, label: 'Confirmación MKT' },
   { etapa: 2, label: 'Plan desagote' },
@@ -38,7 +37,6 @@ export const HITOS_TEMPLATE = [
 // Hitos que tienen campos extra
 export const HITOS_CON_EXTRAS = {
   'Inventario PT': { notas: true },
-  'Análisis de granel': { notas: true, costoImpacto: true },
   'Análisis de impacto planta': { notas: true, costoImpacto: true },
 };
 
@@ -52,7 +50,6 @@ export const RESPONSABLES_DEFAULT = {
   'Inventario materiales': 'Planta',
   'Costo destrucción': 'Planta',
   'Última OC': 'Supply Corp',
-  'Análisis de granel': 'Oficina de Estrategia',
   'Análisis de impacto planta': 'Planta',
   'Confirmación MKT': 'Mkt Corp',
   'Plan desagote': 'Supply Corp',
