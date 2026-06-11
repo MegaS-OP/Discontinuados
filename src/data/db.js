@@ -47,7 +47,7 @@ export const RESPONSABLES_DEFAULT = {
   'Compliance': 'Compliance',
   'AARR': 'AARR',
   'Presupuesto': 'Finanzas',
-  'Inventario PT': 'Planta',
+  'Inventario PT': 'Supply Chain Corp',
   'Producción en curso': 'Planta',
   'Inventario materiales': 'Planta',
   'Costo destrucción': 'Planta',

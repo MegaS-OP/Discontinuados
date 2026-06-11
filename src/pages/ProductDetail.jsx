@@ -199,7 +199,7 @@ export default function ProductDetail({ productId, onBack }) {
                     }}>
                       {!nested && (
                         <div style={{ fontSize: 10, fontWeight: 600, color: h.label === 'Análisis de granel' ? '#185FA5' : '#854F0B', marginBottom: 2 }}>
-                          {h.label === 'Análisis de granel' ? '📊 Oficina de Estrategia' : '🏭 Planta'}
+                          {h.label === 'Análisis de granel' ? '📊 Oficina de Estrategia' : h.label === 'Inventario PT' ? '📦 Supply Chain Corp' : '🏭 Planta'}
                         </div>
                       )}
                       <textarea
