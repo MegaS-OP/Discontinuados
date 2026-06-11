@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useUsers } from '../context/UserContext';
+import { useApp } from '../context/AppContext';
 import { ROL_COLORS } from '../data/users';
 
 const ML_GREEN = '#0F6E56';
@@ -8,6 +9,7 @@ const BG_SEC = '#F1EFE8';
 
 export default function Configuracion() {
   const { users, currentUser, addUser, removeUser, updateUser } = useUsers();
+  const { data, removeBulkProducts } = useApp();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ nombre: '', rol: 'Editor' });
@@ -201,6 +203,25 @@ export default function Configuracion() {
             ))}
           </div>
         </div>
+
+        {isAdmin && (
+          <div style={{ background: '#fff', border: '0.5px solid #FACACA', borderRadius: 8, padding: '14px 16px', marginTop: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 500, color: '#1A1A1A', marginBottom: 6 }}>Zona de riesgo</div>
+            <div style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 10 }}>
+              Elimina los {data.products.filter((p) => /^CU-000\d{3}$/.test(p.id)).length} productos cargados masivamente (carga inicial), conservando solo los agregados manualmente. Esta acción no se puede deshacer.
+            </div>
+            <button
+              onClick={() => {
+                if (window.confirm('¿Seguro que querés eliminar todos los productos cargados masivamente? Esta acción no se puede deshacer.')) {
+                  removeBulkProducts();
+                }
+              }}
+              style={{ border: '0.5px solid #FACACA', background: '#FFF5F5', borderRadius: 6, padding: '6px 14px', fontSize: 12, color: '#C0392B', cursor: 'pointer', fontWeight: 500 }}
+            >
+              Eliminar productos cargados masivamente
+            </button>
+          </div>
+        )}
 
         {!isAdmin && (
           <p style={{ fontSize: 11, color: '#5F5E5A', marginTop: 12, textAlign: 'center' }}>

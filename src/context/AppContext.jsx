@@ -167,6 +167,13 @@ export function AppProvider({ children }) {
     updateData((prev) => ({ ...prev, products: [...prev.products, ...newProducts] }));
   }, [updateData]);
 
+  const removeBulkProducts = useCallback(() => {
+    updateData((prev) => ({
+      ...prev,
+      products: prev.products.filter((p) => !/^CU-000\d{3}$/.test(p.id)),
+    }));
+  }, [updateData]);
+
   if (data === null) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontSize: 14, color: '#5F5E5A' }}>
@@ -176,7 +183,7 @@ export function AppProvider({ children }) {
   }
 
   return (
-    <AppContext.Provider value={{ data, addComment, toggleHito, advanceStage, addProduct, addProducts, updateHitoExtras }}>
+    <AppContext.Provider value={{ data, addComment, toggleHito, advanceStage, addProduct, addProducts, updateHitoExtras, removeBulkProducts }}>
       {children}
     </AppContext.Provider>
   );
