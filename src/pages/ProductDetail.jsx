@@ -108,7 +108,7 @@ export default function ProductDetail({ productId, onBack }) {
       {/* Topbar */}
       <div style={{ background: '#fff', borderBottom: BORDER, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A' }}>
-          {product.id} — {product.nombre}
+          {product.codigo || product.id} — {product.nombre}
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {canAdvance && (
@@ -144,10 +144,10 @@ export default function ProductDetail({ productId, onBack }) {
           {/* Detail header */}
           <div style={{ padding: '14px 16px', borderBottom: BORDER, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
-              <div style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 3 }}>{product.id}</div>
+              <div style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 3 }}>{product.codigo || product.id}</div>
               <div style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A' }}>{product.nombre}</div>
               <div style={{ fontSize: 11, color: '#5F5E5A', marginTop: 2 }}>
-                {product.codigo ? `Código: ${product.codigo} · ` : ''}Cía: {product.paisCompania} · Fabricante: {product.paisPlanta} · BU: {product.bu}{product.mph ? ` · MPH: ${product.mph}` : ''} · Inicio: {product.fechaInicio}
+                Cía: {product.paisCompania} · Fabricante: {product.paisPlanta} · BU: {product.bu}{product.mph ? ` · MPH: ${product.mph}` : ''} · Inicio: {product.fechaInicio}
               </div>
               {product.observaciones && (
                 <div style={{ fontSize: 11, color: '#854F0B', marginTop: 4, background: '#FAEEDA', borderRadius: 4, padding: '3px 8px', display: 'inline-block' }}>
