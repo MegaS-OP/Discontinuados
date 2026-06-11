@@ -110,6 +110,7 @@ export default function Comparativa() {
   const [filterBu, setFilterBu] = useState('');
   const [vista, setVista] = useState('cia'); // 'cia' | 'bu'
   const [expanded, setExpanded] = useState(null);
+  const [search, setSearch] = useState('');
   const [selectedYear, setSelectedYear] = useState(null); // 2024 | 2025 | 2026 | null
 
   const toggleYear = (y) => setSelectedYear((prev) => prev === y ? null : y);
@@ -187,6 +188,13 @@ export default function Comparativa() {
         {/* Filters */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: 11, color: '#5F5E5A', fontWeight: 500 }}>Filtrar por:</span>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por código o descripción..."
+            style={{ fontSize: 11, color: '#1A1A1A', background: '#fff', border: BORDER, borderRadius: 6, padding: '4px 8px', outline: 'none', width: 200 }}
+          />
           <select value={filterCia} onChange={(e) => setFilterCia(e.target.value)}
             style={{ border: filterCia ? `1.5px solid ${ML_GREEN}` : BORDER, borderRadius: 6, padding: '5px 10px', fontSize: 12, background: '#fff', cursor: 'pointer', color: filterCia ? ML_GREEN : '#5F5E5A', outline: 'none' }}>
             <option value="">Todas las Cías</option>
@@ -328,7 +336,9 @@ export default function Comparativa() {
 
         {/* Expanded SKU list */}
         {expanded && (() => {
-          const skus = filtered.filter((p) => (vista === 'cia' ? p.paisCompania : p.bu) === expanded);
+          const q = search.trim().toLowerCase();
+          const skus = filtered.filter((p) => (vista === 'cia' ? p.paisCompania : p.bu) === expanded)
+            .filter((p) => !q || (p.codigo || '').toLowerCase().includes(q) || (p.nombre || '').toLowerCase().includes(q));
           const stageLabels = { 0: 'Detección', 1: 'Análisis', 2: 'Confirmación' };
           const stageColors = { 0: '#185FA5', 1: '#854F0B', 2: ML_GREEN };
           return (

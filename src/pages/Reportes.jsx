@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import * as XLSX from 'xlsx';
 import { useApp } from '../context/AppContext';
 
@@ -72,7 +73,12 @@ function exportToExcel(products) {
 
 export default function Reportes() {
   const { data } = useApp();
-  const products = data.products;
+  const [search, setSearch] = useState('');
+  const products = data.products.filter((p) => {
+    if (!search.trim()) return true;
+    const q = search.trim().toLowerCase();
+    return (p.codigo || '').toLowerCase().includes(q) || (p.nombre || '').toLowerCase().includes(q);
+  });
 
   const counts = {
     total: products.length,
@@ -87,8 +93,15 @@ export default function Reportes() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Topbar */}
-      <div style={{ background: '#fff', borderBottom: BORDER, padding: '12px 20px', flexShrink: 0 }}>
+      <div style={{ background: '#fff', borderBottom: BORDER, padding: '12px 20px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A' }}>Reportes</div>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por código o descripción..."
+          style={{ fontSize: 11, color: '#1A1A1A', background: '#fff', border: BORDER, borderRadius: 6, padding: '4px 8px', outline: 'none', width: 220 }}
+        />
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>

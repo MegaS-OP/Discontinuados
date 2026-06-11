@@ -180,10 +180,18 @@ export default function Dashboard({ onOpenDetail }) {
   const [filterStage, setFilterStage] = useState(null); // null = all
   const [filterCompania, setFilterCompania] = useState('');
   const [filterPlanta, setFilterPlanta] = useState('');
+  const [search, setSearch] = useState('');
+
+  const matchesSearch = (p) => {
+    if (!search.trim()) return true;
+    const q = search.trim().toLowerCase();
+    return (p.codigo || '').toLowerCase().includes(q) || (p.nombre || '').toLowerCase().includes(q);
+  };
 
   const baseProducts = products.filter(p =>
     (!filterCompania || p.paisCompania === filterCompania) &&
-    (!filterPlanta || p.paisPlanta === filterPlanta)
+    (!filterPlanta || p.paisPlanta === filterPlanta) &&
+    matchesSearch(p)
   );
   const total = baseProducts.length;
   const avgProgreso = total ? Math.round(baseProducts.reduce((s, p) => s + p.progreso, 0) / total) : 0;
@@ -193,9 +201,10 @@ export default function Dashboard({ onOpenDetail }) {
   const filteredProducts = products.filter(p =>
     (filterStage === null || p.etapaActual === filterStage) &&
     (!filterCompania || p.paisCompania === filterCompania) &&
-    (!filterPlanta || p.paisPlanta === filterPlanta)
+    (!filterPlanta || p.paisPlanta === filterPlanta) &&
+    matchesSearch(p)
   );
-  const hasExtraFilters = filterCompania || filterPlanta;
+  const hasExtraFilters = filterCompania || filterPlanta || search;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -203,6 +212,13 @@ export default function Dashboard({ onOpenDetail }) {
       <div style={{ background: '#fff', borderBottom: BORDER, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A' }}>Dashboard — Seguimiento Discontinuados</div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por código o descripción..."
+            style={{ fontSize: 11, color: '#1A1A1A', background: '#fff', border: BORDER, borderRadius: 6, padding: '4px 8px', outline: 'none', width: 220 }}
+          />
           <select
             value={filterCompania}
             onChange={(e) => setFilterCompania(e.target.value)}
@@ -220,7 +236,7 @@ export default function Dashboard({ onOpenDetail }) {
             {FABRICANTES.map((f) => <option key={f} value={f}>{f}</option>)}
           </select>
           {(filterStage !== null || hasExtraFilters) && (
-            <button onClick={() => { setFilterStage(null); setFilterCompania(''); setFilterPlanta(''); }} style={{ fontSize: 11, color: '#5F5E5A', background: BG_SEC, border: BORDER, borderRadius: 10, padding: '2px 8px', cursor: 'pointer' }}>
+            <button onClick={() => { setFilterStage(null); setFilterCompania(''); setFilterPlanta(''); setSearch(''); }} style={{ fontSize: 11, color: '#5F5E5A', background: BG_SEC, border: BORDER, borderRadius: 10, padding: '2px 8px', cursor: 'pointer' }}>
               ✕ Limpiar filtros
             </button>
           )}
