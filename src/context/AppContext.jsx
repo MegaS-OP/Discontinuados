@@ -70,11 +70,39 @@ export function AppProvider({ children }) {
         const done = hitos.filter((h) => h.done).length;
         const progreso = Math.round((done / hitos.length) * 100);
         const lastDone = [...hitos].reverse().find((h) => h.done);
+        const toggledHito = hitos.find((h) => h.id === hitoId);
+        let etapaActual = p.etapaActual;
+        let etapas = p.etapas;
+        let actividades = p.actividades || [];
+        if (toggledHito?.label === 'Inventario PT' && toggledHito.done && p.etapaActual === 0) {
+          etapaActual = 1;
+          etapas = p.etapas.map((e, i) => {
+            if (i === 0) return { ...e, estado: 'completado' };
+            if (i === 1) return { ...e, estado: 'en_progreso' };
+            return e;
+          });
+          const now = new Date();
+          const ts =
+            now.getDate().toString().padStart(2, '0') +
+            '/' +
+            (now.getMonth() + 1).toString().padStart(2, '0') +
+            ' ' +
+            now.getHours().toString().padStart(2, '0') +
+            ':' +
+            now.getMinutes().toString().padStart(2, '0');
+          actividades = [
+            { id: `A${Date.now()}`, text: `Avance de etapa: ${p.etapas[0].nombre} → ${p.etapas[1].nombre}`, time: ts },
+            ...actividades,
+          ];
+        }
         return {
           ...p,
           hitos,
           progreso,
           ultimoHito: lastDone ? lastDone.label : p.ultimoHito,
+          etapaActual,
+          etapas,
+          actividades,
         };
       });
       return { ...prev, products };
