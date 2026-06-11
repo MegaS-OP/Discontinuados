@@ -57,17 +57,14 @@ function ProductCard({ product, color, bg, onOpen }) {
     >
       {/* SKU + progress */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 10, fontWeight: 600, color, letterSpacing: '0.3px' }}>{product.id}</span>
+        <span style={{ fontSize: 10, fontWeight: 600, color, letterSpacing: '0.3px' }}>{product.codigo || product.id}</span>
         <ProgressRing pct={product.progreso} color={color} size={34} />
       </div>
 
       {/* Nombre */}
-      <div style={{ fontSize: 12, fontWeight: 600, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 4 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 4 }}>
         {product.nombre}
       </div>
-
-      {/* SKU técnico */}
-      {product.codigo && <div style={{ fontSize: 10, color: '#9B9895', marginBottom: 6 }}>{product.codigo}</div>}
 
       {/* Meta */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
