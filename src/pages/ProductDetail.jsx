@@ -172,7 +172,62 @@ export default function ProductDetail({ productId, onBack }) {
           <Stepper etapas={product.etapas} etapaActual={product.etapaActual} />
 
           {/* Milestones por etapa */}
-          {[0, 1, 2].map((etapaIdx) => {
+          {(() => {
+            const renderHito = (h, nested = false) => {
+              if (!h) return null;
+              const extras = HITOS_CON_EXTRAS[h.label];
+              return (
+                <div key={h.id} style={{ borderRadius: 6, background: nested ? '#fff' : BG_SEC, overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px' }}>
+                    <button
+                      onClick={() => toggleHito(product.id, h.id)}
+                      style={{ width: 18, height: 18, borderRadius: '50%', border: `1.5px solid ${h.done ? ML_GREEN : '#D3D1C7'}`, background: h.done ? ML_GREEN : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: h.done ? '#fff' : 'transparent', cursor: 'pointer', flexShrink: 0 }}
+                    >✓</button>
+                    <span style={{ fontSize: 12, color: '#1A1A1A', flex: 1 }}>{h.label}</span>
+                    <span style={{ fontSize: 10, color: '#5F5E5A' }}>{h.responsable}</span>
+                    {h.fechaCompromiso !== '-' && <span style={{ fontSize: 10, color: '#9B9895' }}>📅 {h.fechaCompromiso}</span>}
+                    {h.fechaReal !== '-' && <span style={{ fontSize: 10, color: ML_GREEN }}>✓ {h.fechaReal}</span>}
+                  </div>
+                  {extras && (
+                    <div style={{
+                      margin: '0 10px 8px 36px',
+                      padding: '8px 10px',
+                      borderRadius: 4,
+                      background: nested ? '#FAFAF8' : (h.label === 'Análisis de granel' ? '#EEF4FF' : '#FFF8EE'),
+                      border: nested ? '0.5px solid #E5E7EB' : `0.5px solid ${h.label === 'Análisis de granel' ? '#B8D4F0' : '#F0D4A0'}`,
+                      display: 'flex', flexDirection: 'column', gap: 6,
+                    }}>
+                      {!nested && (
+                        <div style={{ fontSize: 10, fontWeight: 600, color: h.label === 'Análisis de granel' ? '#185FA5' : '#854F0B', marginBottom: 2 }}>
+                          {h.label === 'Análisis de granel' ? '📊 Oficina de Estrategia' : '🏭 Planta'}
+                        </div>
+                      )}
+                      <textarea
+                        value={h.notas || ''}
+                        onChange={(e) => updateHitoExtras(product.id, h.id, { notas: e.target.value })}
+                        placeholder={h.label === 'Inventario PT' ? 'Observaciones...' : 'Notas del análisis...'}
+                        rows={2}
+                        style={{ width: '100%', border: '0.5px solid #D3D1C7', borderRadius: 4, padding: '5px 8px', fontSize: 11, background: '#fff', color: '#1A1A1A', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                      {extras.costoImpacto && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: 11, color: '#5F5E5A', whiteSpace: 'nowrap' }}>Costo / Impacto (USD)</span>
+                          <input
+                            type="number"
+                            value={h.costoImpacto || ''}
+                            onChange={(e) => updateHitoExtras(product.id, h.id, { costoImpacto: e.target.value })}
+                            placeholder="0.00"
+                            style={{ width: 120, border: '0.5px solid #D3D1C7', borderRadius: 4, padding: '4px 8px', fontSize: 11, background: '#fff', color: '#1A1A1A', outline: 'none' }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            };
+
+          return [0, 1, 2].map((etapaIdx) => {
             const hitosEtapa = product.hitos.filter((h) => h.etapa === etapaIdx);
             const etapaColors = ['#185FA5', '#854F0B', '#3B6D11'];
             const color = etapaColors[etapaIdx];
@@ -184,58 +239,29 @@ export default function ProductDetail({ productId, onBack }) {
                   <span style={{ fontSize: 10, color: '#5F5E5A' }}>{doneCount}/{hitosEtapa.length} completados</span>
                 </div>
                 <div style={{ padding: '4px 16px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {hitosEtapa.map((h) => {
-                    const hasExtras = !!HITOS_CON_EXTRAS[h.label];
-                    return (
-                      <div key={h.id} style={{ borderRadius: 6, background: BG_SEC, overflow: 'hidden' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px' }}>
-                          <button
-                            onClick={() => toggleHito(product.id, h.id)}
-                            style={{ width: 18, height: 18, borderRadius: '50%', border: `1.5px solid ${h.done ? ML_GREEN : '#D3D1C7'}`, background: h.done ? ML_GREEN : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: h.done ? '#fff' : 'transparent', cursor: 'pointer', flexShrink: 0 }}
-                          >✓</button>
-                          <span style={{ fontSize: 12, color: '#1A1A1A', flex: 1 }}>{h.label}</span>
-                          <span style={{ fontSize: 10, color: '#5F5E5A' }}>{h.responsable}</span>
-                          {h.fechaCompromiso !== '-' && <span style={{ fontSize: 10, color: '#9B9895' }}>📅 {h.fechaCompromiso}</span>}
-                          {h.fechaReal !== '-' && <span style={{ fontSize: 10, color: ML_GREEN }}>✓ {h.fechaReal}</span>}
+                  {etapaIdx === 1 ? (
+                    <>
+                      {renderHito(hitosEtapa.find((h) => h.label === 'Inventario PT'))}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
+                        <div style={{ borderRadius: 6, border: '0.5px solid #B8D4F0', background: '#EEF4FF', padding: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: '#185FA5', marginBottom: 2 }}>📊 Análisis de granel — Oficina de Estrategia</div>
+                          {renderHito(hitosEtapa.find((h) => h.label === 'Análisis de granel'), true)}
                         </div>
-                        {hasExtras && (
-                          <div style={{
-                            margin: '0 10px 8px 36px',
-                            padding: '8px 10px',
-                            borderRadius: 4,
-                            background: h.label === 'Análisis de granel' ? '#EEF4FF' : '#FFF8EE',
-                            border: `0.5px solid ${h.label === 'Análisis de granel' ? '#B8D4F0' : '#F0D4A0'}`,
-                            display: 'flex', flexDirection: 'column', gap: 6,
-                          }}>
-                            <div style={{ fontSize: 10, fontWeight: 600, color: h.label === 'Análisis de granel' ? '#185FA5' : '#854F0B', marginBottom: 2 }}>
-                              {h.label === 'Análisis de granel' ? '📊 Oficina de Estrategia' : '🏭 Planta'}
-                            </div>
-                            <textarea
-                              value={h.notas || ''}
-                              onChange={(e) => updateHitoExtras(product.id, h.id, { notas: e.target.value })}
-                              placeholder="Notas del análisis..."
-                              rows={2}
-                              style={{ width: '100%', border: '0.5px solid #D3D1C7', borderRadius: 4, padding: '5px 8px', fontSize: 11, background: '#fff', color: '#1A1A1A', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
-                            />
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontSize: 11, color: '#5F5E5A', whiteSpace: 'nowrap' }}>Costo / Impacto (USD)</span>
-                              <input
-                                type="number"
-                                value={h.costoImpacto || ''}
-                                onChange={(e) => updateHitoExtras(product.id, h.id, { costoImpacto: e.target.value })}
-                                placeholder="0.00"
-                                style={{ width: 120, border: '0.5px solid #D3D1C7', borderRadius: 4, padding: '4px 8px', fontSize: 11, background: '#fff', color: '#1A1A1A', outline: 'none' }}
-                              />
-                            </div>
-                          </div>
-                        )}
+                        <div style={{ borderRadius: 6, border: '0.5px solid #F0D4A0', background: '#FFF8EE', padding: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', marginBottom: 2 }}>🏭 Análisis de impacto planta — Planta</div>
+                          {['Producción en curso', 'Inventario materiales', 'Costo destrucción', 'Última OC'].map((label) => renderHito(hitosEtapa.find((h) => h.label === label), true))}
+                          {renderHito(hitosEtapa.find((h) => h.label === 'Análisis de impacto planta'), true)}
+                        </div>
                       </div>
-                    );
-                  })}
+                    </>
+                  ) : (
+                    hitosEtapa.map((h) => renderHito(h))
+                  )}
                 </div>
               </div>
             );
-          })}
+          });
+          })()}
 
           {/* Activity */}
           <div style={{ padding: '10px 16px', borderBottom: BORDER }}>
