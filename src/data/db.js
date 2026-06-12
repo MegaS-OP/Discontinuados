@@ -23,8 +23,6 @@ export const HITOS_TEMPLATE = [
   { etapa: 0, label: 'AARR' },
   { etapa: 0, label: 'Presupuesto' },
   { etapa: 1, label: 'Inventario PT' },
-  { etapa: 1, label: 'Producción en curso' },
-  { etapa: 1, label: 'Inventario materiales' },
   { etapa: 1, label: 'Costo destrucción' },
   { etapa: 1, label: 'Última OC' },
   { etapa: 1, label: 'Análisis de impacto planta' },
@@ -37,7 +35,9 @@ export const HITOS_TEMPLATE = [
 // Hitos que tienen campos extra
 export const HITOS_CON_EXTRAS = {
   'Inventario PT': { notas: true },
-  'Análisis de impacto planta': { notas: true, costoImpacto: true, impactoGranelLleva: true },
+  'Costo destrucción': { valor: true },
+  'Última OC': { fecha: true },
+  'Análisis de impacto planta': { impactoGranelLleva: true, impactoGranelValor: true },
 };
 
 export const RESPONSABLES_DEFAULT = {
@@ -46,8 +46,6 @@ export const RESPONSABLES_DEFAULT = {
   'AARR': 'AARR',
   'Presupuesto': 'Finanzas',
   'Inventario PT': 'Supply Chain Corp',
-  'Producción en curso': 'Planta',
-  'Inventario materiales': 'Planta',
   'Costo destrucción': 'Planta',
   'Última OC': 'Supply Corp',
   'Análisis de impacto planta': 'Planta',
@@ -72,7 +70,9 @@ export function makeHitos(overrides = []) {
       done: ov.done || false,
       fechaCompromiso: ov.fechaCompromiso || '-',
       fechaReal: ov.fechaReal || '-',
-      ...(HITOS_CON_EXTRAS[t.label] ? { notas: ov.notas || '', costoImpacto: ov.costoImpacto || '', impactoGranelLleva: ov.impactoGranelLleva || '', impactoGranelValor: ov.impactoGranelValor || '' } : {}),
+      ...(HITOS_CON_EXTRAS[t.label]
+        ? Object.keys(HITOS_CON_EXTRAS[t.label]).reduce((acc, k) => { acc[k] = ov[k] || ''; return acc; }, {})
+        : {}),
     };
   });
 }
