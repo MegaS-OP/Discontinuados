@@ -37,7 +37,7 @@ export const HITOS_TEMPLATE = [
 // Hitos que tienen campos extra
 export const HITOS_CON_EXTRAS = {
   'Inventario PT': { notas: true },
-  'Análisis de impacto planta': { notas: true, costoImpacto: true, impactoGranel: true },
+  'Análisis de impacto planta': { notas: true, costoImpacto: true, impactoGranelLleva: true },
 };
 
 export const RESPONSABLES_DEFAULT = {
@@ -72,7 +72,7 @@ export function makeHitos(overrides = []) {
       done: ov.done || false,
       fechaCompromiso: ov.fechaCompromiso || '-',
       fechaReal: ov.fechaReal || '-',
-      ...(HITOS_CON_EXTRAS[t.label] ? { notas: ov.notas || '', costoImpacto: ov.costoImpacto || '', impactoGranel: ov.impactoGranel || '' } : {}),
+      ...(HITOS_CON_EXTRAS[t.label] ? { notas: ov.notas || '', costoImpacto: ov.costoImpacto || '', impactoGranelLleva: ov.impactoGranelLleva || '', impactoGranelValor: ov.impactoGranelValor || '' } : {}),
     };
   });
 }

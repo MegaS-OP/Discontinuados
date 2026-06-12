@@ -220,16 +220,35 @@ export default function ProductDetail({ productId, onBack }) {
                           />
                         </div>
                       )}
-                      {extras.impactoGranel && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: 11, color: '#5F5E5A', whiteSpace: 'nowrap' }}>Impacto sobre Granel</span>
-                          <input
-                            type="text"
-                            value={h.impactoGranel || ''}
-                            onChange={(e) => updateHitoExtras(product.id, h.id, { impactoGranel: e.target.value })}
-                            placeholder="Describir impacto..."
-                            style={{ width: 200, border: '0.5px solid #D3D1C7', borderRadius: 4, padding: '4px 8px', fontSize: 11, background: '#fff', color: '#1A1A1A', outline: 'none' }}
-                          />
+                      {extras.impactoGranelLleva !== undefined && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <span style={{ fontSize: 11, color: '#5F5E5A', whiteSpace: 'nowrap' }}>Impacto sobre Granel</span>
+                            {['Lleva', 'No lleva'].map((opt) => {
+                              const val = opt === 'Lleva' ? 'si' : 'no';
+                              const checked = h.impactoGranelLleva === val;
+                              return (
+                                <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#1A1A1A', cursor: 'pointer' }}>
+                                  <input
+                                    type="radio"
+                                    checked={checked}
+                                    onChange={() => updateHitoExtras(product.id, h.id, { impactoGranelLleva: val, ...(val === 'no' ? { impactoGranelValor: '' } : {}) })}
+                                    style={{ cursor: 'pointer' }}
+                                  />
+                                  {opt}
+                                </label>
+                              );
+                            })}
+                          </div>
+                          {h.impactoGranelLleva === 'si' && (
+                            <input
+                              type="text"
+                              value={h.impactoGranelValor || ''}
+                              onChange={(e) => updateHitoExtras(product.id, h.id, { impactoGranelValor: e.target.value })}
+                              placeholder="Porcentaje o valor..."
+                              style={{ width: 200, border: '0.5px solid #D3D1C7', borderRadius: 4, padding: '4px 8px', fontSize: 11, background: '#fff', color: '#1A1A1A', outline: 'none' }}
+                            />
+                          )}
                         </div>
                       )}
                     </div>
