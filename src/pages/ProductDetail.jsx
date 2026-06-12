@@ -225,6 +225,26 @@ export default function ProductDetail({ productId, onBack }) {
                         rows={2}
                         style={{ width: '100%', border: '0.5px solid #D3D1C7', borderRadius: 4, padding: '5px 8px', fontSize: 11, background: '#fff', color: '#1A1A1A', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
                       />
+                      {extras.ofreceUnidades && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <span style={{ fontSize: 11, color: '#5F5E5A', whiteSpace: 'nowrap' }}>¿Ofrece unidades a otra compañía?</span>
+                          {['Sí', 'No'].map((opt) => {
+                            const val = opt === 'Sí' ? 'si' : 'no';
+                            const checked = h.ofreceUnidades === val;
+                            return (
+                              <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#1A1A1A', cursor: 'pointer' }}>
+                                <input
+                                  type="radio"
+                                  checked={checked}
+                                  onChange={() => updateHitoExtras(product.id, h.id, { ofreceUnidades: val })}
+                                  style={{ cursor: 'pointer' }}
+                                />
+                                {opt}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

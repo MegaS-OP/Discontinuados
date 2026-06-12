@@ -34,7 +34,7 @@ export const HITOS_TEMPLATE = [
 
 // Hitos que tienen campos extra
 export const HITOS_CON_EXTRAS = {
-  'Inventario PT': { notas: true },
+  'Inventario PT': { notas: true, ofreceUnidades: true },
   'Costo destrucción': { valor: true },
   'Última OC': { fecha: true },
   'Análisis de impacto planta': { impactoGranelLleva: true, impactoGranelValor: true },
