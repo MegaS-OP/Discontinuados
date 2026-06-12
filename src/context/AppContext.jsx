@@ -95,6 +95,28 @@ export function AppProvider({ children }) {
             ...actividades,
           ];
         }
+        if (p.etapaActual === 2) {
+          const hitosEtapa2 = hitos.filter((h) => h.etapa === 2);
+          const todoCompleto = hitosEtapa2.length > 0 && hitosEtapa2.every((h) => h.done);
+          if (todoCompleto && p.etapas[2].estado !== 'completado') {
+            etapas = (etapas === p.etapas ? p.etapas : etapas).map((e, i) => i === 2 ? { ...e, estado: 'completado' } : e);
+            const now = new Date();
+            const ts =
+              now.getDate().toString().padStart(2, '0') +
+              '/' +
+              (now.getMonth() + 1).toString().padStart(2, '0') +
+              ' ' +
+              now.getHours().toString().padStart(2, '0') +
+              ':' +
+              now.getMinutes().toString().padStart(2, '0');
+            actividades = [
+              { id: `A${Date.now()}`, text: `Producto confirmado como discontinuado: ${p.etapas[2].nombre}`, time: ts },
+              ...actividades,
+            ];
+          } else if (!todoCompleto && p.etapas[2].estado === 'completado') {
+            etapas = (etapas === p.etapas ? p.etapas : etapas).map((e, i) => i === 2 ? { ...e, estado: 'en_progreso' } : e);
+          }
+        }
         return {
           ...p,
           hitos,
