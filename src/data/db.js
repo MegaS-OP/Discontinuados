@@ -85,6 +85,35 @@ export function makeHitos(overrides = []) {
   });
 }
 
+// Actualiza los hitos de un producto ya existente para que coincidan con HITOS_TEMPLATE,
+// agregando los hitos nuevos que falten (sin tocar los que ya existen).
+export function migrateHitos(hitos) {
+  if (!Array.isArray(hitos)) return hitos;
+  const legacyCosto = hitos.find((h) => h.label === 'Costo destrucción');
+  let changed = false;
+  const result = HITOS_TEMPLATE.map((t, i) => {
+    const existing = hitos.find((h) => h.label === t.label);
+    if (existing) return existing;
+    changed = true;
+    if (t.label === 'Costo destrucción PT' && legacyCosto) {
+      return { ...legacyCosto, id: `H${i}_${Date.now()}`, label: t.label, responsable: defaultResponsable(t.label) };
+    }
+    return {
+      id: `H${i}_${Date.now()}_${i}`,
+      etapa: t.etapa,
+      label: t.label,
+      responsable: defaultResponsable(t.label),
+      done: false,
+      fechaCompromiso: '-',
+      fechaReal: '-',
+      ...(HITOS_CON_EXTRAS[t.label]
+        ? Object.keys(HITOS_CON_EXTRAS[t.label]).reduce((acc, k) => { acc[k] = ''; return acc; }, {})
+        : {}),
+    };
+  });
+  return changed ? result : hitos;
+}
+
 export function calcEtapaActual(hitos) {
   const doneByEtapa = [0, 1, 2].map((e) => {
     const etapaHitos = hitos.filter((h) => h.etapa === e);

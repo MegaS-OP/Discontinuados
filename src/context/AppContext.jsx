@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { ref, onValue, set, get } from 'firebase/database';
 import { db } from '../firebase';
-import { initialData } from '../data/db';
+import { initialData, migrateHitos } from '../data/db';
 
 const AppContext = createContext(null);
 
@@ -14,7 +14,16 @@ export function AppProvider({ children }) {
     const dataRef = ref(db, DATA_PATH);
     const unsubscribe = onValue(dataRef, (snapshot) => {
       if (snapshot.exists()) {
-        setData(snapshot.val());
+        const val = snapshot.val();
+        let migrated = false;
+        const products = (val.products || []).map((p) => {
+          const hitos = migrateHitos(p.hitos);
+          if (hitos !== p.hitos) migrated = true;
+          return hitos !== p.hitos ? { ...p, hitos } : p;
+        });
+        const next = { ...val, products };
+        setData(next);
+        if (migrated) set(dataRef, next);
       } else {
         set(dataRef, initialData);
         setData(initialData);
