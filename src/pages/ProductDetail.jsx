@@ -300,7 +300,11 @@ export default function ProductDetail({ productId, onBack }) {
                       {renderHito(hitosEtapa.find((h) => h.label === 'Inventario PT'))}
                       <div style={{ borderRadius: 6, border: '0.5px solid #F0D4A0', background: '#FFF8EE', padding: 8, display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
                         <div style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', marginBottom: 2 }}>🏭 Análisis de impacto planta — Planta</div>
-                        {['Costo destrucción PT', 'Costo destrucción materiales', 'Costo API', 'Última OC'].map((label) => renderHito(hitosEtapa.find((h) => h.label === label), true))}
+                        <div style={{ borderRadius: 6, border: '0.5px solid #E5DCC3', background: '#fff', padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: '#5F5E5A', padding: '2px 4px' }}>Costo destrucción</div>
+                          {['Costo destrucción PT', 'Costo destrucción materiales', 'Costo API'].map((label) => renderHito(hitosEtapa.find((h) => h.label === label), true))}
+                        </div>
+                        {renderHito(hitosEtapa.find((h) => h.label === 'Última OC'), true)}
                         {renderImpactoGranel(product.hitos.find((h) => h.label === 'Análisis de impacto planta'))}
                       </div>
                     </>
