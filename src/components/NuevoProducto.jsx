@@ -25,7 +25,7 @@ const inputStyle = {
 export default function NuevoProducto({ onClose }) {
   const { addProduct } = useApp();
   const [form, setForm] = useState({
-    codigo: '', nombre: '', paisCompania: '', paisPlanta: '', bu: '', mph: '', observaciones: '',
+    codigo: '', nombre: '', paisCompania: '', paisPlanta: '', bu: '', mph: '', observaciones: '', levantadoSOPC: '',
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -63,6 +63,7 @@ export default function NuevoProducto({ onClose }) {
       bu: form.bu,
       mph: form.mph.trim(),
       observaciones: form.observaciones.trim(),
+      levantadoSOPC: form.levantadoSOPC,
       etapaActual: 0,
       progreso: 0,
       ultimoHito: 'Inicio proceso',
@@ -138,6 +139,26 @@ export default function NuevoProducto({ onClose }) {
             </Field>
           </div>
 
+          <Field label="¿Se levantó en la reunión S&OP?">
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '6px 0' }}>
+              {['Sí', 'No'].map((opt) => {
+                const val = opt === 'Sí' ? 'si' : 'no';
+                return (
+                  <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#1A1A1A', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="levantadoSOPC"
+                      checked={form.levantadoSOPC === val}
+                      onChange={() => setForm((f) => ({ ...f, levantadoSOPC: val }))}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    {opt}
+                  </label>
+                );
+              })}
+            </div>
+          </Field>
+
           <Field label="Observaciones">
             <textarea
               value={form.observaciones}
@@ -149,7 +170,7 @@ export default function NuevoProducto({ onClose }) {
           </Field>
 
           <div style={{ background: BG_SEC, borderRadius: 6, padding: '10px 12px', fontSize: 11, color: '#5F5E5A', lineHeight: 1.5 }}>
-            Se crearán automáticamente los <strong>15 hitos estándar</strong> del proceso con estado Pendiente.
+            Se crearán automáticamente los <strong>16 hitos estándar</strong> del proceso con estado Pendiente.
           </div>
         </div>
 

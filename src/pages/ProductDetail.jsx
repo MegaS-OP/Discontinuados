@@ -88,7 +88,7 @@ export default function ProductDetail({ productId, onBack }) {
     // Detección: alcanza con que se haya completado al menos una tarea
     etapaCompleta = hitosEtapaActual.some((h) => h.done);
   } else if (product.etapaActual === 1) {
-    // Análisis: completo cuando se completaron Inventario PT, Costo destrucción y Última OC
+    // Análisis: completo cuando todos los hitos visibles de etapa 1 están hechos
     const visibles = hitosEtapaActual.filter((h) => h.label !== 'Análisis de impacto planta');
     etapaCompleta = visibles.length > 0 && visibles.every((h) => h.done);
   } else {
@@ -146,7 +146,7 @@ export default function ProductDetail({ productId, onBack }) {
               <div style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 3 }}>{product.codigo || product.id}</div>
               <div style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A' }}>{product.nombre}</div>
               <div style={{ fontSize: 11, color: '#5F5E5A', marginTop: 2 }}>
-                Cía: {product.paisCompania} · Fabricante: {product.paisPlanta} · BU: {product.bu}{product.mph ? ` · MPH: ${product.mph}` : ''} · Inicio: {product.fechaInicio}
+                Cía: {product.paisCompania} · Fabricante: {product.paisPlanta} · BU: {product.bu}{product.mph ? ` · MPH: ${product.mph}` : ''}{product.levantadoSOPC ? ` · S&OP: ${product.levantadoSOPC === 'si' ? 'Sí' : 'No'}` : ''} · Inicio: {product.fechaInicio}
               </div>
               {product.observaciones && (
                 <div style={{ fontSize: 11, color: '#854F0B', marginTop: 4, background: '#FAEEDA', borderRadius: 4, padding: '3px 8px', display: 'inline-block' }}>
@@ -221,7 +221,7 @@ export default function ProductDetail({ productId, onBack }) {
                       <textarea
                         value={h.notas || ''}
                         onChange={(e) => updateHitoExtras(product.id, h.id, { notas: e.target.value })}
-                        placeholder={h.label === 'Inventario PT' ? 'Observaciones...' : 'Notas del análisis...'}
+                        placeholder={h.label === 'Inventario PT' ? 'Observaciones...' : h.label === 'Productos en cola de producción' ? 'Descripción y estado de órdenes en curso...' : 'Notas del análisis...'}
                         rows={2}
                         style={{ width: '100%', border: '0.5px solid #D3D1C7', borderRadius: 4, padding: '5px 8px', fontSize: 11, background: '#fff', color: '#1A1A1A', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
                       />
@@ -298,22 +298,26 @@ export default function ProductDetail({ productId, onBack }) {
                   {etapaIdx === 1 ? (
                     <>
                       {renderHito(hitosEtapa.find((h) => h.label === 'Inventario PT'))}
+                      {renderHito(hitosEtapa.find((h) => h.label === 'Notificación a Mkt Corp y Aviso a Planta'))}
                       <div style={{ borderRadius: 6, border: '0.5px solid #F0D4A0', background: '#FFF8EE', padding: 8, display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
                         <div style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', marginBottom: 2 }}>🏭 Análisis de impacto planta — Planta</div>
                         <div style={{ borderRadius: 6, border: '0.5px solid #E5DCC3', background: '#fff', padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
                           <div style={{ fontSize: 10, fontWeight: 600, color: '#5F5E5A', padding: '2px 4px' }}>Costo destrucción</div>
-                          {['Costo destrucción PT', 'Costo destrucción materiales', 'Costo API'].map((label) => renderHito(hitosEtapa.find((h) => h.label === label), true))}
+                          {['Costo destrucción PT', 'Costo destrucción materiales', 'Costo inventario API'].map((label) => renderHito(hitosEtapa.find((h) => h.label === label), true))}
                         </div>
+                        {renderHito(hitosEtapa.find((h) => h.label === 'Productos en cola de producción'), true)}
                         {renderHito(hitosEtapa.find((h) => h.label === 'Última OC'), true)}
                         {renderImpactoGranel(product.hitos.find((h) => h.label === 'Análisis de impacto planta'))}
                       </div>
                     </>
                   ) : etapaIdx === 0 ? (
                     <>
-                      {hitosEtapa.filter((h) => h.label !== 'Notificación a marketing corporativo').map((h) => renderHito(h))}
-                      <div style={{ borderRadius: 6, border: '1px solid #B8D4F0', background: '#E6F1FB', padding: '2px 4px', marginTop: 4 }}>
-                        {renderHito(hitosEtapa.find((h) => h.label === 'Notificación a marketing corporativo'), true)}
+                      {renderHito(hitosEtapa.find((h) => h.label === 'Detección del SKU a discontinuar'))}
+                      <div style={{ borderRadius: 6, border: '0.5px solid #F0D4A0', background: '#FAEEDA', padding: 6, display: 'flex', flexDirection: 'column', gap: 4, marginTop: 2, marginBottom: 2 }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', marginBottom: 2 }}>★ Ruta Presupuesto Anual</div>
+                        {['Presentación de Presupuesto Anual', 'Análisis de Template de Discontinuación'].map((label) => renderHito(hitosEtapa.find((h) => h.label === label), true))}
                       </div>
+                      {renderHito(hitosEtapa.find((h) => h.label === 'Aviso a Supply Corp y S&OP Global'))}
                     </>
                   ) : (
                     hitosEtapa.map((h) => renderHito(h))

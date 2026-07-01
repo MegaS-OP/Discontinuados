@@ -83,7 +83,7 @@ export function AppProvider({ children }) {
         let etapaActual = p.etapaActual;
         let etapas = p.etapas;
         let actividades = p.actividades || [];
-        if (toggledHito?.label === 'Inventario PT' && toggledHito.done && p.etapaActual === 0) {
+        if (toggledHito?.label === 'Aviso a Supply Corp y S&OP Global' && toggledHito.done && p.etapaActual === 0) {
           etapaActual = 1;
           etapas = p.etapas.map((e, i) => {
             if (i === 0) return { ...e, estado: 'completado' };

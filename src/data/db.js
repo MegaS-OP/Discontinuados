@@ -18,49 +18,55 @@ export const BUS = ['Primary', 'Consumer', 'Divise', 'Hi-Tech', 'Nutraceutical']
 
 // Hitos estándar del proceso — igual para todos los productos
 export const HITOS_TEMPLATE = [
-  { etapa: 0, label: 'Definición MKT' },
-  { etapa: 0, label: 'Compliance' },
-  { etapa: 0, label: 'AARR' },
-  { etapa: 0, label: 'Presupuesto' },
-  { etapa: 0, label: 'Notificación a marketing corporativo' },
+  // Etapa 1 — Detección
+  { etapa: 0, label: 'Detección del SKU a discontinuar' },
+  { etapa: 0, label: 'Presentación de Presupuesto Anual', rutaPresupuesto: true },
+  { etapa: 0, label: 'Análisis de Template de Discontinuación', rutaPresupuesto: true },
+  { etapa: 0, label: 'Aviso a Supply Corp y S&OP Global' },
+  // Etapa 2 — Análisis
   { etapa: 1, label: 'Inventario PT' },
+  { etapa: 1, label: 'Notificación a Mkt Corp y Aviso a Planta' },
+  { etapa: 1, label: 'Análisis de impacto planta' },
   { etapa: 1, label: 'Costo destrucción PT' },
   { etapa: 1, label: 'Costo destrucción materiales' },
-  { etapa: 1, label: 'Costo API' },
+  { etapa: 1, label: 'Costo inventario API' },
+  { etapa: 1, label: 'Productos en cola de producción' },
   { etapa: 1, label: 'Última OC' },
-  { etapa: 1, label: 'Análisis de impacto planta' },
-  { etapa: 2, label: 'Confirmación MKT' },
-  { etapa: 2, label: 'Plan desagote' },
-  { etapa: 2, label: 'Inactivación código' },
-  { etapa: 2, label: 'Notificación final' },
+  // Etapa 3 — Confirmación
+  { etapa: 2, label: 'Confirmación con Mkt Corp' },
+  { etapa: 2, label: 'Notificación a todos los departamentos' },
+  { etapa: 2, label: 'Inactivación del código en sistema' },
+  { etapa: 2, label: 'Plan de desagote de inventario' },
 ];
 
 // Hitos que tienen campos extra
 export const HITOS_CON_EXTRAS = {
   'Inventario PT': { notas: true, ofreceUnidades: true },
+  'Análisis de impacto planta': { impactoGranelLleva: true, impactoGranelValor: true },
   'Costo destrucción PT': { valor: true },
   'Costo destrucción materiales': { valor: true },
-  'Costo API': { valor: true },
+  'Costo inventario API': { valor: true },
+  'Productos en cola de producción': { notas: true },
   'Última OC': { fecha: true },
-  'Análisis de impacto planta': { impactoGranelLleva: true, impactoGranelValor: true },
 };
 
 export const RESPONSABLES_DEFAULT = {
-  'Definición MKT': 'Mkt Corp',
-  'Compliance': 'Compliance',
-  'AARR': 'AARR',
-  'Presupuesto': 'Finanzas',
-  'Notificación a marketing corporativo': 'Mkt Corp',
+  'Detección del SKU a discontinuar': 'Cualquier área',
+  'Presentación de Presupuesto Anual': 'Mkt Corp',
+  'Análisis de Template de Discontinuación': 'Mkt Corp',
+  'Aviso a Supply Corp y S&OP Global': 'Área detectante',
   'Inventario PT': 'Supply Chain Corp',
+  'Notificación a Mkt Corp y Aviso a Planta': 'Supply Chain Corp',
+  'Análisis de impacto planta': 'Planta',
   'Costo destrucción PT': 'Planta',
   'Costo destrucción materiales': 'Planta',
-  'Costo API': 'Planta',
+  'Costo inventario API': 'Planta',
+  'Productos en cola de producción': 'Planta',
   'Última OC': 'Supply Corp',
-  'Análisis de impacto planta': 'Planta',
-  'Confirmación MKT': 'Mkt Corp',
-  'Plan desagote': 'Supply Corp',
-  'Inactivación código': 'Supply Corp',
-  'Notificación final': 'S&OP',
+  'Confirmación con Mkt Corp': 'Supply Corp + S&OP Global',
+  'Notificación a todos los departamentos': 'S&OP Global',
+  'Inactivación del código en sistema': 'Supply Chain Corp',
+  'Plan de desagote de inventario': 'Mkt Local & Cía',
 };
 
 function defaultResponsable(label) {
@@ -85,21 +91,37 @@ export function makeHitos(overrides = []) {
   });
 }
 
-// Actualiza los hitos de un producto ya existente para que coincidan con HITOS_TEMPLATE,
-// agregando los hitos nuevos que falten (sin tocar los que ya existen).
+// Actualiza los hitos de un producto ya existente para que coincidan con HITOS_TEMPLATE.
+// Maneja renombres de hitos y agrega los nuevos que falten.
 export function migrateHitos(hitos) {
   if (!Array.isArray(hitos)) return hitos;
+  // mapa de labels viejos → nuevo label (para renombres)
+  const RENAMES = {
+    'Costo API': 'Costo inventario API',
+    'Confirmación MKT': 'Confirmación con Mkt Corp',
+    'Plan desagote': 'Plan de desagote de inventario',
+    'Inactivación código': 'Inactivación del código en sistema',
+    'Notificación final': 'Notificación a todos los departamentos',
+  };
   const legacyCosto = hitos.find((h) => h.label === 'Costo destrucción');
   let changed = false;
   const result = HITOS_TEMPLATE.map((t, i) => {
-    const existing = hitos.find((h) => h.label === t.label);
-    if (existing) return existing;
+    // buscar por label exacto
+    const exact = hitos.find((h) => h.label === t.label);
+    if (exact) return exact;
+    // buscar por rename inverso
+    const oldLabel = Object.keys(RENAMES).find((k) => RENAMES[k] === t.label);
+    if (oldLabel) {
+      const renamed = hitos.find((h) => h.label === oldLabel);
+      if (renamed) { changed = true; return { ...renamed, label: t.label, responsable: defaultResponsable(t.label) }; }
+    }
     changed = true;
+    // Costo destrucción PT hereda datos del antiguo "Costo destrucción" único
     if (t.label === 'Costo destrucción PT' && legacyCosto) {
       return { ...legacyCosto, id: `H${i}_${Date.now()}`, label: t.label, responsable: defaultResponsable(t.label) };
     }
     return {
-      id: `H${i}_${Date.now()}_${i}`,
+      id: `H${i}_m${Date.now()}`,
       etapa: t.etapa,
       label: t.label,
       responsable: defaultResponsable(t.label),
