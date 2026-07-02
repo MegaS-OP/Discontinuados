@@ -139,7 +139,7 @@ export default function NuevoProducto({ onClose }) {
             </Field>
           </div>
 
-          <Field label="¿Se levantó en la reunión S&OP?">
+          <Field label="¿Se levantó desde la planta?">
             <div style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '6px 0' }}>
               {['Sí', 'No'].map((opt) => {
                 const val = opt === 'Sí' ? 'si' : 'no';
