@@ -163,7 +163,7 @@ export default function NuevoProducto({ onClose }) {
             <textarea
               value={form.observaciones}
               onChange={set('observaciones')}
-              placeholder="Notas o aclaraciones sobre el discontinuado..."
+              placeholder="Notas o aclaraciones sobre el discontinuado"
               rows={2}
               style={{ ...inputStyle, resize: 'vertical' }}
             />
@@ -191,3 +191,4 @@ export default function NuevoProducto({ onClose }) {
     </div>
   );
 }
+// v2
