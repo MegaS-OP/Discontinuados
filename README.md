@@ -1,5 +1,11 @@
 # Tracking de Iniciativas S&OP · Megalabs
 
+> **¿Sin permisos de TI y sin servidor?** Usá la **versión sin servidor**: el archivo
+> `tracking-iniciativas-sin-servidor.html` se abre con doble clic y guarda la base en un
+> archivo JSON dentro de una carpeta compartida (OneDrive/Teams). Ver sección
+> "Versión sin servidor" más abajo. La versión con servidor Node.js (descrita primero)
+> sigue siendo la mejor opción si algún día hay dónde alojarla.
+
 Torre de Control de Iniciativas Estratégicas del equipo S&OP Global, convertida de demo HTML a **aplicación multiusuario** con:
 
 - **Frontend**: mismo diseño exacto de la demo (`public/index.html`), con la fecha del día real.
@@ -56,6 +62,21 @@ iniciar.bat                   → arranque con doble clic en Windows
 
 - El botón **Compartir → Exportar** descarga un JSON de respaldo con todas las iniciativas.
 - El archivo `data/iniciativas.json` del servidor es la base: copiarlo alcanza como backup.
+
+## Versión sin servidor (sin Node, sin TI)
+
+`tracking-iniciativas-sin-servidor.html` es un único archivo autónomo pensado para equipos sin servidor propio:
+
+1. **Poné dos archivos en una carpeta compartida** que todo el equipo tenga sincronizada (OneDrive, Teams o unidad de red): el HTML de la app y la base de datos JSON.
+2. Cada persona abre el HTML **con doble clic en Microsoft Edge o Google Chrome**.
+3. La primera vez, tocá **"Crear base nueva"** (se crea `base-tracking-iniciativas.json` con las 17 iniciativas — guardalo en la carpeta compartida) o **"Conectar base compartida"** para elegir la base que ya existe.
+4. Desde ahí:
+   - Todo lo que se crea, edita o elimina **se guarda directo en ese archivo JSON**.
+   - **Al abrir la aplicación se cargan las modificaciones que hicieron los demás** (OneDrive sincroniza el archivo).
+   - Con la app abierta, los cambios ajenos se leen automáticamente cada 5 segundos.
+   - El navegador recuerda la base: en próximas aperturas, a lo sumo pide **un clic en "Reconectar base"** (es una medida de seguridad del navegador, no un error).
+
+**Limitaciones honestas de esta modalidad**: requiere Edge o Chrome (no Firefox); y si dos personas editan exactamente al mismo tiempo estando sin conexión, OneDrive puede generar una "copia en conflicto" y vale la última versión guardada. Para el uso normal (cada uno actualiza en distintos momentos del día) funciona perfecto.
 
 ## Notas
 
