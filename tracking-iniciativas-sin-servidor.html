@@ -78,6 +78,7 @@ const teamColors={'Equipo S&OP':'#1E5C70','Transformación Digital':'#4F9D52','G
 const $=s=>document.querySelector(s); const $$=s=>Array.from(document.querySelectorAll(s));
 function esc(s){return String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\'':'&#39;','"':'&quot;'}[m]))}
 // ---------- Base de datos: archivo JSON en carpeta compartida (sin servidor) ----------
+const APP_VERSION=2;
 const FILE_TYPES=[{description:'Base de datos JSON',accept:{'application/json':['.json']}}];
 let fileHandle=null, lastModifiedSeen=0, pollTimer=null;
 const idb={open(){return new Promise((res,rej)=>{const r=indexedDB.open('torreControlSOP_db',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error)})},
@@ -86,8 +87,8 @@ const idb={open(){return new Promise((res,rej)=>{const r=indexedDB.open('torreCo
 function fsSupported(){return typeof window.showOpenFilePicker==='function'}
 async function permOf(h,mode){return h.queryPermission?await h.queryPermission({mode}):'granted'}
 async function askPerm(h,mode){return h.requestPermission?await h.requestPermission({mode}):'granted'}
-async function readFileData(){const f=await fileHandle.getFile(); lastModifiedSeen=f.lastModified; const txt=await f.text(); if(!txt.trim()) return []; const p=JSON.parse(txt); const arr=Array.isArray(p)?p:(p.initiatives||[]); if(!Array.isArray(arr)) throw new Error('El archivo de base no tiene el formato esperado.'); return arr;}
-async function writeFileData(arr){const w=await fileHandle.createWritable(); await w.write(JSON.stringify({format:'tracking-iniciativas-v1',exported_at:new Date().toISOString(),exported_by:localStorage.getItem('torreControlSOP_exportName')||null,initiatives:arr},null,2)); await w.close(); try{const f=await fileHandle.getFile(); lastModifiedSeen=f.lastModified}catch(e){}}
+async function readFileData(){const f=await fileHandle.getFile(); lastModifiedSeen=f.lastModified; const txt=await f.text(); if(!txt.trim()) return []; const p=JSON.parse(txt); if(p&&p.app_version>APP_VERSION&&!window.__versionWarned){window.__versionWarned=true; setTimeout(()=>toast('Estás usando una versión vieja de la app: abrila desde el acceso directo a la carpeta compartida'),800);} const arr=Array.isArray(p)?p:(p.initiatives||[]); if(!Array.isArray(arr)) throw new Error('El archivo de base no tiene el formato esperado.'); return arr;}
+async function writeFileData(arr){const w=await fileHandle.createWritable(); await w.write(JSON.stringify({format:'tracking-iniciativas-v1',app_version:APP_VERSION,exported_at:new Date().toISOString(),exported_by:localStorage.getItem('torreControlSOP_exportName')||null,initiatives:arr},null,2)); await w.close(); try{const f=await fileHandle.getFile(); lastModifiedSeen=f.lastModified}catch(e){}}
 function cacheLocal(){localStorage.setItem('torreControlSOP_v1',JSON.stringify(initiatives))}
 async function apiLoad(){if(!fileHandle) return; initiatives=await readFileData(); cacheLocal();}
 async function api(pathname,method='GET',body=null){
