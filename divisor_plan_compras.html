@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Divisor de plan de compras</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  :root{
+    --bg:#f6f5f2;
+    --panel:#ffffff;
+    --ink:#1c2a24;
+    --ink-soft:#5b6b63;
+    --line:#dde2de;
+    --accent:#1f6f54;
+    --accent-soft:#e6f2ec;
+    --warn:#a3441f;
+    --warn-soft:#fbe9e1;
+    --info-soft:#eef3fb;
+    --info:#2a527a;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  #app-root{
+    font-family:'Segoe UI', Arial, sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    padding:28px;
+    border-radius:12px;
+    max-width:760px;
+    margin:24px auto;
+  }
+  h1{
+    font-size:20px;
+    margin:0 0 4px 0;
+    letter-spacing:.2px;
+  }
+  .subtitle{
+    color:var(--ink-soft);
+    font-size:13.5px;
+    margin:0 0 22px 0;
+  }
+  .dropzone{
+    border:2px dashed var(--line);
+    border-radius:10px;
+    background:var(--panel);
+    padding:36px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  .dropzone.drag{
+    border-color:var(--accent);
+    background:var(--accent-soft);
+  }
+  .dropzone p{margin:6px 0;}
+  .dropzone .main-label{font-size:14.5px; font-weight:600;}
+  .dropzone .sub-label{font-size:12.5px; color:var(--ink-soft);}
+  input[type=file]{display:none;}
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:20px;
+    margin-top:16px;
+  }
+  .panel h2{
+    font-size:14px;
+    margin:0 0 12px 0;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    word-break:break-all;
+  }
+  .row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    padding:8px 0;
+    border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .row:last-child{border-bottom:none;}
+  .row .row-label{flex:1;}
+  select, input[type=text]{
+    font-size:13.5px;
+    padding:6px 10px;
+    border-radius:6px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    max-width:60%;
+  }
+  input[type=text]{min-width:200px;}
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+    margin-top:4px;
+  }
+  th,td{
+    text-align:left;
+    padding:6px 8px;
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  th{color:var(--ink-soft); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.03em;}
+  .table-scroll{overflow-x:auto; margin-top:8px;}
+  .pill{
+    display:inline-block;
+    background:var(--accent-soft);
+    color:var(--accent);
+    border-radius:20px;
+    padding:2px 10px;
+    font-size:12px;
+    font-weight:600;
+  }
+  button.primary{
+    margin-top:18px;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    padding:11px 18px;
+    border-radius:8px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    width:100%;
+  }
+  button.primary:disabled{
+    background:#a9b8b0;
+    cursor:not-allowed;
+  }
+  button.primary:hover:not(:disabled){filter:brightness(1.05);}
+  button.link-btn{
+    background:none;
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:5px 10px;
+    font-size:12.5px;
+    color:var(--accent);
+    cursor:pointer;
+  }
+  button.link-btn:hover{background:var(--accent-soft);}
+  .status{
+    font-size:13px;
+    margin-top:10px;
+    color:var(--ink-soft);
+  }
+  .status.ok{color:var(--accent); font-weight:600;}
+  .status.err{color:var(--warn); font-weight:600;}
+  .warn-box{
+    background:var(--warn-soft);
+    color:var(--warn);
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:13px;
+    margin-top:10px;
+  }
+  .info-box{
+    background:var(--info-soft);
+    color:var(--info);
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:12.5px;
+    margin-top:10px;
+    line-height:1.5;
+  }
+  .reset-link{
+    display:inline-block;
+    margin-top:14px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    cursor:pointer;
+    text-decoration:underline;
+  }
+  .progress-wrap{
+    margin-top:14px;
+  }
+  .progress-track{
+    background:var(--line);
+    border-radius:20px;
+    height:10px;
+    overflow:hidden;
+  }
+  .progress-bar{
+    background:var(--accent);
+    height:100%;
+    transition:width .2s;
+  }
+  .progress-label{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-top:6px;
+  }
+  .spinner{
+    display:inline-block;
+    width:16px;height:16px;
+    border:2px solid var(--line);
+    border-top-color:var(--accent);
+    border-radius:50%;
+    animation:spin .7s linear infinite;
+    vertical-align:middle;
+    margin-right:8px;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .field-group{
+    padding:8px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .field-group .fg-label{font-size:13.5px; margin-bottom:6px; display:block;}
+  .field-group .fg-hint{font-size:12px; color:var(--ink-soft); margin-top:4px;}
+  .field-group input[type=text]{max-width:100%; width:100%;}
+  .preview-box{
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:12px;
+    margin-top:12px;
+  }
+  .preview-box h3{font-size:13px; margin:0 0 6px 0;}
+</style>
+</head>
+<body>
+<div id="app-root"></div>
+<script type="text/babel" data-presets="react">
+const {useState, useRef} = React;
+
+// Palabras que suelen dar nombre a la columna de país / compañía.
+// Se comparan sin acentos ni mayúsculas.
+const CANDIDATE_HEADERS = [
+  "pais", "país", "compania", "compañia", "compañía", "company",
+  "filial", "empresa", "cliente", "sucursal"
+];
+
+// Cuántas filas del arranque miramos buscando el encabezado.
+const HEADER_SEARCH_LIMIT = 12;
+// A partir de cuántas filas consideramos el archivo "grande" y mostramos progreso.
+const LARGE_FILE_THRESHOLD = 2000;
+
+function normalize(str){
+  return (str ?? "")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // saca acentos
+    .trim()
+    .toLowerCase();
+}
+
+// Convierte cualquier valor de celda en algo legible para la vista previa.
+function displayValue(v){
+  if(v === null || v === undefined) return "";
+  if(v instanceof Date) return v.toLocaleDateString();
+  if(typeof v === "object"){
+    if("result" in v) return displayValue(v.result);          // fórmula: mostramos su resultado
+    if("text" in v) return v.text;                            // texto enriquecido / hipervínculo
+    if("richText" in v) return v.richText.map(t => t.text).join("");
+    return "";
+  }
+  return v.toString();
+}
+
+// ----- utilidades para celdas combinadas (merged cells) -----
+function colLetterToNum(letters){
+  let n = 0;
+  for(const ch of letters.toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n;
+}
+function numToColLetter(n){
+  let s = "";
+  while(n > 0){ const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+function parseAddr(addr){
+  const m = addr.match(/([A-Za-z]+)(\d+)/);
+  if(!m) return null;
+  return {col: colLetterToNum(m[1]), row: parseInt(m[2], 10)};
+}
+function parseRange(range){
+  const parts = range.split(":");
+  const p1 = parseAddr(parts[0]);
+  const p2 = parts[1] ? parseAddr(parts[1]) : p1;
+  if(!p1 || !p2) return null;
+  return {
+    top: Math.min(p1.row, p2.row),
+    bottom: Math.max(p1.row, p2.row),
+    left: Math.min(p1.col, p2.col),
+    right: Math.max(p1.col, p2.col),
+  };
+}
+function rangeStr(top, left, bottom, right){
+  return `${numToColLetter(left)}${top}:${numToColLetter(right)}${bottom}`;
+}
+
+function App(){
+  const [fileName, setFileName] = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const [workbook, setWorkbook] = useState(null);
+  const [sheetName, setSheetName] = useState(null);
+  const [headerRowCount, setHeaderRowCount] = useState(2);
+  const [colIndex, setColIndex] = useState(null);
+  const [rows, setRows] = useState(null);
+  const [groups, setGroups] = useState(null);
+  const [status, setStatus] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [reading, setReading] = useState(false);
+  const [progress, setProgress] = useState(null); // {done, total}
+  const [customName, setCustomName] = useState("");
+  const [prefix, setPrefix] = useState("");
+  const [previewName, setPreviewName] = useState("");
+  const [previewRows, setPreviewRows] = useState(null);
+  const fileInput = useRef(null);
+
+  function reset(){
+    setFileName(null); setWorkbook(null); setSheetName(null);
+    setColIndex(null); setRows(null); setGroups(null); setStatus(null);
+    setHeaderRowCount(2); setCustomName(""); setPrefix("");
+    setPreviewName(""); setPreviewRows(null); setProgress(null);
+  }
+
+  // Lee cada celda de una fila como valor plano (solo para detectar y agrupar).
+  function rowValues(row, colCount){
+    const vals = [];
+    for(let c = 1; c <= colCount; c++){
+      const cell = row.getCell(c);
+      vals.push(cell.value === null || cell.value === undefined ? "" : cell.value);
+    }
+    return vals;
+  }
+
+  // Busca el encabezado y la columna de país/compañía en las primeras filas.
+  function detectHeaderAndColumn(allRows, extraKeyword){
+    const keywords = new Set(CANDIDATE_HEADERS.map(normalize));
+    if(extraKeyword && extraKeyword.trim() !== "") keywords.add(normalize(extraKeyword));
+    const searchLimit = Math.min(HEADER_SEARCH_LIMIT, allRows.length);
+    for(let r = 0; r < searchLimit; r++){
+      const row = allRows[r] || [];
+      for(let c = 0; c < row.length; c++){
+        if(keywords.has(normalize(row[c]))){
+          return {headerRowIdx: r, col: c};
+        }
+      }
+    }
+    return {headerRowIdx: null, col: null};
+  }
+
+  async function handleFile(file){
+    if(!file) return;
+    setStatus(null);
+    setPreviewRows(null);
+    setPreviewName("");
+
+    if(!/\.xlsx$/i.test(file.name)){
+      setStatus({type: 'err', msg: 'El archivo no es un Excel .xlsx. Guardá tu plan como “Libro de Excel (.xlsx)” y volvé a subirlo.'});
+      return;
+    }
+
+    setReading(true);
+    try{
+      const buffer = await file.arrayBuffer();
+      const wb = new ExcelJS.Workbook();
+      try{
+        await wb.xlsx.load(buffer);
+      } catch(loadErr){
+        console.error(loadErr);
+        setStatus({type: 'err', msg: 'No pude abrir el archivo. Parece que no es un .xlsx válido o está dañado. Abrilo en Excel, guardalo de nuevo como .xlsx e intentá otra vez.'});
+        return;
+      }
+
+      const ws = wb.worksheets[0];
+      if(!ws){
+        setStatus({type: 'err', msg: 'El archivo no tiene ninguna hoja con datos.'});
+        return;
+      }
+
+      const colCount = ws.columnCount;
+      const rowCount = ws.rowCount;
+      if(!colCount || !rowCount || rowCount === 0){
+        setStatus({type: 'err', msg: 'El archivo está vacío: no encontré ni encabezados ni filas de datos.'});
+        return;
+      }
+
+      const allRows = [];
+      for(let r = 1; r <= rowCount; r++){
+        allRows.push(rowValues(ws.getRow(r), colCount));
+      }
+
+      const {headerRowIdx, col} = detectHeaderAndColumn(allRows, "");
+
+      setWorkbook(wb);
+      setSheetName(ws.name);
+      setRows(allRows);
+      setFileName(file.name);
+
+      const effHeaderRows = headerRowIdx !== null ? headerRowIdx + 1 : 2;
+      setHeaderRowCount(effHeaderRows);
+
+      if(col !== null){
+        setColIndex(col);
+        computeGroups(allRows, effHeaderRows, col);
+      } else {
+        setColIndex(null);
+        setGroups(null);
+        setStatus({type: 'err', msg: 'No pude detectar automáticamente la columna de país/compañía. Revisá abajo la fila de encabezado y elegí la columna a mano en la lista.'});
+      }
+    } catch(err){
+      console.error(err);
+      setStatus({type: 'err', msg: 'No pude leer el archivo. Verificá que sea un .xlsx válido.'});
+    } finally {
+      setReading(false);
+    }
+  }
+
+  function computeGroups(allRows, headerRows, cIdx){
+    const dataRows = allRows.slice(headerRows);
+    if(dataRows.length === 0){
+      setGroups(null);
+      setStatus({type: 'err', msg: 'El archivo no tiene filas de datos debajo del encabezado. Revisá cuántas filas de encabezado tiene.'});
+      return;
+    }
+    const counts = {};
+    for(const row of dataRows){
+      const val = displayValue(row[cIdx]).trim();
+      if(val === "") continue;
+      counts[val] = (counts[val] || 0) + 1;
+    }
+    const groupList = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({name, count}));
+
+    if(groupList.length === 0){
+      setGroups(null);
+      setStatus({type: 'err', msg: 'La columna que elegiste está vacía en todas las filas. Elegí otra columna que sí tenga el país o la compañía.'});
+      return;
+    }
+    setGroups(groupList);
+    setPreviewRows(null);
+    setPreviewName("");
+    setStatus(null);
+  }
+
+  function onColumnChange(newIdx){
+    setColIndex(newIdx);
+    setPreviewRows(null);
+    computeGroups(rows, headerRowCount, newIdx);
+  }
+
+  function onHeaderRowsChange(n){
+    setHeaderRowCount(n);
+    if(colIndex !== null) computeGroups(rows, n, colIndex);
+  }
+
+  function applyCustomName(){
+    if(!rows) return;
+    const {headerRowIdx, col} = detectHeaderAndColumn(rows, customName);
+    if(col !== null){
+      const effHeaderRows = headerRowIdx + 1;
+      setHeaderRowCount(effHeaderRows);
+      setColIndex(col);
+      computeGroups(rows, effHeaderRows, col);
+    } else {
+      setStatus({type: 'err', msg: `No encontré ninguna columna llamada “${customName}”. Fijate que esté escrita igual que en el encabezado, o elegí la columna a mano en la lista.`});
+    }
+  }
+
+  function showPreview(name){
+    setPreviewName(name);
+    if(!name){ setPreviewRows(null); return; }
+    const dataRows = rows.slice(headerRowCount);
+    const matches = [];
+    for(const row of dataRows){
+      if(displayValue(row[colIndex]).trim() === name){
+        matches.push(row);
+        if(matches.length >= 5) break;
+      }
+    }
+    setPreviewRows(matches);
+  }
+
+  // Copia una fila origen en una fila destino, celda por celda, conservando
+  // value + style completo (fuente, relleno, bordes, alineación, numFmt) para
+  // que fechas, moneda, colores y FÓRMULAS sobrevivan intactos.
+  function copyRowInto(srcRow, destRow, colCount){
+    for(let c = 1; c <= colCount; c++){
+      const srcCell = srcRow.getCell(c);
+      const destCell = destRow.getCell(c);
+      destCell.value = srcCell.value; // si es fórmula, se copia la fórmula, no el resultado
+      destCell.style = srcCell.style;
+    }
+    if(srcRow.height) destRow.height = srcRow.height;
+  }
+
+  function sanitizeForFilename(str){
+    return str.replace(/[\\\/:*?"<>|]/g, "-").replace(/\s+/g, " ").trim();
+  }
+
+  async function generate(){
+    if(!rows || colIndex === null || !groups || !workbook) return;
+    setBusy(true);
+    setProgress({done: 0, total: groups.length});
+    setStatus({type: 'info', msg: 'Generando archivos...'});
+    try{
+      const zip = new JSZip();
+      const originalWs = workbook.worksheets[0];
+      const colCount = originalWs.columnCount;
+      const baseName = fileName.replace(/\.xlsx$/i, '');
+      const cleanPrefix = sanitizeForFilename(prefix);
+
+      // Celdas combinadas del archivo original, ya parseadas.
+      const originalMerges = (originalWs.model && originalWs.model.merges ? originalWs.model.merges : [])
+        .map(parseRange)
+        .filter(Boolean);
+
+      for(let gi = 0; gi < groups.length; gi++){
+        const g = groups[gi];
+        const newWb = new ExcelJS.Workbook();
+        const newWs = newWb.addWorksheet(sheetName || 'Hoja1');
+
+        // Conservar anchos de columna.
+        newWs.columns = originalWs.columns.map(col => ({width: col.width}));
+
+        // rowMap: fila original -> fila nueva (para remapear celdas combinadas).
+        const rowMap = {};
+
+        // Copiar filas de encabezado tal cual.
+        for(let r = 1; r <= headerRowCount; r++){
+          copyRowInto(originalWs.getRow(r), newWs.getRow(r), colCount);
+          rowMap[r] = r;
+        }
+
+        // Copiar las filas de datos que coinciden con este grupo.
+        let destRowNum = headerRowCount + 1;
+        for(let r = headerRowCount + 1; r <= originalWs.rowCount; r++){
+          const val = displayValue(rows[r - 1][colIndex]).trim();
+          if(val === g.name){
+            copyRowInto(originalWs.getRow(r), newWs.getRow(destRowNum), colCount);
+            rowMap[r] = destRowNum;
+            destRowNum++;
+          }
+        }
+
+        // Reaplicar celdas combinadas.
+        for(const m of originalMerges){
+          try{
+            if(m.bottom <= headerRowCount){
+              // Merge dentro del encabezado: misma posición.
+              newWs.mergeCells(rangeStr(m.top, m.left, m.bottom, m.right));
+            } else if(m.top > headerRowCount){
+              // Merge dentro de los datos: solo si todas sus filas quedaron
+              // en este grupo y siguen contiguas en el archivo nuevo.
+              const newTop = rowMap[m.top];
+              const newBottom = rowMap[m.bottom];
+              if(newTop !== undefined && newBottom !== undefined &&
+                 (newBottom - newTop) === (m.bottom - m.top)){
+                newWs.mergeCells(rangeStr(newTop, m.left, newBottom, m.right));
+              }
+            }
+            // Los merges que cruzan encabezado y datos se omiten (caso muy raro).
+          } catch(mergeErr){
+            // Si un merge se solapa o es inválido, lo salteamos sin romper todo.
+            console.warn('No pude reaplicar una celda combinada:', mergeErr);
+          }
+        }
+
+        const buf = await newWb.xlsx.writeBuffer();
+        const namePart = sanitizeForFilename(g.name) || 'sin-valor';
+        const outName = (cleanPrefix ? cleanPrefix + '_' : '') + baseName + '_' + namePart + '.xlsx';
+        zip.file(outName, buf);
+
+        setProgress({done: gi + 1, total: groups.length});
+        // Cedemos el hilo para que la barra de progreso se actualice en pantalla.
+        await new Promise(res => setTimeout(res, 0));
+      }
+
+      const content = await zip.generateAsync({type: 'blob'});
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      const zipName = (cleanPrefix ? cleanPrefix + '_' : '') + baseName + '_dividido.zip';
+      a.download = zipName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setStatus({type: 'ok', msg: `Listo. Se generaron ${groups.length} archivos, uno por cada valor de la columna, con el formato original. Se descargaron juntos en “${zipName}”.`});
+    } catch(err){
+      console.error(err);
+      setStatus({type: 'err', msg: 'Ocurrió un error generando los archivos. Probá de nuevo; si sigue fallando, revisá que el archivo original se abra bien en Excel.'});
+    } finally {
+      setBusy(false);
+      setProgress(null);
+    }
+  }
+
+  const headerCandidates = rows ? (rows[headerRowCount - 1] || []) : [];
+  const isLarge = rows ? (rows.length - headerRowCount) >= LARGE_FILE_THRESHOLD : false;
+
+  return (
+    <div>
+      <h1>Divisor de plan de compras</h1>
+      <p className="subtitle">Subí el Excel y lo separa automáticamente en un archivo por país / compañía, con el mismo formato. Todo el procesamiento pasa en tu navegador: nada se sube a ningún servidor.</p>
+
+      {!fileName && (
+        <div
+          className={"dropzone" + (dragging ? " drag" : "")}
+          onClick={() => fileInput.current.click()}
+          onDragOver={(e) => {e.preventDefault(); setDragging(true);}}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            const f = e.dataTransfer.files[0];
+            handleFile(f);
+          }}
+        >
+          {reading ? (
+            <p className="main-label"><span className="spinner"></span>Leyendo el archivo...</p>
+          ) : (
+            <>
+              <p className="main-label">Arrastrá el Excel acá, o hacé clic para elegirlo</p>
+              <p className="sub-label">.xlsx — se procesa en tu navegador, no se sube a ningún servidor</p>
+            </>
+          )}
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".xlsx"
+            onChange={(e) => handleFile(e.target.files[0])}
+          />
+        </div>
+      )}
+
+      {!fileName && status && (
+        <div className={status.type === 'err' ? 'warn-box' : 'status'}>{status.msg}</div>
+      )}
+
+      {fileName && (
+        <div className="panel">
+          <h2>📄 {fileName}</h2>
+
+          <div className="row">
+            <span className="row-label">Filas de encabezado</span>
+            <select value={headerRowCount} onChange={(e)=>onHeaderRowsChange(Number(e.target.value))}>
+              {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+
+          <div className="row">
+            <span className="row-label">Columna que identifica país / compañía</span>
+            <select
+              value={colIndex === null ? "" : colIndex}
+              onChange={(e)=>onColumnChange(Number(e.target.value))}
+            >
+              <option value="" disabled>Elegir columna</option>
+              {headerCandidates.map((h, idx) => (
+                <option key={idx} value={idx}>{displayValue(h) || `Columna ${idx+1}`}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field-group">
+            <label className="fg-label">¿Tu columna se llama distinto? Escribí el nombre y buscala</label>
+            <div style={{display:'flex', gap:'8px'}}>
+              <input
+                type="text"
+                value={customName}
+                placeholder="Ej: División, Región, Distribuidor…"
+                onChange={(e)=>setCustomName(e.target.value)}
+                onKeyDown={(e)=>{ if(e.key === 'Enter') applyCustomName(); }}
+              />
+              <button className="link-btn" onClick={applyCustomName}>Buscar</button>
+            </div>
+            <div className="fg-hint">Detecta sola: país, pais, compañía, filial, empresa, cliente, sucursal. Si tu columna tiene otro nombre, escribilo acá.</div>
+          </div>
+
+          <div className="field-group">
+            <label className="fg-label">Prefijo para los nombres de archivo (opcional)</label>
+            <input
+              type="text"
+              value={prefix}
+              placeholder="Ej: Megalabs, Plan-Agosto…"
+              onChange={(e)=>setPrefix(e.target.value)}
+            />
+            <div className="fg-hint">
+              Se agrega al principio de cada archivo. Quedaría:&nbsp;
+              <strong>{(sanitizeForFilename(prefix) ? sanitizeForFilename(prefix) + '_' : '') + (fileName ? fileName.replace(/\.xlsx$/i,'') : 'archivo') + '_' + (groups && groups[0] ? sanitizeForFilename(groups[0].name) : 'Compañía') + '.xlsx'}</strong>
+            </div>
+          </div>
+
+          {isLarge && !busy && (
+            <div className="info-box">Este archivo tiene muchas filas. Al generar puede tardar unos segundos; vas a ver una barra de progreso mientras trabaja.</div>
+          )}
+
+          {groups && (
+            <>
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr><th>Valor</th><th>Filas</th></tr>
+                  </thead>
+                  <tbody>
+                    {groups.map(g => (
+                      <tr key={g.name}>
+                        <td>{g.name}</td>
+                        <td><span className="pill">{g.count}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="field-group" style={{marginTop:'12px'}}>
+                <label className="fg-label">Ver detalle (opcional): primeras 5 filas de un grupo</label>
+                <select value={previewName} onChange={(e)=>showPreview(e.target.value)}>
+                  <option value="">Elegir grupo para previsualizar…</option>
+                  {groups.map(g => <option key={g.name} value={g.name}>{g.name} ({g.count} filas)</option>)}
+                </select>
+              </div>
+
+              {previewRows && (
+                <div className="preview-box">
+                  <h3>Primeras {previewRows.length} filas de “{previewName}”</h3>
+                  <div className="table-scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          {headerCandidates.map((h, idx) => (
+                            <th key={idx}>{displayValue(h) || `Col ${idx+1}`}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {previewRows.map((r, ri) => (
+                          <tr key={ri}>
+                            {headerCandidates.map((h, ci) => (
+                              <td key={ci}>{displayValue(r[ci])}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              <button className="primary" disabled={busy} onClick={generate}>
+                {busy ? "Generando..." : `Generar ${groups.length} archivos (.zip)`}
+              </button>
+            </>
+          )}
+
+          {progress && (
+            <div className="progress-wrap">
+              <div className="progress-track">
+                <div className="progress-bar" style={{width: `${Math.round((progress.done/progress.total)*100)}%`}}></div>
+              </div>
+              <div className="progress-label">Generando archivo {progress.done} de {progress.total}…</div>
+            </div>
+          )}
+
+          {status && (
+            <div className={status.type === 'err' ? 'warn-box' : 'status ' + (status.type === 'ok' ? 'ok' : '')}>
+              {status.msg}
+            </div>
+          )}
+
+          <div className="reset-link" onClick={reset}>Cargar otro archivo</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('app-root')).render(<App/>);
+</script>
+</body>
+</html>
