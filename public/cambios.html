@@ -87,6 +87,7 @@
 
   /* Medidor de carga de Farmazona */
   .loadwrap{margin:4px 0 14px}
+  .loadweek{font-family:var(--ml-font);font-size:11px;padding:3px 8px;border:1px solid var(--ml-gris-neutro);border-radius:6px;background:#fff;color:var(--ml-negro-suave);margin-left:8px;cursor:pointer}
   .loadcap{font-size:11px;font-weight:600;color:var(--ml-gris-neutro);margin-left:8px}
   .loadcap b.crit{color:var(--ml-rojo)} .loadcap b.ok{color:var(--ml-verde-brillante)}
   .loaddays{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
@@ -299,7 +300,7 @@
   </div>
 
   <div class="loadwrap">
-    <div class="towers-title">Carga de Farmazona por día (líneas = visitas a ubicación) — tope 200/día · 400 cada 48 h<span class="loadcap" id="loadCap"></span><span class="scopenote" id="loadScope"></span></div>
+    <div class="towers-title">Carga de Farmazona por día (líneas = visitas a ubicación) — tope 200/día · 400 cada 48 h<select id="loadWeek" class="loadweek" onchange="setLoadWeek(this.value)"><option value="">Todas las semanas</option></select><span class="loadcap" id="loadCap"></span><span class="scopenote" id="loadScope"></span></div>
     <div class="loaddays" id="loaddays"></div>
   </div>
 
@@ -383,10 +384,10 @@
     </div>
 
     <div class="blockbox">
-      <div class="cg-title">Bloqueo / excepción <span style="font-weight:400;color:var(--ml-gris-neutro);font-size:11px">— si hay motivo, la OC sube al tope del tablero</span></div>
+      <div class="cg-title">Atraso <span style="font-weight:400;color:var(--ml-gris-neutro);font-size:11px">— motivo y responsable del atraso; la OC sube al tope del tablero</span></div>
       <div class="grid3">
-        <div class="field"><label>Motivo del bloqueo</label><input type="text" id="f_bmotivo" placeholder="Ej. Falta stock / documento pendiente"></div>
-        <div class="field"><label>Responsable de resolver</label><input type="text" id="f_bresp" placeholder="Nombre"></div>
+        <div class="field"><label>Motivo del atraso</label><input type="text" id="f_bmotivo" placeholder="Ej. Falta stock / documento pendiente"></div>
+        <div class="field"><label>Responsable del atraso</label><input type="text" id="f_bresp" placeholder="Nombre"></div>
         <div class="field"><label>Resolución esperada</label><input type="date" id="f_bfecha"></div>
       </div>
     </div>
@@ -669,6 +670,11 @@ function setPais(p){document.getElementById('filterPais').value=p;render();}
 
 /* Carga de Farmazona por día: agrupa las líneas por la fecha de "Envío a Farmazona" de cada OC */
 function linesOf(c){return (c.lineas||[]).length;}
+let LOAD_WEEK='';
+function isoFromDate(_d){return _d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0');}
+function addDays(iso,n){const d=new Date(iso+'T00:00:00');d.setDate(d.getDate()+n);return isoFromDate(d);}
+function weekStart(iso){const d=new Date(iso+'T00:00:00');const off=(d.getDay()+6)%7;d.setDate(d.getDate()-off);return isoFromDate(d);}
+function setLoadWeek(v){LOAD_WEEK=v;renderLoad();}
 function renderLoad(){
   const wrap=document.getElementById('loaddays');const cap=document.getElementById('loadCap');
   const sc=document.getElementById('loadScope');if(sc)sc.innerHTML=hayFiltro()?'Totales de los 6 países: la capacidad de bodega es compartida. En verde, el aporte del filtro.':'';
@@ -678,23 +684,30 @@ function renderLoad(){
     mL[fd]=(mL[fd]||0)+cc.lineas;mC[fd]=(mC[fd]||0)+cc.cajas;mKg[fd]=(mKg[fd]||0)+cc.peso;
     if(IDS.has(c.id))mF[fd]=(mF[fd]||0)+cc.lineas;});
   const dates=Object.keys(mL).sort();
-  if(!dates.length){wrap.innerHTML='<div class="ld-empty">Sin OC con fecha de colocación: carga aún sin programar.</div>';cap.innerHTML='';return;}
+  const wsel=document.getElementById('loadWeek');
+  if(!dates.length){wrap.innerHTML='<div class="ld-empty">Sin OC con fecha de colocación: carga aún sin programar.</div>';cap.innerHTML='';if(wsel)wsel.innerHTML='<option value="">Todas las semanas</option>';return;}
+  const weeksMap={};dates.forEach(d=>{const wk=weekStart(d);(weeksMap[wk]=weeksMap[wk]||[]).push(d);});
+  const weekKeys=Object.keys(weeksMap).sort();
+  const cur=(LOAD_WEEK&&weeksMap[LOAD_WEEK])?LOAD_WEEK:'';LOAD_WEEK=cur;
+  if(wsel)wsel.innerHTML='<option value="">Todas las semanas</option>'+weekKeys.map(wk=>`<option value="${wk}"${wk===cur?' selected':''}>Semana ${fmt(wk)} – ${fmt(addDays(wk,6))}</option>`).join('');
+  const shownDates=cur?weeksMap[cur]:dates;const shownSet=new Set(shownDates);
   const wd=iso=>new Date(iso+'T00:00:00').toLocaleDateString('es',{weekday:'short'});
-  let peak=0,peakD='',over=0;const breaches=[];
-  dates.forEach(d=>{if(mL[d]>peak){peak=mL[d];peakD=d;}if(mL[d]>CAP_DAY)over++;
-    const nx=addBusinessDays(d,1);if(mL[nx]!=null&&(mL[d]+mL[nx])>CAP_48)breaches.push(d);});
+  const breaches=[];
+  dates.forEach(d=>{const nx=addBusinessDays(d,1);if(mL[nx]!=null&&(mL[d]+mL[nx])>CAP_48)breaches.push(d);});
   const breachSet=new Set(breaches.concat(breaches.map(d=>addBusinessDays(d,1))));
-  wrap.innerHTML=dates.map(d=>{
+  let peak=0,peakD='',over=0;
+  shownDates.forEach(d=>{if(mL[d]>peak){peak=mL[d];peakD=d;}if(mL[d]>CAP_DAY)over++;});
+  wrap.innerHTML=shownDates.map(d=>{
     const n=mL[d];const s=n>CAP_DAY?'crit':(n>CAP_DAY*0.8?'warn':'ok');
     const w=Math.min(100,Math.round(n/CAP_DAY*100));
     return `<div class="loadday s-${s}${breachSet.has(d)?' w48':''}"><div class="ld-date">${fmt(d)}</div><div class="ld-wd">${wd(d)}</div><div class="ld-n">${n}<span>/${CAP_DAY}</span></div><div class="ld-bar"><i style="width:${w}%"></i></div><div class="ld-sec">${hayFiltro()?('<b style="color:var(--ml-verde-corporativo)">'+(mF[d]||0)+' filtrado</b><br>'):''}${fmtNum(mC[d])} cajas · ${fmtNum(Math.round(mKg[d]))} kg</div></div>`;
   }).join('');
-  const tL=dates.reduce((a,d)=>a+mL[d],0),tC=dates.reduce((a,d)=>a+mC[d],0),tKg=dates.reduce((a,d)=>a+mKg[d],0);
-  cap.innerHTML=`Total ${tL} líneas · ${fmtNum(tC)} cajas · ${fmtNum(Math.round(tKg))} kg · pico ${peak} líneas el ${fmt(peakD)} · `+
+  const tL=shownDates.reduce((a,d)=>a+mL[d],0),tC=shownDates.reduce((a,d)=>a+mC[d],0),tKg=shownDates.reduce((a,d)=>a+mKg[d],0);
+  const breachesShown=breaches.filter(d=>shownSet.has(d)).length;
+  cap.innerHTML=`${cur?('Semana '+fmt(cur)+' – '+fmt(addDays(cur,6))+' · '):''}Total ${tL} líneas · ${fmtNum(tC)} cajas · ${fmtNum(Math.round(tKg))} kg · pico ${peak} líneas el ${fmt(peakD)} · `+
     (over?`<b class="crit">${over} día(s) sobre 200</b>`:'<b class="ok">ningún día sobre 200</b>')+
-    (breaches.length?` · <b class="crit">${breaches.length} ventana(s) de 48 h sobre 400</b>`:'');
+    (breachesShown?` · <b class="crit">${breachesShown} ventana(s) de 48 h sobre 400</b>`:'');
 }
-
 function fmtNum(n){return (typeof n==='number')?n.toLocaleString('es'):(n||'');}
 function cardEl(c,stageIdx){
   const st=statusOf(c);const co=st.co;
@@ -711,7 +724,7 @@ function cardEl(c,stageIdx){
     </div>
     <div class="pills">
       <span class="pill ${st.s}">${statusLabel(st.s)}</span>
-      ${isBlocked(c)?('<span class="blk'+(blockOverdue(c)?' ov':'')+'" title="Bloqueo">🚫 '+esc(c.block.motivo)+(c.block.resp?(' · '+esc(c.block.resp)):'')+(c.block.fecha?(' · '+fmt(c.block.fecha)):'')+'</span>'):''}${c.cold?'<span class="cold" title="Cadena de frío">❄</span>':''}${c.prioridad?'<span class="hot" title="Alta importancia">🔥</span>':''}${c.priolvl?'<span class="plvl">P: '+esc(c.priolvl)+'</span>':''}
+      ${isBlocked(c)?('<span class="blk'+(blockOverdue(c)?' ov':'')+'" title="Atraso">⏰ '+esc(c.block.motivo)+(c.block.resp?(' · '+esc(c.block.resp)):'')+(c.block.fecha?(' · '+fmt(c.block.fecha)):'')+'</span>'):''}${c.cold?'<span class="cold" title="Cadena de frío">❄</span>':''}${c.prioridad?'<span class="hot" title="Alta importancia">🔥</span>':''}${c.priolvl?'<span class="plvl">P: '+esc(c.priolvl)+'</span>':''}
     </div>
     ${(cc.cajas||cc.peso||cc.lineas)?`<div class="calcline">📦 ${fmtNum(cc.cajas)} caja${cc.cajas!==1?'s':''} · ${fmtNum(Math.round(cc.peso))} kg · ${cc.lineas} línea${cc.lineas!==1?'s':''}${cc.faltan?` · <span class="warn">⚠ ${cc.faltan} sin dim</span>`:''}</div>`:(cc.faltan?`<div class="calcline"><span class="warn">⚠ ${cc.faltan} SKU sin dimensiones en el Perfil</span></div>`:'')}
     <div class="cutoff"><span class="date">${(st.ns===c.etapa)?'Despacho':('→ '+STAGES.find(s=>s.id===st.ns).name)}${co?(' '+fmt(co)):' · sin fecha'}</span><span class="days ${st.s}">${daysLabel(st.d)}</span></div>
@@ -750,7 +763,7 @@ function renderKpis(){
     <div class="kpi warn"><div class="label">En atención</div><div class="value">${warn}</div><div class="sub">≤ ${WARN_DAYS} días</div></div>
     <div class="kpi crit"><div class="label">Atrasado</div><div class="value">${crit}</div><div class="sub">fecha vencida</div></div>
     <div class="kpi crit"><div class="label">🔥 Alta prioridad</div><div class="value">${hot}</div><div class="sub">${hotLate} atrasada${hotLate!==1?'s':''}</div></div>
-    <div class="kpi crit"><div class="label">🚫 Bloqueadas</div><div class="value">${blk}</div><div class="sub">${blkOv} vencida${blkOv!==1?'s':''} sin resolver</div></div>`;
+    <div class="kpi crit"><div class="label">⏰ Con atraso</div><div class="value">${blk}</div><div class="sub">${blkOv} vencida${blkOv!==1?'s':''} sin resolver</div></div>`;
 }
 
 function moveCard(cid,stageId){const c=DATA.find(x=>x.id===cid);if(c&&c.etapa!==stageId){c.etapa=stageId;const now=new Date().toISOString();c.movedAt=now;if(!c.hist)c.hist={};c.hist[stageId]=now;if(!c.real)c.real={};if(!c.real[stageId])c.real[stageId]=todayISO();save();render();}}
@@ -1052,7 +1065,7 @@ function renderAnalitica(){
   const estSegs=[{label:'En tiempo',val:a.porEstado.ok,color:'#049C3B'},{label:'En atención',val:a.porEstado.warn,color:'#F5B041'},{label:'Atrasado',val:a.porEstado.crit,color:'#D64541'},{label:'Sin fecha',val:a.porEstado.none,color:'#BFC5C5'}];
   const paisRows=Object.keys(a.porPais).sort((x,y)=>a.porPais[y].oc-a.porPais[x].oc).map(p=>{const d=a.porPais[p];return `<tr><td>${flagSVG(p)} ${esc(PAIS[p]||p)}</td><td class="num">${d.oc}</td><td class="num">${fmtNum(d.sku)}</td><td class="num">${fmtNum(d.unid)}</td><td class="num">${fmtNum(d.cajas)}</td><td class="num">${fmtNum(d.lineas)}</td><td class="num ${d.atras?'late':''}">${d.atras||'—'}</td></tr>`;}).join('')||'<tr><td colspan="7" class="an-empty">Sin OC</td></tr>';
   const overRows=a.overdue.slice(0,12).map(o=>{const nsName=(o.ns===o.c.etapa)?'Despacho':STAGES.find(s=>s.id===o.ns).name;return `<tr><td>${esc(o.c.oc||o.c.envio||'—')}</td><td>${o.c.pais?(flagSVG(o.c.pais)+' '+o.c.pais):'—'}</td><td>${esc(STAGES.find(s=>s.id===o.c.etapa).name)}</td><td>→ ${esc(nsName)} ${o.co?fmt(o.co):'—'}</td><td class="num late">${o.d} d</td></tr>`;}).join('')||'<tr><td colspan="5" class="an-empty">Sin OC atrasadas 🎉</td></tr>';
-  const blkRows=a.bloqueadas.map(c=>`<tr><td>${esc(c.oc||c.envio||'—')}</td><td>${c.pais?(flagSVG(c.pais)+' '+c.pais):'—'}</td><td>${esc(STAGES.find(s=>s.id===c.etapa).name)}</td><td>${esc(c.block.motivo)}</td><td>${esc(c.block.resp||'— sin dueño')}</td><td class="${blockOverdue(c)?'late':''}">${c.block.fecha?fmt(c.block.fecha):'— sin fecha'}${blockOverdue(c)?' (vencida)':''}</td></tr>`).join('')||'<tr><td colspan="6" class="an-empty">Sin bloqueos activos</td></tr>';
+  const blkRows=a.bloqueadas.map(c=>`<tr><td>${esc(c.oc||c.envio||'—')}</td><td>${c.pais?(flagSVG(c.pais)+' '+c.pais):'—'}</td><td>${esc(STAGES.find(s=>s.id===c.etapa).name)}</td><td>${esc(c.block.motivo)}</td><td>${esc(c.block.resp||'— sin dueño')}</td><td class="${blockOverdue(c)?'late':''}">${c.block.fecha?fmt(c.block.fecha):'— sin fecha'}${blockOverdue(c)?' (vencida)':''}</td></tr>`).join('')||'<tr><td colspan="6" class="an-empty">Sin atrasos registrados</td></tr>';
   const prom=v=>v.length?v.reduce((x,y)=>x+y,0)/v.length:null;
   const planRows=STAGES.map((s,i)=>{
     const dur=prom(a.etapaDur[s.id]),dv=prom(a.etapaDesv[s.id]),n=a.etapaDesv[s.id].length;
@@ -1085,7 +1098,7 @@ function renderAnalitica(){
   <div class="an-card full"><div class="an-title">Días atrasados — OC más vencidas (top 12)</div>
     <table class="an-table"><thead><tr><th>OC</th><th>País</th><th>Etapa actual</th><th>Próxima acción</th><th style="text-align:right">Atraso</th></tr></thead><tbody>${overRows}</tbody></table>
   </div>
-  <div class="an-card full"><div class="an-title">🚫 Bloqueos activos — excepción con dueño y fecha</div>
+  <div class="an-card full"><div class="an-title">⏰ Atrasos registrados — motivo, responsable y fecha</div>
     <table class="an-table"><thead><tr><th>OC</th><th>País</th><th>Etapa</th><th>Motivo</th><th>Responsable</th><th>Resolución esperada</th></tr></thead><tbody>${blkRows}</tbody></table>
   </div>
   <div class="an-card full"><div class="an-title">Plan vs. real por etapa</div>
@@ -1100,7 +1113,7 @@ function renderAnalitica(){
     <table class="an-table" style="margin-top:12px"><thead><tr><th>OC</th><th>País</th><th>Cumplida</th><th style="text-align:right">Lead time</th></tr></thead><tbody>${cumRows}</tbody></table>
     ${ar.n?'<div style="margin-top:10px"><button class="btn btn-ghost" onclick="clearArchive()">Vaciar histórico</button></div>':''}
   </div>
-  <div class="an-note">Alcance: el resumen y los bloqueos son foto de las OC activas; el cumplimiento usa el histórico archivado. "Avance del pipeline" es el promedio de posición de etapa (0% colocada → 100% despacho). Los días de atraso se miden contra la fecha de la próxima acción. El lead time real se mide en días corridos desde la colocación de OC.</div>
+  <div class="an-note">Alcance: el resumen y los atrasos son foto de las OC activas; el cumplimiento usa el histórico archivado. "Avance del pipeline" es el promedio de posición de etapa (0% colocada → 100% despacho). Los días de atraso se miden contra la fecha de la próxima acción. El lead time real se mide en días corridos desde la colocación de OC.</div>
   </div>`;
 }
 function openCatalogo(){document.getElementById('catSearch').value='';catClear();renderCatTable();document.getElementById('catOverlay').classList.add('open');}
