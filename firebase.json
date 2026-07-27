@@ -1,0 +1,17 @@
+{
+  "hosting": {
+    "public": "dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/ceam", "destination": "/cambios.html" },
+      { "source": "/abastecimiento", "destination": "/cambios.html" },
+      { "source": "**", "destination": "/index.html" }
+    ],
+    "headers": [
+      {
+        "source": "/cambios.html",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache, max-age=0" }]
+      }
+    ]
+  }
+}
