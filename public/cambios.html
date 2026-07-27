@@ -88,6 +88,50 @@
   /* Medidor de carga de Farmazona */
   .loadwrap{margin:4px 0 14px}
   .loadweek{font-family:var(--ml-font);font-size:11px;padding:3px 8px;border:1px solid var(--ml-gris-neutro);border-radius:6px;background:#fff;color:var(--ml-negro-suave);margin-left:8px;cursor:pointer}
+  .fz-head{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .fz-title h3{font-size:15px;color:var(--ml-verde-corporativo);font-weight:800;letter-spacing:-.2px}
+  .fz-title p{font-size:11px;color:var(--ml-gris-neutro);font-weight:600;margin-top:2px}
+  .fz-head .weeknav{margin-left:auto}
+  .weeknav{display:flex;align-items:center;gap:6px;background:var(--ml-gris-claro);border:1px solid #e4e9e9;border-radius:12px;padding:5px}
+  .weeknav button{border:none;background:#fff;color:var(--ml-verde-corporativo);width:30px;height:30px;border-radius:9px;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.06);transition:.12s}
+  .weeknav button:hover{background:var(--ml-verde-corporativo);color:#fff}
+  .weeknav .lbl{min-width:172px;text-align:center;font-size:12.5px;font-weight:800;color:var(--ml-negro-suave)}
+  .weeknav .lbl small{display:block;font-size:9px;font-weight:700;color:var(--ml-gris-neutro);letter-spacing:.4px;text-transform:uppercase}
+  .weeknav .allbtn{width:auto;padding:0 11px;height:30px;font-size:11px;color:var(--ml-verde-turquesa);background:#fff;border:1px solid var(--ml-verde-turquesa);box-shadow:none}
+  .weeknav .allbtn:hover{background:var(--ml-verde-turquesa);color:#fff}
+  .fz-summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .fz-chip{display:flex;align-items:center;gap:8px;background:var(--ml-gris-claro);border-radius:11px;padding:8px 13px}
+  .fz-chip .k{font-size:10px;color:var(--ml-gris-neutro);font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+  .fz-chip .v{font-size:16px;font-weight:800;color:var(--ml-negro-suave)}
+  .fz-chip.okstate{background:#E7F6EC}.fz-chip.okstate .v{color:var(--ml-verde-brillante);font-size:12px}
+  .fz-chip.crit{background:#FBECEC}.fz-chip.crit .v{color:var(--ml-rojo);font-size:12px}
+  .fz-weeks{display:block}
+  .fz-weeklabel{font-size:11px;font-weight:800;color:var(--ml-verde-corporativo);text-transform:uppercase;letter-spacing:.4px;margin:16px 0 8px}
+  .fz-weeklabel:first-child{margin-top:0}
+  .fz-week{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .fz-day{background:#fff;border:1px solid #e4e9e9;border-radius:14px;padding:12px 12px 13px;position:relative;overflow:hidden}
+  .fz-day::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:#e4e9e9}
+  .fz-day.ok::before{background:var(--ml-verde-brillante)}.fz-day.warn::before{background:var(--ml-ambar)}.fz-day.crit::before{background:var(--ml-rojo)}
+  .fz-day.w48{box-shadow:0 0 0 2px var(--ml-ambar)}
+  .fz-day.empty{background:#FBFCFC;border-style:dashed}
+  .fz-day .fz-wd{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--ml-verde-turquesa)}
+  .fz-day.empty .fz-wd{color:var(--ml-gris-neutro)}
+  .fz-day .fz-dt{font-size:11px;font-weight:700;color:var(--ml-gris-neutro);margin-top:1px}
+  .fz-day .fz-big{display:flex;align-items:baseline;gap:3px;margin-top:9px}
+  .fz-day .fz-big .n{font-size:32px;font-weight:800;line-height:.9;color:var(--ml-verde-corporativo)}
+  .fz-day.ok .fz-big .n{color:var(--ml-verde-brillante)}.fz-day.warn .fz-big .n{color:var(--ml-ambar)}.fz-day.crit .fz-big .n{color:var(--ml-rojo)}
+  .fz-day .fz-big .cap{font-size:11px;color:var(--ml-gris-neutro);font-weight:700}
+  .fz-day .fz-bar{height:7px;border-radius:5px;background:#e4e9e9;margin-top:10px;overflow:hidden}
+  .fz-day .fz-bar i{display:block;height:100%;border-radius:5px;background:var(--ml-verde-brillante)}
+  .fz-day.warn .fz-bar i{background:var(--ml-ambar)}.fz-day.crit .fz-bar i{background:var(--ml-rojo)}
+  .fz-day .fz-sec{font-size:10px;color:var(--ml-gris-neutro);margin-top:8px;font-weight:600}
+  .fz-day .fz-pct{position:absolute;top:10px;right:12px;font-size:10px;font-weight:800;color:var(--ml-gris-neutro)}
+  .fz-day .fz-none{margin-top:14px;font-size:11px;font-style:italic;color:#c2cbcb;font-weight:600;padding-bottom:20px}
+  .fz-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid #e4e9e9;font-size:11px;color:var(--ml-gris-neutro);font-weight:600}
+  .fz-legend .li{display:flex;align-items:center;gap:6px}
+  .fz-legend .dot{width:10px;height:10px;border-radius:3px}
+  .fz-legend .dot.ok{background:var(--ml-verde-brillante)}.fz-legend .dot.warn{background:var(--ml-ambar)}.fz-legend .dot.crit{background:var(--ml-rojo)}
+  @media(max-width:760px){.fz-week{grid-template-columns:1fr 1fr}.weeknav .lbl{min-width:120px}}
   .loadcap{font-size:11px;font-weight:600;color:var(--ml-gris-neutro);margin-left:8px}
   .loadcap b.crit{color:var(--ml-rojo)} .loadcap b.ok{color:var(--ml-verde-brillante)}
   .loaddays{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
@@ -300,8 +344,18 @@
   </div>
 
   <div class="loadwrap">
-    <div class="towers-title">Carga de Farmazona por día (líneas = visitas a ubicación) — tope 200/día · 400 cada 48 h<select id="loadWeek" class="loadweek" onchange="setLoadWeek(this.value)"><option value="">Todas las semanas</option></select><span class="loadcap" id="loadCap"></span><span class="scopenote" id="loadScope"></span></div>
-    <div class="loaddays" id="loaddays"></div>
+    <div class="fz-head">
+      <div class="fz-title"><h3>Carga de Farmazona</h3><p>líneas = visitas a ubicación · tope 200 por día · 400 cada 48 h</p><span class="scopenote" id="loadScope"></span></div>
+      <div class="weeknav" id="weeknav">
+        <button type="button" onclick="shiftWeek(-1)" title="Semana anterior">‹</button>
+        <div class="lbl" id="weekLbl">—</div>
+        <button type="button" onclick="shiftWeek(1)" title="Semana siguiente">›</button>
+        <button type="button" class="allbtn" id="allBtn" onclick="setLoadWeek('')">Ver todas</button>
+      </div>
+    </div>
+    <div class="fz-summary" id="loadSummary"></div>
+    <div class="fz-weeks" id="loaddays"></div>
+    <div class="fz-legend"><div class="li"><span class="dot ok"></span> En capacidad (&lt; 80%)</div><div class="li"><span class="dot warn"></span> Cerca del tope (80–100%)</div><div class="li"><span class="dot crit"></span> Sobre 200 — hay que nivelar</div></div>
   </div>
 
   <div class="controls">
@@ -670,43 +724,56 @@ function setPais(p){document.getElementById('filterPais').value=p;render();}
 
 /* Carga de Farmazona por día: agrupa las líneas por la fecha de "Envío a Farmazona" de cada OC */
 function linesOf(c){return (c.lineas||[]).length;}
-let LOAD_WEEK='';
+let LOAD_WEEK=null;           // null=auto (semana actual), ''=todas, o ISO del lunes
+let LOAD_WEEK_KEYS=[];
 function isoFromDate(_d){return _d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0');}
 function addDays(iso,n){const d=new Date(iso+'T00:00:00');d.setDate(d.getDate()+n);return isoFromDate(d);}
 function weekStart(iso){const d=new Date(iso+'T00:00:00');const off=(d.getDay()+6)%7;d.setDate(d.getDate()-off);return isoFromDate(d);}
+function wkLabel(wk){return fmt(wk)+' – '+fmt(addDays(wk,4));}
+function defaultWeek(keys){if(!keys.length)return '';const tw=weekStart(todayISO());if(keys.indexOf(tw)>=0)return tw;const past=keys.filter(k=>k<=tw);return past.length?past[past.length-1]:keys[0];}
 function setLoadWeek(v){LOAD_WEEK=v;renderLoad();}
+function shiftWeek(dir){const keys=LOAD_WEEK_KEYS;if(!keys.length)return;let cur=(LOAD_WEEK&&LOAD_WEEK!=='')?LOAD_WEEK:defaultWeek(keys);let i=keys.indexOf(cur);if(i<0)i=0;i=Math.max(0,Math.min(keys.length-1,i+dir));LOAD_WEEK=keys[i];renderLoad();}
+function fzDayCard(d,mL,mC,mKg,mF,breachSet){
+  const wdFull=new Date(d+'T00:00:00').toLocaleDateString('es',{weekday:'long'});
+  const wdCap=wdFull.charAt(0).toUpperCase()+wdFull.slice(1);
+  if(mL[d]==null){return `<div class="fz-day empty"><div class="fz-wd">${wdCap}</div><div class="fz-dt">${fmt(d)}</div><div class="fz-none">Sin carga</div></div>`;}
+  const n=mL[d];const st=n>CAP_DAY?'crit':(n>CAP_DAY*0.8?'warn':'ok');
+  const w=Math.min(100,Math.round(n/CAP_DAY*100));const pct=Math.round(n/CAP_DAY*100);
+  return `<div class="fz-day ${st}${breachSet.has(d)?' w48':''}"><div class="fz-pct">${pct}%</div><div class="fz-wd">${wdCap}</div><div class="fz-dt">${fmt(d)}</div><div class="fz-big"><span class="n">${n}</span><span class="cap">/${CAP_DAY}</span></div><div class="fz-bar"><i style="width:${w}%"></i></div><div class="fz-sec">${hayFiltro()?('<b style="color:var(--ml-verde-corporativo)">'+(mF[d]||0)+' filtrado</b> · '):''}${fmtNum(mC[d])} cajas · ${fmtNum(Math.round(mKg[d]))} kg</div></div>`;
+}
 function renderLoad(){
-  const wrap=document.getElementById('loaddays');const cap=document.getElementById('loadCap');
+  const wrap=document.getElementById('loaddays');const sum=document.getElementById('loadSummary');
   const sc=document.getElementById('loadScope');if(sc)sc.innerHTML=hayFiltro()?'Totales de los 6 países: la capacidad de bodega es compartida. En verde, el aporte del filtro.':'';
+  const lbl=document.getElementById('weekLbl');const allBtn=document.getElementById('allBtn');
   const mL={},mC={},mKg={},mF={};
   const fp=paisFiltro();const IDS=new Set(scopeData().map(x=>x.id));
   DATA.forEach(c=>{const fd=cutoffFor(c,'farmazona');if(!fd)return;const cc=ocCalc(c);if(!cc.lineas&&!cc.cajas)return;
     mL[fd]=(mL[fd]||0)+cc.lineas;mC[fd]=(mC[fd]||0)+cc.cajas;mKg[fd]=(mKg[fd]||0)+cc.peso;
     if(IDS.has(c.id))mF[fd]=(mF[fd]||0)+cc.lineas;});
   const dates=Object.keys(mL).sort();
-  const wsel=document.getElementById('loadWeek');
-  if(!dates.length){wrap.innerHTML='<div class="ld-empty">Sin OC con fecha de colocación: carga aún sin programar.</div>';cap.innerHTML='';if(wsel)wsel.innerHTML='<option value="">Todas las semanas</option>';return;}
-  const weeksMap={};dates.forEach(d=>{const wk=weekStart(d);(weeksMap[wk]=weeksMap[wk]||[]).push(d);});
-  const weekKeys=Object.keys(weeksMap).sort();
-  const cur=(LOAD_WEEK&&weeksMap[LOAD_WEEK])?LOAD_WEEK:'';LOAD_WEEK=cur;
-  if(wsel)wsel.innerHTML='<option value="">Todas las semanas</option>'+weekKeys.map(wk=>`<option value="${wk}"${wk===cur?' selected':''}>Semana ${fmt(wk)} – ${fmt(addDays(wk,6))}</option>`).join('');
-  const shownDates=cur?weeksMap[cur]:dates;const shownSet=new Set(shownDates);
-  const wd=iso=>new Date(iso+'T00:00:00').toLocaleDateString('es',{weekday:'short'});
-  const breaches=[];
-  dates.forEach(d=>{const nx=addBusinessDays(d,1);if(mL[nx]!=null&&(mL[d]+mL[nx])>CAP_48)breaches.push(d);});
+  if(!dates.length){wrap.innerHTML='<div class="ld-empty">Sin OC con fecha de colocación: carga aún sin programar.</div>';if(sum)sum.innerHTML='';if(lbl)lbl.textContent='—';LOAD_WEEK_KEYS=[];return;}
+  const breaches=[];dates.forEach(d=>{const nx=addBusinessDays(d,1);if(mL[nx]!=null&&(mL[d]+mL[nx])>CAP_48)breaches.push(d);});
   const breachSet=new Set(breaches.concat(breaches.map(d=>addBusinessDays(d,1))));
-  let peak=0,peakD='',over=0;
-  shownDates.forEach(d=>{if(mL[d]>peak){peak=mL[d];peakD=d;}if(mL[d]>CAP_DAY)over++;});
-  wrap.innerHTML=shownDates.map(d=>{
-    const n=mL[d];const s=n>CAP_DAY?'crit':(n>CAP_DAY*0.8?'warn':'ok');
-    const w=Math.min(100,Math.round(n/CAP_DAY*100));
-    return `<div class="loadday s-${s}${breachSet.has(d)?' w48':''}"><div class="ld-date">${fmt(d)}</div><div class="ld-wd">${wd(d)}</div><div class="ld-n">${n}<span>/${CAP_DAY}</span></div><div class="ld-bar"><i style="width:${w}%"></i></div><div class="ld-sec">${hayFiltro()?('<b style="color:var(--ml-verde-corporativo)">'+(mF[d]||0)+' filtrado</b><br>'):''}${fmtNum(mC[d])} cajas · ${fmtNum(Math.round(mKg[d]))} kg</div></div>`;
-  }).join('');
-  const tL=shownDates.reduce((a,d)=>a+mL[d],0),tC=shownDates.reduce((a,d)=>a+mC[d],0),tKg=shownDates.reduce((a,d)=>a+mKg[d],0);
-  const breachesShown=breaches.filter(d=>shownSet.has(d)).length;
-  cap.innerHTML=`${cur?('Semana '+fmt(cur)+' – '+fmt(addDays(cur,6))+' · '):''}Total ${tL} líneas · ${fmtNum(tC)} cajas · ${fmtNum(Math.round(tKg))} kg · pico ${peak} líneas el ${fmt(peakD)} · `+
-    (over?`<b class="crit">${over} día(s) sobre 200</b>`:'<b class="ok">ningún día sobre 200</b>')+
-    (breachesShown?` · <b class="crit">${breachesShown} ventana(s) de 48 h sobre 400</b>`:'');
+  const weeksMap={};dates.forEach(d=>{const wk=weekStart(d);(weeksMap[wk]=weeksMap[wk]||[]).push(d);});
+  const weekKeys=Object.keys(weeksMap).sort();LOAD_WEEK_KEYS=weekKeys;
+  if(LOAD_WEEK===null)LOAD_WEEK=defaultWeek(weekKeys);
+  const isAll=(LOAD_WEEK==='');
+  const cur=isAll?'':(weekKeys.indexOf(LOAD_WEEK)>=0?LOAD_WEEK:defaultWeek(weekKeys));
+  if(!isAll)LOAD_WEEK=cur;
+  if(lbl)lbl.innerHTML=isAll?'Todas las semanas':(wkLabel(cur)+'<small>Semana</small>');
+  if(allBtn){allBtn.textContent=isAll?'Ver por semana':'Ver todas';allBtn.onclick=()=>setLoadWeek(isAll?defaultWeek(weekKeys):'');}
+  const weekBlock=wk=>`<div class="fz-week">${[0,1,2,3,4].map(i=>fzDayCard(addDays(wk,i),mL,mC,mKg,mF,breachSet)).join('')}</div>`;
+  wrap.innerHTML=isAll?weekKeys.map(wk=>`<div class="fz-weeklabel">Semana ${wkLabel(wk)}</div>${weekBlock(wk)}`).join(''):weekBlock(cur);
+  const shown=isAll?dates:[0,1,2,3,4].map(i=>addDays(cur,i)).filter(d=>mL[d]!=null);
+  const tL=shown.reduce((a,d)=>a+mL[d],0),tC=shown.reduce((a,d)=>a+mC[d],0),tKg=shown.reduce((a,d)=>a+mKg[d],0);
+  let peak=0,peakD='',over=0;shown.forEach(d=>{if(mL[d]>peak){peak=mL[d];peakD=d;}if(mL[d]>CAP_DAY)over++;});
+  const brShown=breaches.filter(d=>shown.indexOf(d)>=0).length;
+  if(sum){sum.innerHTML=
+    `<div class="fz-chip"><span class="k">${isAll?'Total':'Total semana'}</span><span class="v">${tL}</span><span class="k">líneas</span></div>`+
+    `<div class="fz-chip"><span class="k">Pico</span><span class="v">${peak}</span><span class="k">${peakD?fmt(peakD):'—'}</span></div>`+
+    `<div class="fz-chip"><span class="k">Cajas · Peso</span><span class="v">${fmtNum(tC)}</span><span class="k">cajas · ${fmtNum(Math.round(tKg))} kg</span></div>`+
+    (over?`<div class="fz-chip crit"><span class="v">⚠ ${over} día(s) sobre 200</span></div>`:`<div class="fz-chip okstate"><span class="v">✓ Ningún día sobre 200</span></div>`)+
+    (brShown?`<div class="fz-chip crit"><span class="v">⚠ ${brShown} ventana(s) de 48 h sobre 400</span></div>`:'');}
 }
 function fmtNum(n){return (typeof n==='number')?n.toLocaleString('es'):(n||'');}
 function cardEl(c,stageIdx){
