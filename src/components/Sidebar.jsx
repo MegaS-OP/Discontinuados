@@ -7,7 +7,7 @@ const BORDER = '0.5px solid #D3D1C7';
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: '⊞' },
   { id: 'list', label: 'Discontinuados', icon: '⬡', badge: true },
-  { id: 'cambios', label: 'Cambios', icon: '⇄' },
+  { id: 'cambios', label: 'Abastecimiento CEAM', icon: '⇄' },
   { id: 'comparativa', label: 'Comparativa', icon: '⇅' },
   { id: 'reports', label: 'Reportes', icon: '▤' },
   { id: 'history', label: 'Historial', icon: '↺' },
