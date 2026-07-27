@@ -7,13 +7,14 @@ const BORDER = '0.5px solid #D3D1C7';
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: '⊞' },
   { id: 'list', label: 'Discontinuados', icon: '⬡', badge: true },
+  { id: 'cambios', label: 'Cambios', icon: '⇄' },
   { id: 'comparativa', label: 'Comparativa', icon: '⇅' },
   { id: 'reports', label: 'Reportes', icon: '▤' },
   { id: 'history', label: 'Historial', icon: '↺' },
   { id: 'settings', label: 'Configuración', icon: '⚙' },
 ];
 
-const CLICKABLE = ['dashboard', 'list', 'comparativa', 'reports', 'settings'];
+const CLICKABLE = ['dashboard', 'list', 'cambios', 'comparativa', 'reports', 'settings'];
 
 export default function Sidebar({ activeView, onNavigate, productCount }) {
   const { currentUser, logout } = useUsers();

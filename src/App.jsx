@@ -8,6 +8,7 @@ import ProductDetail from './pages/ProductDetail';
 import Configuracion from './pages/Configuracion';
 import Reportes from './pages/Reportes';
 import Comparativa from './pages/Comparativa';
+import Cambios from './pages/Cambios';
 import { useApp } from './context/AppContext';
 import './index.css';
 
@@ -41,6 +42,7 @@ function AppShell() {
   };
 
   const activeNav = view === 'detail' ? 'dashboard' : view;
+  const isWide = view === 'cambios';
 
   return (
     <div style={{
@@ -50,7 +52,7 @@ function AppShell() {
       borderRadius: 10,
       overflow: 'hidden',
       background: '#F1EFE8',
-      maxWidth: 1200,
+      maxWidth: isWide ? 1720 : 1200,
       margin: '0 auto',
       boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
     }}>
@@ -68,6 +70,8 @@ function AppShell() {
         <Reportes />
       ) : view === 'comparativa' ? (
         <Comparativa />
+      ) : view === 'cambios' ? (
+        <Cambios />
       ) : (
         <Dashboard onOpenDetail={handleOpenDetail} />
       )}
