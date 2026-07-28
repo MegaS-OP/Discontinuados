@@ -483,6 +483,25 @@ function App(){
     setPreviewRows(matches);
   }
 
+  // Devuelve un valor de celda seguro para escribir en el archivo nuevo.
+  // Las "fórmulas compartidas" (shared formulas) de Excel dependen de una celda
+  // madre; al separar filas esa madre puede quedar afuera y romper la escritura.
+  // Por eso las convertimos en una fórmula normal e independiente (ExcelJS ya la
+  // traduce a la posición correcta), conservando la fórmula pero sin la dependencia.
+  function safeCellValue(srcCell){
+    const v = srcCell.value;
+    if(v && typeof v === "object" && (v.formula || v.sharedFormula)){
+      let formulaText;
+      try{ formulaText = srcCell.formula; } catch(e){ formulaText = undefined; }
+      if(formulaText){
+        return {formula: formulaText, result: v.result};
+      }
+      // Si no se pudo recuperar el texto de la fórmula, usamos el valor calculado.
+      return v.result !== undefined ? v.result : null;
+    }
+    return v;
+  }
+
   // Copia una fila origen en una fila destino, celda por celda, conservando
   // value + style completo (fuente, relleno, bordes, alineación, numFmt) para
   // que fechas, moneda, colores y FÓRMULAS sobrevivan intactos.
@@ -490,7 +509,7 @@ function App(){
     for(let c = 1; c <= colCount; c++){
       const srcCell = srcRow.getCell(c);
       const destCell = destRow.getCell(c);
-      destCell.value = srcCell.value; // si es fórmula, se copia la fórmula, no el resultado
+      destCell.value = safeCellValue(srcCell); // fórmulas se conservan como fórmula (no compartida)
       destCell.style = srcCell.style;
     }
     if(srcRow.height) destRow.height = srcRow.height;
