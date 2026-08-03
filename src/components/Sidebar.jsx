@@ -30,35 +30,40 @@ export default function Sidebar({ activeView, onNavigate, productCount }) {
     }}>
       {/* Header con degradado de marca */}
       <div style={{
-        padding: '18px 16px 16px',
-        background: 'linear-gradient(160deg, #004F3A 0%, #009982 100%)',
+        padding: '22px 18px 20px',
+        background: 'linear-gradient(160deg, #003D2E 0%, #006B52 60%, #009982 100%)',
         position: 'relative',
         overflow: 'hidden',
         flexShrink: 0,
       }}>
-        {/* Círculo decorativo sutil */}
         <div style={{
-          position: 'absolute', top: -30, right: -30,
-          width: 100, height: 100, borderRadius: '50%',
-          background: 'rgba(255,255,255,0.05)',
+          position: 'absolute', top: -40, right: -40,
+          width: 130, height: 130, borderRadius: '50%',
+          background: 'rgba(255,255,255,0.06)',
           pointerEvents: 'none',
         }} />
         <div style={{
-          fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-          textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)',
-          marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5,
+          position: 'absolute', bottom: -20, left: -20,
+          width: 80, height: 80, borderRadius: '50%',
+          background: 'rgba(120,215,33,0.08)',
+          pointerEvents: 'none',
+        }} />
+        <div style={{
+          fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+          textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)',
+          marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6,
         }}>
           <span style={{
-            display: 'inline-block', width: 7, height: 7,
+            display: 'inline-block', width: 8, height: 8,
             background: '#78D721', borderRadius: '50%',
-            boxShadow: '0 0 0 2px rgba(120,215,33,0.25)',
+            boxShadow: '0 0 0 3px rgba(120,215,33,0.2)',
           }} />
           S&OP Global
         </div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+        <div style={{ fontSize: 19, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
           Megalabs
         </div>
-        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
+        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 4, letterSpacing: '0.02em' }}>
           Discontinuados Corp.
         </div>
       </div>

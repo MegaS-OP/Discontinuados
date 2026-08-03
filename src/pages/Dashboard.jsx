@@ -255,13 +255,13 @@ export default function Dashboard({ onOpenDetail }) {
 
         {/* KPI strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
-          <KpiCard label="Total en proceso" value={total} sub="productos activos" subColor="#4E6358" valueColor={ML_GREEN}
+          <KpiCard label="Total en proceso" value={total} sub="productos activos" subColor="#4E6358" valueColor={ML_GREEN} accent="#E6F5ED"
             active={filterStage === null} onClick={() => setFilterStage(null)} />
-          <KpiCard label="En Detección"    value={baseProducts.filter(p => p.etapaActual === 0).length} valueColor="#009641" sub="Etapa 1"
+          <KpiCard label="En Detección"    value={baseProducts.filter(p => p.etapaActual === 0).length} valueColor="#009641" sub="Etapa 1" accent="#D4EFDF"
             active={filterStage === 0} onClick={() => toggleFilter(0)} />
-          <KpiCard label="En Análisis"     value={baseProducts.filter(p => p.etapaActual === 1).length} valueColor="#007A65" sub="Etapa 2" subColor="#007A65"
+          <KpiCard label="En Análisis"     value={baseProducts.filter(p => p.etapaActual === 1).length} valueColor="#007A65" sub="Etapa 2" subColor="#007A65" accent="#CCE8E2"
             active={filterStage === 1} onClick={() => toggleFilter(1)} />
-          <KpiCard label="En Confirmación" value={baseProducts.filter(p => p.etapaActual === 2).length} valueColor="#005A44" sub={`Progreso prom. ${avgProgreso}%`} subColor="#005A44"
+          <KpiCard label="En Confirmación" value={baseProducts.filter(p => p.etapaActual === 2).length} valueColor="#005A44" sub={`Progreso prom. ${avgProgreso}%`} subColor="#005A44" accent="#C2E0D8"
             active={filterStage === 2} onClick={() => toggleFilter(2)} />
         </div>
 
@@ -279,23 +279,24 @@ export default function Dashboard({ onOpenDetail }) {
   );
 }
 
-function KpiCard({ label, value, sub, subColor, valueColor, active, onClick }) {
+function KpiCard({ label, value, sub, subColor, valueColor, accent, active, onClick }) {
   return (
     <div
       onClick={onClick}
       style={{
-        background: active ? (valueColor ? valueColor + '12' : ML_GREEN_LIGHT) : '#fff',
+        background: active ? (accent || ML_GREEN_LIGHT) : '#fff',
         border: active ? `1.5px solid ${valueColor || ML_GREEN}` : BORDER,
-        borderRadius: 8,
-        padding: '12px 14px',
+        borderRadius: 10,
+        padding: '14px 16px',
         cursor: 'pointer',
         transition: 'all 0.15s',
-        boxShadow: active ? `0 0 0 1px ${valueColor || ML_GREEN}22` : 'none',
+        boxShadow: active ? `0 2px 12px ${valueColor || ML_GREEN}22` : '0 1px 3px rgba(0,0,0,0.04)',
+        borderLeft: `3px solid ${valueColor || ML_GREEN}`,
       }}
     >
-      <div style={{ fontSize: 11, color: '#6B7F76', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: valueColor || '#1A2B25', letterSpacing: '-0.02em' }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: subColor || '#6B7F76', marginTop: 2 }}>{sub}</div>}
+      <div style={{ fontSize: 10, fontWeight: 600, color: '#8FA99E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+      <div style={{ fontSize: 26, fontWeight: 800, color: valueColor || '#1A2B25', letterSpacing: '-0.03em', lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: subColor || '#6B7F76', marginTop: 5 }}>{sub}</div>}
     </div>
   );
 }
