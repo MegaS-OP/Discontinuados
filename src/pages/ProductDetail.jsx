@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { HITOS_CON_EXTRAS } from '../data/db';
 
-const ML_GREEN = '#0F6E56';
-const ML_GREEN_LIGHT = '#E1F5EE';
-const ML_ORANGE = '#F5A623';
-const BORDER = '0.5px solid #D3D1C7';
-const BG_SEC = '#F1EFE8';
+const ML_GREEN = '#009641';
+const ML_GREEN_LIGHT = '#E6F5ED';
+const ML_ORANGE = '#007A65';
+const BORDER = '0.5px solid rgba(0,150,65,0.15)';
+const BG_SEC = '#F0F5F2';
 
 const stageLabels = { 0: 'Detección', 1: 'Análisis', 2: 'Confirmación' };
 const stageClasses = { 0: 'stage-1', 1: 'stage-2', 2: 'stage-3' };
@@ -106,7 +106,7 @@ export default function ProductDetail({ productId, onBack }) {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Topbar */}
       <div style={{ background: '#fff', borderBottom: BORDER, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#1A2B25', letterSpacing: '-0.01em' }}>
           {product.codigo || product.id} — {product.nombre}
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -143,13 +143,13 @@ export default function ProductDetail({ productId, onBack }) {
           {/* Detail header */}
           <div style={{ padding: '14px 16px', borderBottom: BORDER, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
-              <div style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 3 }}>{product.codigo || product.id}</div>
-              <div style={{ fontSize: 14, fontWeight: 500, color: '#1A1A1A' }}>{product.nombre}</div>
-              <div style={{ fontSize: 11, color: '#5F5E5A', marginTop: 2 }}>
+              <div style={{ fontSize: 11, color: '#6B7F76', marginBottom: 3 }}>{product.codigo || product.id}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1A2B25', letterSpacing: '-0.01em' }}>{product.nombre}</div>
+              <div style={{ fontSize: 11, color: '#6B7F76', marginTop: 2 }}>
                 Cía: {product.paisCompania} · Fabricante: {product.paisPlanta} · BU: {product.bu}{product.mph ? ` · MPH: ${product.mph}` : ''}{product.levantadoSOPC ? ` · S&OP: ${product.levantadoSOPC === 'si' ? 'Sí' : 'No'}` : ''} · Inicio: {product.fechaInicio}
               </div>
               {product.observaciones && (
-                <div style={{ fontSize: 11, color: '#854F0B', marginTop: 4, background: '#FAEEDA', borderRadius: 4, padding: '3px 8px', display: 'inline-block' }}>
+                <div style={{ fontSize: 11, color: '#007A65', marginTop: 4, background: '#E0F2EE', borderRadius: 4, padding: '3px 8px', display: 'inline-block' }}>
                   📋 {product.observaciones}
                 </div>
               )}
@@ -209,13 +209,14 @@ export default function ProductDetail({ productId, onBack }) {
                       margin: '0 10px 8px 36px',
                       padding: '8px 10px',
                       borderRadius: 4,
-                      background: nested ? '#FAFAF8' : '#FFF8EE',
-                      border: nested ? '0.5px solid #E5E7EB' : '0.5px solid #F0D4A0',
+                      background: nested ? '#FAFAF8' : '#F0F5F2',
+                      border: nested ? '0.5px solid rgba(0,150,65,0.12)' : '0.5px solid rgba(0,150,65,0.2)',
                       display: 'flex', flexDirection: 'column', gap: 6,
                     }}>
                       {!nested && (
                         <div style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', marginBottom: 2 }}>
                           {h.label === 'Inventario PT' ? '📦 Supply Chain Corp' : '🏭 Planta'}
+
                         </div>
                       )}
                       <textarea
@@ -285,7 +286,7 @@ export default function ProductDetail({ productId, onBack }) {
 
           return [0, 1, 2].map((etapaIdx) => {
             const hitosEtapa = product.hitos.filter((h) => h.etapa === etapaIdx && h.label !== 'Análisis de impacto planta');
-            const etapaColors = ['#185FA5', '#854F0B', '#3B6D11'];
+            const etapaColors = ['#009641', '#007A65', '#005A44'];
             const color = etapaColors[etapaIdx];
             const doneCount = hitosEtapa.filter((h) => h.done).length;
             return (
@@ -299,10 +300,10 @@ export default function ProductDetail({ productId, onBack }) {
                     <>
                       {renderHito(hitosEtapa.find((h) => h.label === 'Inventario PT'))}
                       {renderHito(hitosEtapa.find((h) => h.label === 'Notificación a Mkt Corp y Aviso a Planta'))}
-                      <div style={{ borderRadius: 6, border: '0.5px solid #F0D4A0', background: '#FFF8EE', padding: 8, display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', marginBottom: 2 }}>🏭 Análisis de impacto planta — Planta</div>
-                        <div style={{ borderRadius: 6, border: '0.5px solid #E5DCC3', background: '#fff', padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <div style={{ fontSize: 10, fontWeight: 600, color: '#5F5E5A', padding: '2px 4px' }}>Costo destrucción</div>
+                      <div style={{ borderRadius: 6, border: '0.5px solid #90CCC2', background: '#E8F5F2', padding: 8, display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#007A65', marginBottom: 2 }}>🏭 Análisis de impacto planta — Planta</div>
+                        <div style={{ borderRadius: 6, border: '0.5px solid rgba(0,150,65,0.2)', background: '#fff', padding: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: '#4E6358', padding: '2px 4px' }}>Costo destrucción</div>
                           {['Costo destrucción PT', 'Costo destrucción materiales', 'Costo inventario API'].map((label) => renderHito(hitosEtapa.find((h) => h.label === label), true))}
                         </div>
                         {renderHito(hitosEtapa.find((h) => h.label === 'Productos en cola de producción'), true)}
@@ -313,8 +314,8 @@ export default function ProductDetail({ productId, onBack }) {
                   ) : etapaIdx === 0 ? (
                     <>
                       {renderHito(hitosEtapa.find((h) => h.label === 'Detección del SKU a discontinuar'))}
-                      <div style={{ borderRadius: 6, border: '0.5px solid #F0D4A0', background: '#FAEEDA', padding: 6, display: 'flex', flexDirection: 'column', gap: 4, marginTop: 2, marginBottom: 2 }}>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: '#854F0B', marginBottom: 2 }}>★ Ruta Presupuesto Anual</div>
+                      <div style={{ borderRadius: 6, border: '0.5px solid #90CCC2', background: '#E0F2EE', padding: 6, display: 'flex', flexDirection: 'column', gap: 4, marginTop: 2, marginBottom: 2 }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#007A65', marginBottom: 2 }}>★ Ruta Presupuesto Anual</div>
                         {['Presentación de Presupuesto Anual', 'Análisis de Template de Discontinuación'].map((label) => renderHito(hitosEtapa.find((h) => h.label === label), true))}
                       </div>
                       {renderHito(hitosEtapa.find((h) => h.label === 'Aviso a Supply Corp y S&OP Global'))}
@@ -330,7 +331,7 @@ export default function ProductDetail({ productId, onBack }) {
 
           {/* Activity */}
           <div style={{ padding: '10px 16px', borderBottom: BORDER }}>
-            <div style={{ fontSize: 11, fontWeight: 500, color: '#5F5E5A', marginBottom: 8 }}>Historial de actividades</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#4E6358', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Historial de actividades</div>
             {!product.actividades || product.actividades.length === 0 ? (
               <div style={{ fontSize: 11, color: '#5F5E5A' }}>Sin actividad registrada.</div>
             ) : (
@@ -348,7 +349,7 @@ export default function ProductDetail({ productId, onBack }) {
 
           {/* Comment box */}
           <div style={{ padding: '10px 16px' }}>
-            <div style={{ fontSize: 11, fontWeight: 500, color: '#5F5E5A', marginBottom: 6 }}>Agregar comentario</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#4E6358', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Agregar comentario</div>
             <div style={{ display: 'flex', gap: 6 }}>
               <input
                 value={comment}

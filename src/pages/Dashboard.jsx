@@ -4,16 +4,16 @@ import { HITOS_CON_EXTRAS, CIAS, FABRICANTES } from '../data/db';
 import NuevoProducto from '../components/NuevoProducto';
 import ImportModal from '../components/ImportModal';
 
-const ML_GREEN = '#0F6E56';
-const ML_GREEN_LIGHT = '#E1F5EE';
-const ML_ORANGE = '#F5A623';
-const BORDER = '0.5px solid #D3D1C7';
-const BG_SEC = '#F1EFE8';
+const ML_GREEN = '#009641';
+const ML_GREEN_LIGHT = '#E6F5ED';
+const ML_ORANGE = '#009641';
+const BORDER = '0.5px solid rgba(0,150,65,0.15)';
+const BG_SEC = '#F0F5F2';
 
 const STAGES = [
-  { idx: 0, label: 'Detección',    color: '#185FA5', bg: '#E6F1FB', border: '#B8D4F0' },
-  { idx: 1, label: 'Análisis',     color: '#854F0B', bg: '#FAEEDA', border: '#F0D4A0' },
-  { idx: 2, label: 'Confirmación', color: '#3B6D11', bg: '#EAF3DE', border: '#C0D9A0' },
+  { idx: 0, label: 'Detección',    color: '#009641', bg: '#E6F5ED', border: '#A8DABC' },
+  { idx: 1, label: 'Análisis',     color: '#007A65', bg: '#E0F2EE', border: '#90CCC2' },
+  { idx: 2, label: 'Confirmación', color: '#005A44', bg: '#D6EDE7', border: '#70B8A8' },
 ];
 
 function ProgressRing({ pct, color, size = 36 }) {
@@ -45,8 +45,8 @@ function ProductCard({ product, color, bg, onOpen }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered ? '#fff' : '#FAFAF8',
-        border: BORDER,
+        background: hovered ? '#fff' : '#FAFAFA',
+        border: `0.5px solid rgba(0,150,65,0.12)`,
         borderLeft: `3px solid ${color}`,
         borderRadius: 8,
         padding: '10px 12px',
@@ -62,7 +62,7 @@ function ProductCard({ product, color, bg, onOpen }) {
       </div>
 
       {/* Nombre */}
-      <div style={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 4 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#1A2B25', lineHeight: 1.3, marginBottom: 4 }}>
         {product.nombre}
       </div>
 
@@ -75,8 +75,8 @@ function ProductCard({ product, color, bg, onOpen }) {
       {/* Hitos mini bar */}
       <div style={{ marginTop: 8 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-          <span style={{ fontSize: 9, color: '#9B9895' }}>Hitos</span>
-          <span style={{ fontSize: 9, color: '#9B9895' }}>{doneHitos}/{totalHitos}</span>
+          <span style={{ fontSize: 9, color: '#8FA99E' }}>Hitos</span>
+          <span style={{ fontSize: 9, color: '#8FA99E' }}>{doneHitos}/{totalHitos}</span>
         </div>
         <div style={{ display: 'flex', gap: 2 }}>
           {product.hitos.map(h => (
@@ -101,7 +101,7 @@ function ProductCard({ product, color, bg, onOpen }) {
               fontSize: 9, color, cursor: 'pointer',
             }}
           >✓</button>
-          <span style={{ fontSize: 10, color: '#5F5E5A', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 10, color: '#4E6358', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {nextHito.label}
           </span>
         </div>
@@ -118,7 +118,7 @@ function Tag({ text }) {
   return (
     <span style={{
       fontSize: 9, padding: '2px 6px', borderRadius: 4,
-      background: BG_SEC, color: '#5F5E5A', border: BORDER,
+      background: '#E8F0EC', color: '#4E6358', border: '0.5px solid rgba(0,150,65,0.15)',
     }}>
       {text}
     </span>
@@ -206,20 +206,20 @@ export default function Dashboard({ onOpenDetail }) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Topbar */}
-      <div style={{ background: '#fff', borderBottom: BORDER, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+      <div style={{ background: '#fff', borderBottom: '0.5px solid rgba(0,150,65,0.15)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ fontSize: 15, fontWeight: 500, color: '#1A1A1A' }}>Dashboard — Seguimiento Discontinuados</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#1A2B25', letterSpacing: '-0.01em' }}>Discontinuados</div>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por código o descripción..."
-            style={{ fontSize: 11, color: '#1A1A1A', background: '#fff', border: BORDER, borderRadius: 6, padding: '4px 8px', outline: 'none', width: 220 }}
+            style={{ fontSize: 11, color: '#1A2B25', background: '#F0F5F2', border: '0.5px solid rgba(0,150,65,0.2)', borderRadius: 6, padding: '4px 8px', outline: 'none', width: 220 }}
           />
           <select
             value={filterCompania}
             onChange={(e) => setFilterCompania(e.target.value)}
-            style={{ fontSize: 11, color: '#5F5E5A', background: '#fff', border: BORDER, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', outline: 'none' }}
+            style={{ fontSize: 11, color: '#4E6358', background: '#F0F5F2', border: '0.5px solid rgba(0,150,65,0.2)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', outline: 'none' }}
           >
             <option value="">Todas las compañías</option>
             {CIAS.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -227,24 +227,24 @@ export default function Dashboard({ onOpenDetail }) {
           <select
             value={filterPlanta}
             onChange={(e) => setFilterPlanta(e.target.value)}
-            style={{ fontSize: 11, color: '#5F5E5A', background: '#fff', border: BORDER, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', outline: 'none' }}
+            style={{ fontSize: 11, color: '#4E6358', background: '#F0F5F2', border: '0.5px solid rgba(0,150,65,0.2)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', outline: 'none' }}
           >
             <option value="">Todas las plantas</option>
             {FABRICANTES.map((f) => <option key={f} value={f}>{f}</option>)}
           </select>
           {(filterStage !== null || hasExtraFilters) && (
-            <button onClick={() => { setFilterStage(null); setFilterCompania(''); setFilterPlanta(''); setSearch(''); }} style={{ fontSize: 11, color: '#5F5E5A', background: BG_SEC, border: BORDER, borderRadius: 10, padding: '2px 8px', cursor: 'pointer' }}>
+            <button onClick={() => { setFilterStage(null); setFilterCompania(''); setFilterPlanta(''); setSearch(''); }} style={{ fontSize: 11, color: '#4E6358', background: '#E6F5ED', border: '0.5px solid rgba(0,150,65,0.2)', borderRadius: 10, padding: '2px 8px', cursor: 'pointer' }}>
               ✕ Limpiar filtros
             </button>
           )}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setShowImport(true)}
-            style={{ background: '#fff', color: ML_GREEN, border: `1px solid ${ML_GREEN}`, borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
+            style={{ background: '#fff', color: ML_GREEN, border: `1px solid ${ML_GREEN}`, borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
             ↑ Carga masiva
           </button>
           <button onClick={() => setShowNuevo(true)}
-            style={{ background: ML_GREEN, color: 'white', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
+            style={{ background: ML_GREEN, color: 'white', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
             + Nuevo producto
           </button>
         </div>
@@ -255,13 +255,13 @@ export default function Dashboard({ onOpenDetail }) {
 
         {/* KPI strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
-          <KpiCard label="Total en proceso" value={total} sub="productos activos" subColor="#5F5E5A" valueColor={ML_GREEN}
+          <KpiCard label="Total en proceso" value={total} sub="productos activos" subColor="#4E6358" valueColor={ML_GREEN}
             active={filterStage === null} onClick={() => setFilterStage(null)} />
-          <KpiCard label="En Detección"    value={baseProducts.filter(p => p.etapaActual === 0).length} valueColor="#185FA5" sub="Etapa 1"
+          <KpiCard label="En Detección"    value={baseProducts.filter(p => p.etapaActual === 0).length} valueColor="#009641" sub="Etapa 1"
             active={filterStage === 0} onClick={() => toggleFilter(0)} />
-          <KpiCard label="En Análisis"     value={baseProducts.filter(p => p.etapaActual === 1).length} valueColor="#854F0B" sub="Etapa 2" subColor={ML_ORANGE}
+          <KpiCard label="En Análisis"     value={baseProducts.filter(p => p.etapaActual === 1).length} valueColor="#007A65" sub="Etapa 2" subColor="#007A65"
             active={filterStage === 1} onClick={() => toggleFilter(1)} />
-          <KpiCard label="En Confirmación" value={baseProducts.filter(p => p.etapaActual === 2).length} valueColor="#3B6D11" sub={`Progreso prom. ${avgProgreso}%`} subColor={ML_GREEN}
+          <KpiCard label="En Confirmación" value={baseProducts.filter(p => p.etapaActual === 2).length} valueColor="#005A44" sub={`Progreso prom. ${avgProgreso}%`} subColor="#005A44"
             active={filterStage === 2} onClick={() => toggleFilter(2)} />
         </div>
 
@@ -293,9 +293,9 @@ function KpiCard({ label, value, sub, subColor, valueColor, active, onClick }) {
         boxShadow: active ? `0 0 0 1px ${valueColor || ML_GREEN}22` : 'none',
       }}
     >
-      <div style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 500, color: valueColor || '#1A1A1A' }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: subColor || '#5F5E5A', marginTop: 2 }}>{sub}</div>}
+      <div style={{ fontSize: 11, color: '#6B7F76', marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 700, color: valueColor || '#1A2B25', letterSpacing: '-0.02em' }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: subColor || '#6B7F76', marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }

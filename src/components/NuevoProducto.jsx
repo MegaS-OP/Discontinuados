@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { makeHitos, CIAS, FABRICANTES, BUS } from '../data/db';
 
-const ML_GREEN = '#0F6E56';
-const BORDER = '0.5px solid #D3D1C7';
-const BG_SEC = '#F1EFE8';
+const ML_GREEN = '#009641';
+const BORDER = '0.5px solid rgba(0,150,65,0.15)';
+const BG_SEC = '#F0F5F2';
 
 function Field({ label, required, children }) {
   return (
