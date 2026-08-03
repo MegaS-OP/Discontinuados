@@ -4,6 +4,7 @@ import { UserProvider, useUsers } from './context/UserContext';
 import Sidebar from './components/Sidebar';
 import LoginScreen from './components/LoginScreen';
 import Dashboard from './pages/Dashboard';
+import DashboardView from './pages/DashboardView';
 import ProductDetail from './pages/ProductDetail';
 import Configuracion from './pages/Configuracion';
 import Reportes from './pages/Reportes';
@@ -14,7 +15,7 @@ import './index.css';
 const BORDER = '0.5px solid #D3D1C7';
 
 function AppShell() {
-  const [view, setView] = useState('dashboard');
+  const [view, setView] = useState('list');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const { currentUser } = useUsers();
   const { data } = useApp();
@@ -32,15 +33,11 @@ function AppShell() {
   };
 
   const handleNavigate = (newView) => {
-    if (newView === 'dashboard') {
-      setSelectedProduct(null);
-      setView('dashboard');
-    } else {
-      setView(newView);
-    }
+    setSelectedProduct(null);
+    setView(newView);
   };
 
-  const activeNav = view === 'detail' ? 'dashboard' : view;
+  const activeNav = view === 'detail' ? 'list' : view;
 
   return (
     <div style={{
@@ -68,8 +65,10 @@ function AppShell() {
         <Reportes />
       ) : view === 'comparativa' ? (
         <Comparativa />
-      ) : (
+      ) : view === 'list' ? (
         <Dashboard onOpenDetail={handleOpenDetail} />
+      ) : (
+        <DashboardView />
       )}
     </div>
   );
