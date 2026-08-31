@@ -212,9 +212,6 @@ export default function Dashboard({ onOpenDetail }) {
             <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
               Discontinuados Corporativos
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
-              Seguimiento del proceso PROC-SC-DISC-001 v3.0
-            </div>
           </div>
 
           {/* KPI chips */}
