@@ -11,7 +11,7 @@ export const FABRICANTES = [
   'CSLB Behring', 'Camilo', 'Chemo', 'Chi-Grh', 'Col-Mlb', 'Dom-Row',
   'Ecu-Acx', 'Ems', 'Herbarium', 'Hersil', 'Ibsa', 'IsisPharma',
   'Korott', 'Lasca', 'Local', 'Neocosmed', 'Phytopharm', 'Roe-Arg',
-  ''Uru-Cel', 'Uru-Hay', 'Uru-Icl', 'Uru-Mlb', 'Uru-Pdc', 'Urufarma', 'Usa-Mlb',
+  'Uru-Cel', 'Uru-Hay', 'Uru-Icl', 'Uru-Mlb', 'Uru-Pdc', 'Urufarma', 'Usa-Mlb',
 ];
 
 export const BUS = ['Primary', 'Consumer', 'Divise', 'Hi-Tech', 'Nutraceutical'];
