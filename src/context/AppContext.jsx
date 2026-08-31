@@ -190,6 +190,13 @@ export function AppProvider({ children }) {
     });
   }, [updateData]);
 
+  const updateProduct = useCallback((productId, updates) => {
+    updateData((prev) => ({
+      ...prev,
+      products: prev.products.map((p) => (p.id !== productId ? p : { ...p, ...updates })),
+    }));
+  }, [updateData]);
+
   const addProduct = useCallback((product) => {
     updateData((prev) => ({ ...prev, products: [...prev.products, product] }));
   }, [updateData]);
@@ -214,7 +221,7 @@ export function AppProvider({ children }) {
   }
 
   return (
-    <AppContext.Provider value={{ data, addComment, toggleHito, advanceStage, addProduct, addProducts, updateHitoExtras, removeBulkProducts }}>
+    <AppContext.Provider value={{ data, addComment, toggleHito, advanceStage, addProduct, addProducts, updateProduct, updateHitoExtras, removeBulkProducts }}>
       {children}
     </AppContext.Provider>
   );
