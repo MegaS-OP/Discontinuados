@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { HITOS_CON_EXTRAS } from '../data/db';
+import EditarProducto from '../components/EditarProducto';
 
 const ML_GREEN = '#009641';
 const ML_GREEN_LIGHT = '#E6F5ED';
@@ -76,6 +77,7 @@ function Stepper({ etapas, etapaActual }) {
 export default function ProductDetail({ productId, onBack }) {
   const { data, addComment, toggleHito, advanceStage, updateHitoExtras } = useApp();
   const [comment, setComment] = useState('');
+  const [showEditar, setShowEditar] = useState(false);
 
   const product = data.products.find((p) => p.id === productId);
   if (!product) return null;
@@ -119,6 +121,12 @@ export default function ProductDetail({ productId, onBack }) {
             </button>
           )}
           <button
+            onClick={() => setShowEditar(true)}
+            style={{ background: '#fff', border: BORDER, borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 500, color: '#5F5E5A', cursor: 'pointer' }}
+          >
+            ✏️ Editar
+          </button>
+          <button
             onClick={onBack}
             style={{ background: 'none', border: BORDER, borderRadius: 6, width: 24, height: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5F5E5A', fontSize: 14 }}
           >
@@ -126,6 +134,8 @@ export default function ProductDetail({ productId, onBack }) {
           </button>
         </div>
       </div>
+
+      {showEditar && <EditarProducto product={product} onClose={() => setShowEditar(false)} />}
 
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
