@@ -301,20 +301,24 @@ export default function Dashboard({ onOpenDetail }) {
       </div>
 
       {/* Indicador de valor en riesgo de destrucción */}
-      {totalDestructionCost > 0 && (
-        <div style={{
-          margin: '16px 24px 0', background: '#FFF7ED', border: '1px solid #FBBF24',
-          borderRadius: 10, padding: '12px 16px', display: 'flex', gap: 20, alignItems: 'center', flexShrink: 0,
-        }}>
-          <div style={{ flexShrink: 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              ⚠️ Valor en riesgo de destrucción
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#92400E' }}>${formatMonto(totalDestructionCost)}</div>
-            <div style={{ fontSize: 10, color: '#B45309', whiteSpace: 'nowrap' }}>
-              {destructionRows.length} producto{destructionRows.length !== 1 ? 's' : ''} con costo de inventario cargado
-            </div>
+      <div style={{
+        margin: '16px 24px 0', background: '#FFF7ED', border: '1px solid #FBBF24',
+        borderRadius: 10, padding: '12px 16px', display: 'flex', gap: 20, alignItems: 'center', flexShrink: 0,
+      }}>
+        <div style={{ flexShrink: 0 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            ⚠️ Valor en riesgo de destrucción
           </div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#92400E' }}>${formatMonto(totalDestructionCost)}</div>
+          <div style={{ fontSize: 10, color: '#B45309', whiteSpace: 'nowrap' }}>
+            {destructionRows.length} producto{destructionRows.length !== 1 ? 's' : ''} con costo de inventario cargado
+          </div>
+        </div>
+        {destructionRows.length === 0 ? (
+          <div style={{ fontSize: 11, color: '#B45309' }}>
+            Todavía no hay "Costo del inventario" cargado en ningún producto. Completalo en Análisis de impacto planta para ver el desglose acá.
+          </div>
+        ) : (
           <div style={{ flex: 1, display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
             {destructionRows.map(({ p, costo }) => (
               <div
@@ -331,8 +335,8 @@ export default function Dashboard({ onOpenDetail }) {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Stage filter tabs */}
       <div style={{ background: '#fff', borderBottom: '1px solid rgba(0,0,0,0.06)', padding: '0 24px', display: 'flex', gap: 4, flexShrink: 0 }}>
