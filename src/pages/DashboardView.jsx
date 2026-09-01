@@ -223,15 +223,15 @@ export default function DashboardView() {
 
         {/* Impacto de la discontinuación para la planta */}
         <div style={{
-          background: '#FFF7ED', border: '1px solid #FBBF24',
-          borderRadius: 10, padding: '16px 18px', marginBottom: 20,
+          background: '#fff', border: '1px solid rgba(0,0,0,0.07)', borderTop: '3px solid #005A44',
+          borderRadius: 10, padding: '16px 18px', marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
         }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: hayDatosImpacto ? 12 : 4 }}>
-            ⚠️ Impacto de la discontinuación para la planta
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#8FA99E', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: hayDatosImpacto ? 12 : 4 }}>
+            🏭 Impacto de la discontinuación para la planta
           </div>
 
           {!hayDatosImpacto ? (
-            <div style={{ fontSize: 11, color: '#B45309' }}>
+            <div style={{ fontSize: 11, color: '#6B7F76' }}>
               Todavía no hay datos cargados en "Análisis de impacto planta". Completá los costos y el estado de Granel para ver el impacto acá.
             </div>
           ) : (
@@ -239,28 +239,28 @@ export default function DashboardView() {
               {/* KPI principal + estado de completitud */}
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ fontSize: 10, color: '#B45309', fontWeight: 600 }}>TOTAL EN RIESGO</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: '#92400E', lineHeight: 1 }}>${formatMonto(totalRiesgo)}</div>
+                  <div style={{ fontSize: 10, color: '#8FA99E', fontWeight: 600 }}>TOTAL EN RIESGO</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: '#005A44', letterSpacing: '-0.03em', lineHeight: 1 }}>${formatMonto(totalRiesgo)}</div>
                 </div>
-                <div style={{ fontSize: 11, color: '#B45309', paddingBottom: 3 }}>
+                <div style={{ fontSize: 11, color: '#6B7F76', paddingBottom: 3 }}>
                   {productsConCosto} de {total} productos con costo cargado
-                  {productsPendientes > 0 && <> · ⚠️ {productsPendientes} pendiente{productsPendientes !== 1 ? 's' : ''}</>}
+                  {productsPendientes > 0 && <> · {productsPendientes} pendiente{productsPendientes !== 1 ? 's' : ''}</>}
                 </div>
               </div>
 
               {/* Desglose por categoría de costo */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
-                {impactoCategorias.map((c) => (
-                  <div key={c.label} style={{ background: '#fff', border: '1px solid #FDE68A', borderRadius: 8, padding: '8px 12px' }}>
-                    <div style={{ fontSize: 10, color: '#92400E', fontWeight: 600 }}>{c.label.replace('Costo destrucción ', '').replace('Costo inventario ', '')}</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: '#B45309' }}>${formatMonto(c.total)}</div>
-                    <div style={{ fontSize: 10, color: '#92400E', opacity: 0.8 }}>{c.count} producto{c.count !== 1 ? 's' : ''}</div>
+                {impactoCategorias.map((c, i) => (
+                  <div key={c.label} style={{ background: '#F0F5F2', border: BORDER, borderRadius: 8, padding: '8px 12px' }}>
+                    <div style={{ fontSize: 10, color: '#4E6358', fontWeight: 600 }}>{c.label.replace('Costo destrucción ', '').replace('Costo inventario ', '')}</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: STAGE_COLORS[i] }}>${formatMonto(c.total)}</div>
+                    <div style={{ fontSize: 10, color: '#8FA99E' }}>{c.count} producto{c.count !== 1 ? 's' : ''}</div>
                   </div>
                 ))}
               </div>
 
               {/* Indicadores complementarios (no monetarios) */}
-              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid #FDE68A', fontSize: 11, color: '#92400E' }}>
+              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid #F0F0F0', fontSize: 11, color: '#4E6358' }}>
                 <span>📦 {colaProduccionActiva} producto{colaProduccionActiva !== 1 ? 's' : ''} con órdenes en cola de producción activas</span>
                 <span>
                   🧪 {granelRespondidos.length > 0
