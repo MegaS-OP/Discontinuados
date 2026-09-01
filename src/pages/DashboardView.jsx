@@ -1,10 +1,28 @@
 import { useApp } from '../context/AppContext';
+import { COSTO_DESTRUCCION_LABELS } from '../data/db';
 
 const ML_GREEN = '#009641';
 const BORDER = '0.5px solid rgba(0,150,65,0.15)';
 
 const STAGE_COLORS = ['#009641', '#007A65', '#005A44'];
 const STAGE_LABELS = ['Detección', 'Análisis', 'Confirmación'];
+
+function parseMonto(str) {
+  if (!str) return 0;
+  const n = parseFloat(String(str).replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+function formatMonto(n) {
+  return Math.round(n).toLocaleString('es-AR');
+}
+
+function costoInventarioProducto(p) {
+  return COSTO_DESTRUCCION_LABELS.reduce((sum, label) => {
+    const h = p.hitos.find((x) => x.label === label);
+    return sum + (h ? parseMonto(h.valorInventario) : 0);
+  }, 0);
+}
 
 function DonutChart({ data, size = 160 }) {
   const total = data.reduce((s, d) => s + d.value, 0);
@@ -100,9 +118,15 @@ function ChartCard({ title, subtitle, children }) {
   );
 }
 
-export default function DashboardView() {
+export default function DashboardView({ onOpenDetail }) {
   const { data } = useApp();
   const products = data.products;
+
+  const destructionRows = products
+    .map((p) => ({ p, costo: costoInventarioProducto(p) }))
+    .filter((r) => r.costo > 0)
+    .sort((a, b) => b.costo - a.costo);
+  const totalDestructionCost = destructionRows.reduce((s, r) => s + r.costo, 0);
 
   const total = products.length;
   const byStage = STAGE_LABELS.map((label, i) => ({
@@ -161,6 +185,45 @@ export default function DashboardView() {
           <StatCard label="En Detección" value={byStage[0].value} sub="Etapa 1" color="#009641" icon="🔍" />
           <StatCard label="En Análisis" value={byStage[1].value} sub="Etapa 2" color="#007A65" icon="📊" />
           <StatCard label="Avance promedio" value={`${avgProgreso}%`} sub={`${doneHitos}/${totalHitos} hitos completados`} color="#005A44" icon="✅" />
+        </div>
+
+        {/* Indicador de valor en riesgo de destrucción */}
+        <div style={{
+          background: '#FFF7ED', border: '1px solid #FBBF24',
+          borderRadius: 10, padding: '12px 16px', display: 'flex', gap: 20, alignItems: 'center',
+          marginBottom: 20,
+        }}>
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              ⚠️ Valor en riesgo de destrucción
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#92400E' }}>${formatMonto(totalDestructionCost)}</div>
+            <div style={{ fontSize: 10, color: '#B45309', whiteSpace: 'nowrap' }}>
+              {destructionRows.length} producto{destructionRows.length !== 1 ? 's' : ''} con costo de inventario cargado
+            </div>
+          </div>
+          {destructionRows.length === 0 ? (
+            <div style={{ fontSize: 11, color: '#B45309' }}>
+              Todavía no hay "Costo del inventario" cargado en ningún producto. Completalo en Análisis de impacto planta para ver el desglose acá.
+            </div>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
+              {destructionRows.map(({ p, costo }) => (
+                <div
+                  key={p.id}
+                  onClick={() => onOpenDetail && onOpenDetail(p.id)}
+                  style={{
+                    cursor: onOpenDetail ? 'pointer' : 'default', flexShrink: 0, background: '#fff', border: '1px solid #FDE68A',
+                    borderRadius: 8, padding: '6px 10px', minWidth: 150, maxWidth: 150,
+                  }}
+                >
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#92400E' }}>{p.codigo || p.id}</div>
+                  <div style={{ fontSize: 10, color: '#4E6358', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nombre}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#B45309', marginTop: 2 }}>${formatMonto(costo)}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 3 Charts */}
