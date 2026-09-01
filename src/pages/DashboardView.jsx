@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { COSTO_DESTRUCCION_LABELS } from '../data/db';
+import { COSTO_DESTRUCCION_LABELS, FABRICANTES } from '../data/db';
 
 const ML_GREEN = '#009641';
 const BORDER = '0.5px solid rgba(0,150,65,0.15)';
@@ -131,27 +132,31 @@ export default function DashboardView() {
 
   // --- Impacto de la discontinuación para la planta ---
   // Todo sale de los hitos de "Análisis de impacto planta" (ProductDetail.jsx), vía data.products del AppContext.
+  // Se puede filtrar por Fabricante (campo paisPlanta del producto) con el selector del panel.
+  const [filterPlanta, setFilterPlanta] = useState('');
+  const productsImpacto = filterPlanta ? products.filter((p) => p.paisPlanta === filterPlanta) : products;
+  const totalImpacto = productsImpacto.length;
 
-  // Subtotal e cantidad de productos por categoría de costo (PT / materiales / API)
+  // Subtotal e cantidad de productos por categoría de costo (PT / materiales / API), dentro del filtro de planta activo
   const impactoCategorias = COSTO_DESTRUCCION_LABELS.map((label) => {
-    const costos = products.map((p) => costoPorCategoria(p, label)).filter((c) => c > 0);
+    const costos = productsImpacto.map((p) => costoPorCategoria(p, label)).filter((c) => c > 0);
     return { label, total: costos.reduce((s, c) => s + c, 0), count: costos.length };
   });
   const totalRiesgo = impactoCategorias.reduce((s, c) => s + c.total, 0);
 
   // Un producto "tiene costo cargado" si al menos una de las 3 categorías tiene valor > 0
-  const productsConCosto = products.filter((p) => costoInventarioProducto(p) > 0).length;
-  const productsPendientes = total - productsConCosto;
+  const productsConCosto = productsImpacto.filter((p) => costoInventarioProducto(p) > 0).length;
+  const productsPendientes = totalImpacto - productsConCosto;
 
   // "Cola de producción activa" = checkbox del hito "Productos en cola de producción" marcado
-  const colaProduccionActiva = products.filter((p) => {
+  const colaProduccionActiva = productsImpacto.filter((p) => {
     const h = p.hitos.find((x) => x.label === 'Productos en cola de producción');
     return h?.done;
   }).length;
 
   // % de impacto sobre Granel, calculado sobre los productos que ya respondieron
-  // "Lleva" / "No lleva" en el hito "Análisis de impacto planta" (no sobre el total de la compañía)
-  const granelRespondidos = products.filter((p) => {
+  // "Lleva" / "No lleva" en el hito "Análisis de impacto planta" (no sobre el total filtrado)
+  const granelRespondidos = productsImpacto.filter((p) => {
     const h = p.hitos.find((x) => x.label === 'Análisis de impacto planta');
     return h?.impactoGranelLleva === 'si' || h?.impactoGranelLleva === 'no';
   });
@@ -162,6 +167,15 @@ export default function DashboardView() {
   const pctGranel = granelRespondidos.length ? Math.round((granelLleva.length / granelRespondidos.length) * 100) : 0;
 
   const hayDatosImpacto = totalRiesgo > 0 || granelRespondidos.length > 0 || colaProduccionActiva > 0;
+
+  // Agrupado por fabricante (solo se muestra cuando no hay un filtro de planta puntual activo)
+  const impactoPorFabricante = FABRICANTES
+    .map((fabricante) => {
+      const ps = products.filter((p) => p.paisPlanta === fabricante);
+      return { fabricante, total: ps.reduce((s, p) => s + costoInventarioProducto(p), 0), count: ps.filter((p) => costoInventarioProducto(p) > 0).length };
+    })
+    .filter((r) => r.total > 0)
+    .sort((a, b) => b.total - a.total);
 
   const byStage = STAGE_LABELS.map((label, i) => ({
     label,
@@ -226,24 +240,36 @@ export default function DashboardView() {
           background: '#fff', border: '1px solid rgba(0,0,0,0.07)', borderTop: '3px solid #005A44',
           borderRadius: 10, padding: '16px 18px', marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
         }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#8FA99E', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: hayDatosImpacto ? 12 : 4 }}>
-            🏭 Impacto de la discontinuación para la planta
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: hayDatosImpacto ? 12 : 4, flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#8FA99E', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              🏭 Impacto de la discontinuación para la planta
+            </div>
+            <select
+              value={filterPlanta}
+              onChange={(e) => setFilterPlanta(e.target.value)}
+              style={{ fontSize: 11, color: '#1A2B25', background: '#F0F5F2', border: BORDER, borderRadius: 6, padding: '5px 10px', cursor: 'pointer', outline: 'none' }}
+            >
+              <option value="">Todas las plantas</option>
+              {FABRICANTES.map((f) => <option key={f} value={f}>{f}</option>)}
+            </select>
           </div>
 
           {!hayDatosImpacto ? (
             <div style={{ fontSize: 11, color: '#6B7F76' }}>
-              Todavía no hay datos cargados en "Análisis de impacto planta". Completá los costos y el estado de Granel para ver el impacto acá.
+              {filterPlanta
+                ? `Todavía no hay datos cargados en "Análisis de impacto planta" para ${filterPlanta}.`
+                : 'Todavía no hay datos cargados en "Análisis de impacto planta". Completá los costos y el estado de Granel para ver el impacto acá.'}
             </div>
           ) : (
             <>
               {/* KPI principal + estado de completitud */}
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ fontSize: 10, color: '#8FA99E', fontWeight: 600 }}>TOTAL EN RIESGO</div>
+                  <div style={{ fontSize: 10, color: '#8FA99E', fontWeight: 600 }}>TOTAL EN RIESGO{filterPlanta ? ` · ${filterPlanta}` : ''}</div>
                   <div style={{ fontSize: 28, fontWeight: 800, color: '#005A44', letterSpacing: '-0.03em', lineHeight: 1 }}>${formatMonto(totalRiesgo)}</div>
                 </div>
                 <div style={{ fontSize: 11, color: '#6B7F76', paddingBottom: 3 }}>
-                  {productsConCosto} de {total} productos con costo cargado
+                  {productsConCosto} de {totalImpacto} productos con costo cargado
                   {productsPendientes > 0 && <> · {productsPendientes} pendiente{productsPendientes !== 1 ? 's' : ''}</>}
                 </div>
               </div>
@@ -260,7 +286,7 @@ export default function DashboardView() {
               </div>
 
               {/* Indicadores complementarios (no monetarios) */}
-              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid #F0F0F0', fontSize: 11, color: '#4E6358' }}>
+              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', paddingTop: 10, paddingBottom: !filterPlanta && impactoPorFabricante.length > 0 ? 10 : 0, borderTop: '1px solid #F0F0F0', fontSize: 11, color: '#4E6358' }}>
                 <span>📦 {colaProduccionActiva} producto{colaProduccionActiva !== 1 ? 's' : ''} con órdenes en cola de producción activas</span>
                 <span>
                   🧪 {granelRespondidos.length > 0
@@ -268,6 +294,24 @@ export default function DashboardView() {
                     : 'Sin datos de impacto sobre Granel cargados'}
                 </span>
               </div>
+
+              {/* Agrupado por fabricante — solo en la vista agregada (sin planta puntual seleccionada) */}
+              {!filterPlanta && impactoPorFabricante.length > 0 && (
+                <div style={{ borderTop: '1px solid #F0F0F0', paddingTop: 10 }}>
+                  <div style={{ fontSize: 10, color: '#8FA99E', fontWeight: 600, marginBottom: 8 }}>POR FABRICANTE</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {impactoPorFabricante.map((r) => (
+                      <div key={r.fabricante} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 11, color: '#1A2B25', width: 90, flexShrink: 0 }}>{r.fabricante}</span>
+                        <div style={{ flex: 1, height: 6, background: '#F0F0F0', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ width: `${(r.total / impactoPorFabricante[0].total) * 100}%`, height: '100%', background: '#005A44', borderRadius: 3 }} />
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#005A44', width: 90, textAlign: 'right' }}>${formatMonto(r.total)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
