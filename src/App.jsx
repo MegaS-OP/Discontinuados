@@ -68,7 +68,7 @@ function AppShell() {
       ) : view === 'list' ? (
         <Dashboard onOpenDetail={handleOpenDetail} />
       ) : (
-        <DashboardView onOpenDetail={handleOpenDetail} />
+        <DashboardView />
       )}
     </div>
   );

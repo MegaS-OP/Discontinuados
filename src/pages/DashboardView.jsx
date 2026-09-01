@@ -17,11 +17,16 @@ function formatMonto(n) {
   return Math.round(n).toLocaleString('es-AR');
 }
 
+// Costo de inventario de una categoría (PT / materiales / API) para un producto puntual.
+// Sale del campo "Costo del inventario" del hito correspondiente, cargado en
+// "Análisis de impacto planta" (ProductDetail.jsx) vía updateHitoExtras.
+function costoPorCategoria(p, label) {
+  const h = p.hitos.find((x) => x.label === label);
+  return h ? parseMonto(h.valorInventario) : 0;
+}
+
 function costoInventarioProducto(p) {
-  return COSTO_DESTRUCCION_LABELS.reduce((sum, label) => {
-    const h = p.hitos.find((x) => x.label === label);
-    return sum + (h ? parseMonto(h.valorInventario) : 0);
-  }, 0);
+  return COSTO_DESTRUCCION_LABELS.reduce((sum, label) => sum + costoPorCategoria(p, label), 0);
 }
 
 function DonutChart({ data, size = 160 }) {
@@ -118,17 +123,46 @@ function ChartCard({ title, subtitle, children }) {
   );
 }
 
-export default function DashboardView({ onOpenDetail }) {
+export default function DashboardView() {
   const { data } = useApp();
   const products = data.products;
 
-  const destructionRows = products
-    .map((p) => ({ p, costo: costoInventarioProducto(p) }))
-    .filter((r) => r.costo > 0)
-    .sort((a, b) => b.costo - a.costo);
-  const totalDestructionCost = destructionRows.reduce((s, r) => s + r.costo, 0);
-
   const total = products.length;
+
+  // --- Impacto de la discontinuación para la planta ---
+  // Todo sale de los hitos de "Análisis de impacto planta" (ProductDetail.jsx), vía data.products del AppContext.
+
+  // Subtotal e cantidad de productos por categoría de costo (PT / materiales / API)
+  const impactoCategorias = COSTO_DESTRUCCION_LABELS.map((label) => {
+    const costos = products.map((p) => costoPorCategoria(p, label)).filter((c) => c > 0);
+    return { label, total: costos.reduce((s, c) => s + c, 0), count: costos.length };
+  });
+  const totalRiesgo = impactoCategorias.reduce((s, c) => s + c.total, 0);
+
+  // Un producto "tiene costo cargado" si al menos una de las 3 categorías tiene valor > 0
+  const productsConCosto = products.filter((p) => costoInventarioProducto(p) > 0).length;
+  const productsPendientes = total - productsConCosto;
+
+  // "Cola de producción activa" = checkbox del hito "Productos en cola de producción" marcado
+  const colaProduccionActiva = products.filter((p) => {
+    const h = p.hitos.find((x) => x.label === 'Productos en cola de producción');
+    return h?.done;
+  }).length;
+
+  // % de impacto sobre Granel, calculado sobre los productos que ya respondieron
+  // "Lleva" / "No lleva" en el hito "Análisis de impacto planta" (no sobre el total de la compañía)
+  const granelRespondidos = products.filter((p) => {
+    const h = p.hitos.find((x) => x.label === 'Análisis de impacto planta');
+    return h?.impactoGranelLleva === 'si' || h?.impactoGranelLleva === 'no';
+  });
+  const granelLleva = granelRespondidos.filter((p) => {
+    const h = p.hitos.find((x) => x.label === 'Análisis de impacto planta');
+    return h.impactoGranelLleva === 'si';
+  });
+  const pctGranel = granelRespondidos.length ? Math.round((granelLleva.length / granelRespondidos.length) * 100) : 0;
+
+  const hayDatosImpacto = totalRiesgo > 0 || granelRespondidos.length > 0 || colaProduccionActiva > 0;
+
   const byStage = STAGE_LABELS.map((label, i) => ({
     label,
     value: products.filter(p => p.etapaActual === i).length,
@@ -187,42 +221,54 @@ export default function DashboardView({ onOpenDetail }) {
           <StatCard label="Avance promedio" value={`${avgProgreso}%`} sub={`${doneHitos}/${totalHitos} hitos completados`} color="#005A44" icon="✅" />
         </div>
 
-        {/* Indicador de valor en riesgo de destrucción */}
+        {/* Impacto de la discontinuación para la planta */}
         <div style={{
           background: '#FFF7ED', border: '1px solid #FBBF24',
-          borderRadius: 10, padding: '12px 16px', display: 'flex', gap: 20, alignItems: 'center',
-          marginBottom: 20,
+          borderRadius: 10, padding: '16px 18px', marginBottom: 20,
         }}>
-          <div style={{ flexShrink: 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              ⚠️ Valor en riesgo de destrucción
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#92400E' }}>${formatMonto(totalDestructionCost)}</div>
-            <div style={{ fontSize: 10, color: '#B45309', whiteSpace: 'nowrap' }}>
-              {destructionRows.length} producto{destructionRows.length !== 1 ? 's' : ''} con costo de inventario cargado
-            </div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: hayDatosImpacto ? 12 : 4 }}>
+            ⚠️ Impacto de la discontinuación para la planta
           </div>
-          {destructionRows.length === 0 ? (
+
+          {!hayDatosImpacto ? (
             <div style={{ fontSize: 11, color: '#B45309' }}>
-              Todavía no hay "Costo del inventario" cargado en ningún producto. Completalo en Análisis de impacto planta para ver el desglose acá.
+              Todavía no hay datos cargados en "Análisis de impacto planta". Completá los costos y el estado de Granel para ver el impacto acá.
             </div>
           ) : (
-            <div style={{ flex: 1, display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
-              {destructionRows.map(({ p, costo }) => (
-                <div
-                  key={p.id}
-                  onClick={() => onOpenDetail && onOpenDetail(p.id)}
-                  style={{
-                    cursor: onOpenDetail ? 'pointer' : 'default', flexShrink: 0, background: '#fff', border: '1px solid #FDE68A',
-                    borderRadius: 8, padding: '6px 10px', minWidth: 150, maxWidth: 150,
-                  }}
-                >
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#92400E' }}>{p.codigo || p.id}</div>
-                  <div style={{ fontSize: 10, color: '#4E6358', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nombre}</div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#B45309', marginTop: 2 }}>${formatMonto(costo)}</div>
+            <>
+              {/* KPI principal + estado de completitud */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: 10, color: '#B45309', fontWeight: 600 }}>TOTAL EN RIESGO</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: '#92400E', lineHeight: 1 }}>${formatMonto(totalRiesgo)}</div>
                 </div>
-              ))}
-            </div>
+                <div style={{ fontSize: 11, color: '#B45309', paddingBottom: 3 }}>
+                  {productsConCosto} de {total} productos con costo cargado
+                  {productsPendientes > 0 && <> · ⚠️ {productsPendientes} pendiente{productsPendientes !== 1 ? 's' : ''}</>}
+                </div>
+              </div>
+
+              {/* Desglose por categoría de costo */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
+                {impactoCategorias.map((c) => (
+                  <div key={c.label} style={{ background: '#fff', border: '1px solid #FDE68A', borderRadius: 8, padding: '8px 12px' }}>
+                    <div style={{ fontSize: 10, color: '#92400E', fontWeight: 600 }}>{c.label.replace('Costo destrucción ', '').replace('Costo inventario ', '')}</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: '#B45309' }}>${formatMonto(c.total)}</div>
+                    <div style={{ fontSize: 10, color: '#92400E', opacity: 0.8 }}>{c.count} producto{c.count !== 1 ? 's' : ''}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Indicadores complementarios (no monetarios) */}
+              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid #FDE68A', fontSize: 11, color: '#92400E' }}>
+                <span>📦 {colaProduccionActiva} producto{colaProduccionActiva !== 1 ? 's' : ''} con órdenes en cola de producción activas</span>
+                <span>
+                  🧪 {granelRespondidos.length > 0
+                    ? `${pctGranel}% impacta sobre Granel (${granelLleva.length} de ${granelRespondidos.length})`
+                    : 'Sin datos de impacto sobre Granel cargados'}
+                </span>
+              </div>
+            </>
           )}
         </div>
 
