@@ -42,13 +42,16 @@ export const HITOS_TEMPLATE = [
 // Hitos que tienen campos extra
 export const HITOS_CON_EXTRAS = {
   'Inventario PT': { notas: true, ofreceUnidades: true },
-  'Análisis de impacto planta': { impactoGranelLleva: true, impactoGranelValor: true },
-  'Costo destrucción PT': { valor: true },
-  'Costo destrucción materiales': { valor: true },
-  'Costo inventario API': { valor: true },
+  'Análisis de impacto planta': { impactoGranelLleva: true, impactoGranelValor: true, resolucionFinal: true },
+  'Costo destrucción PT': { valorItem: true, valorInventario: true },
+  'Costo destrucción materiales': { valorItem: true, valorInventario: true },
+  'Costo inventario API': { valorItem: true, valorInventario: true },
   'Productos en cola de producción': { notas: true },
   'Última OC': { fecha: true },
 };
+
+// Hitos cuyo "Costo del inventario" se suma para medir el valor en riesgo de destrucción
+export const COSTO_DESTRUCCION_LABELS = ['Costo destrucción PT', 'Costo destrucción materiales', 'Costo inventario API'];
 
 export const RESPONSABLES_DEFAULT = {
   'Detección del SKU a discontinuar': 'Cualquier área',
@@ -108,7 +111,14 @@ export function migrateHitos(hitos) {
   const result = HITOS_TEMPLATE.map((t, i) => {
     // buscar por label exacto
     const exact = hitos.find((h) => h.label === t.label);
-    if (exact) return exact;
+    if (exact) {
+      // migración: el viejo campo único "valor" pasa a ser "valorItem" (costo del ítem)
+      if (COSTO_DESTRUCCION_LABELS.includes(t.label) && exact.valor && !exact.valorItem) {
+        changed = true;
+        return { ...exact, valorItem: exact.valor };
+      }
+      return exact;
+    }
     // buscar por rename inverso
     const oldLabel = Object.keys(RENAMES).find((k) => RENAMES[k] === t.label);
     if (oldLabel) {

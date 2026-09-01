@@ -1,8 +1,25 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { HITOS_CON_EXTRAS, CIAS, FABRICANTES } from '../data/db';
+import { HITOS_CON_EXTRAS, CIAS, FABRICANTES, COSTO_DESTRUCCION_LABELS } from '../data/db';
 import NuevoProducto from '../components/NuevoProducto';
 import ImportModal from '../components/ImportModal';
+
+function parseMonto(str) {
+  if (!str) return 0;
+  const n = parseFloat(String(str).replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+function formatMonto(n) {
+  return Math.round(n).toLocaleString('es-AR');
+}
+
+function costoInventarioProducto(p) {
+  return COSTO_DESTRUCCION_LABELS.reduce((sum, label) => {
+    const h = p.hitos.find((x) => x.label === label);
+    return sum + (h ? parseMonto(h.valorInventario) : 0);
+  }, 0);
+}
 
 const ML_GREEN = '#009641';
 const ML_GREEN_LIGHT = '#E6F5ED';
@@ -179,6 +196,12 @@ export default function Dashboard({ onOpenDetail }) {
   const total = baseProducts.length;
   const avgProgreso = total ? Math.round(baseProducts.reduce((s, p) => s + p.progreso, 0) / total) : 0;
 
+  const destructionRows = baseProducts
+    .map((p) => ({ p, costo: costoInventarioProducto(p) }))
+    .filter((r) => r.costo > 0)
+    .sort((a, b) => b.costo - a.costo);
+  const totalDestructionCost = destructionRows.reduce((s, r) => s + r.costo, 0);
+
   const toggleFilter = (idx) => setFilterStage(prev => prev === idx ? null : idx);
   const visibleStages = filterStage !== null ? STAGES.filter(s => s.idx === filterStage) : STAGES;
   const filteredProducts = products.filter(p =>
@@ -276,6 +299,40 @@ export default function Dashboard({ onOpenDetail }) {
           </button>
         </div>
       </div>
+
+      {/* Indicador de valor en riesgo de destrucción */}
+      {totalDestructionCost > 0 && (
+        <div style={{
+          margin: '16px 24px 0', background: '#FFF7ED', border: '1px solid #FBBF24',
+          borderRadius: 10, padding: '12px 16px', display: 'flex', gap: 20, alignItems: 'center', flexShrink: 0,
+        }}>
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              ⚠️ Valor en riesgo de destrucción
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#92400E' }}>${formatMonto(totalDestructionCost)}</div>
+            <div style={{ fontSize: 10, color: '#B45309', whiteSpace: 'nowrap' }}>
+              {destructionRows.length} producto{destructionRows.length !== 1 ? 's' : ''} con costo de inventario cargado
+            </div>
+          </div>
+          <div style={{ flex: 1, display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
+            {destructionRows.map(({ p, costo }) => (
+              <div
+                key={p.id}
+                onClick={() => onOpenDetail(p.id)}
+                style={{
+                  cursor: 'pointer', flexShrink: 0, background: '#fff', border: '1px solid #FDE68A',
+                  borderRadius: 8, padding: '6px 10px', minWidth: 150, maxWidth: 150,
+                }}
+              >
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#92400E' }}>{p.codigo || p.id}</div>
+                <div style={{ fontSize: 10, color: '#4E6358', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nombre}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#B45309', marginTop: 2 }}>${formatMonto(costo)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Stage filter tabs */}
       <div style={{ background: '#fff', borderBottom: '1px solid rgba(0,0,0,0.06)', padding: '0 24px', display: 'flex', gap: 4, flexShrink: 0 }}>

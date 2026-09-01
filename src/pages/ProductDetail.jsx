@@ -193,14 +193,33 @@ export default function ProductDetail({ productId, onBack }) {
                       style={{ width: 18, height: 18, borderRadius: '50%', border: `1.5px solid ${h.done ? ML_GREEN : '#D3D1C7'}`, background: h.done ? ML_GREEN : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: h.done ? '#fff' : 'transparent', cursor: 'pointer', flexShrink: 0 }}
                     >✓</button>
                     <span style={{ fontSize: 12, color: '#1A1A1A', flex: 1 }}>{h.label}</span>
-                    {extras.valor && (
-                      <input
-                        type="text"
-                        value={h.valor || ''}
-                        onChange={(e) => updateHitoExtras(product.id, h.id, { valor: e.target.value })}
-                        placeholder="Valor (ej: 1.234,56)"
-                        style={{ width: 130, border: '0.5px solid #D3D1C7', borderRadius: 4, padding: '3px 8px', fontSize: 11, background: '#fff', color: '#1A1A1A', outline: 'none' }}
-                      />
+                    {(extras.valorItem || extras.valorInventario) && (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {extras.valorItem && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <span style={{ fontSize: 8, color: '#9B9895', textAlign: 'center' }}>Costo ítem</span>
+                            <input
+                              type="text"
+                              value={h.valorItem || ''}
+                              onChange={(e) => updateHitoExtras(product.id, h.id, { valorItem: e.target.value })}
+                              placeholder="1.234,56"
+                              style={{ width: 100, border: '0.5px solid #D3D1C7', borderRadius: 4, padding: '3px 8px', fontSize: 11, background: '#fff', color: '#1A1A1A', outline: 'none' }}
+                            />
+                          </div>
+                        )}
+                        {extras.valorInventario && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <span style={{ fontSize: 8, color: '#9B9895', textAlign: 'center' }}>Costo inventario</span>
+                            <input
+                              type="text"
+                              value={h.valorInventario || ''}
+                              onChange={(e) => updateHitoExtras(product.id, h.id, { valorInventario: e.target.value })}
+                              placeholder="1.234,56"
+                              style={{ width: 100, border: '0.5px solid #D3D1C7', borderRadius: 4, padding: '3px 8px', fontSize: 11, background: '#fff', color: '#1A1A1A', outline: 'none' }}
+                            />
+                          </div>
+                        )}
+                      </div>
                     )}
                     {extras.fecha && (
                       <input
@@ -262,6 +281,22 @@ export default function ProductDetail({ productId, onBack }) {
               );
             };
 
+            const renderResolucionFinal = (h) => {
+              if (!h) return null;
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '6px 10px', background: '#fff', borderRadius: 6 }}>
+                  <span style={{ fontSize: 11, color: '#1A1A1A' }}>Resolución final de ítems / inventarios</span>
+                  <textarea
+                    value={h.resolucionFinal || ''}
+                    onChange={(e) => updateHitoExtras(product.id, h.id, { resolucionFinal: e.target.value })}
+                    placeholder="Describí la resolución final adoptada para los ítems e inventarios relacionados..."
+                    rows={2}
+                    style={{ width: '100%', border: '0.5px solid #D3D1C7', borderRadius: 4, padding: '5px 8px', fontSize: 11, background: '#fff', color: '#1A1A1A', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+              );
+            };
+
             const renderImpactoGranel = (h) => {
               if (!h) return null;
               return (
@@ -319,6 +354,7 @@ export default function ProductDetail({ productId, onBack }) {
                         {renderHito(hitosEtapa.find((h) => h.label === 'Productos en cola de producción'), true)}
                         {renderHito(hitosEtapa.find((h) => h.label === 'Última OC'), true)}
                         {renderImpactoGranel(product.hitos.find((h) => h.label === 'Análisis de impacto planta'))}
+                        {renderResolucionFinal(product.hitos.find((h) => h.label === 'Análisis de impacto planta'))}
                       </div>
                     </>
                   ) : etapaIdx === 0 ? (
