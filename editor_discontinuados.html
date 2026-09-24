@@ -1,0 +1,943 @@
+<title>Editor — Discontinuados Megalabs</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',Arial,sans-serif;background:#0D1F1A;color:#E4F5EC}
+.editor-bar{display:flex;align-items:center;gap:6px;background:#085041;padding:7px 12px;flex-wrap:wrap;border-bottom:2px solid #0F6E56}
+.sep{width:1px;height:24px;background:#1D9E75;opacity:.4;margin:0 2px}
+.btn{padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;font-family:inherit;transition:all .15s;white-space:nowrap}
+.btn-mode{background:rgba(255,255,255,.10);color:#E4F5EC}
+.btn-mode:hover{background:rgba(255,255,255,.18)}
+.btn-mode.active{background:#0F6E56;color:white;box-shadow:0 0 0 2px #9FE1CB}
+.btn-action{background:rgba(255,255,255,.10);color:#E4F5EC}
+.btn-action:hover{background:rgba(255,255,255,.18)}
+.btn-action:disabled{opacity:.35;cursor:default}
+.btn-del{background:rgba(220,50,50,.18);color:#FCA5A5}
+.btn-del:hover{background:rgba(220,50,50,.3)}
+.btn-del:disabled{opacity:.35;cursor:default}
+.palette{display:none;align-items:center;gap:4px;flex-wrap:wrap}
+.palette.show{display:flex}
+.pitem{padding:4px 9px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:5px;cursor:pointer;font-size:10px;color:#9FE1CB;white-space:nowrap}
+.pitem:hover,.pitem.active{background:#0F6E56;color:white;border-color:#0F6E56}
+.conn-opts{display:none;align-items:center;gap:5px}
+.conn-opts.show{display:flex}
+.conn-opts label{font-size:10px;color:#9FE1CB}
+.conn-opts select{background:#085041;color:#E4F5EC;border:1px solid #1D9E75;border-radius:4px;font-size:10px;padding:2px 4px;font-family:inherit}
+.color-opts{display:none;align-items:center;gap:5px}
+.color-opts.show{display:flex}
+.color-opts label{font-size:10px;color:#9FE1CB}
+.color-opts input[type=color]{width:28px;height:22px;border:none;border-radius:3px;cursor:pointer;padding:1px}
+.hint{font-size:10px;color:#9FE1CB;margin-left:4px}
+.tabs{display:flex;background:#0F6E56}
+.tab{padding:10px 28px;cursor:pointer;color:#9FE1CB;font-size:12px;font-weight:600;border-bottom:3px solid transparent;transition:all .2s;user-select:none}
+.tab:hover{color:white;background:rgba(255,255,255,.08)}
+.tab.active{color:white;border-bottom:3px solid #b8f0dc;background:rgba(255,255,255,.12)}
+.panel{display:none;background:white;overflow:auto;position:relative}
+.panel.active{display:block}
+.panel svg{display:block}
+</style>
+
+<div class="editor-bar">
+  <button class="btn btn-mode active" id="btnSelect" onclick="setMode('select')">↖ Seleccionar</button>
+  <button class="btn btn-mode" id="btnPlace" onclick="setMode('place')">＋ Agregar forma</button>
+  <button class="btn btn-mode" id="btnArrow" onclick="setMode('arrow')">→ Dibujar flecha</button>
+  <div class="sep"></div>
+
+  <div class="palette" id="palette">
+    <span style="font-size:10px;color:#9FE1CB">Forma:</span>
+    <div class="pitem active" data-shape="task" onclick="selectShape(this)">□ Tarea</div>
+    <div class="pitem" data-shape="start" onclick="selectShape(this)">◯ Inicio</div>
+    <div class="pitem" data-shape="end" onclick="selectShape(this)">⬤ Fin</div>
+    <div class="pitem" data-shape="xor" onclick="selectShape(this)">◇X Gateway XOR</div>
+    <div class="pitem" data-shape="and" onclick="selectShape(this)">◇+ Gateway AND</div>
+    <div class="pitem" data-shape="inter" onclick="selectShape(this)">◎ Evento Int.</div>
+    <div class="pitem" data-shape="annot" onclick="selectShape(this)">[ Anotación</div>
+  </div>
+
+  <div class="conn-opts" id="connOpts">
+    <label>Línea:</label>
+    <select id="selStroke" onchange="applyConnStyle()">
+      <option value="solid">Sólida</option>
+      <option value="dashed">Discontinua</option>
+      <option value="dotted">Punteada</option>
+    </select>
+    <label>Flecha:</label>
+    <select id="selArrow" onchange="applyConnStyle()">
+      <option value="end">→ Final</option>
+      <option value="both">↔ Ambos</option>
+      <option value="none">— Sin flecha</option>
+    </select>
+    <label>Color:</label>
+    <select id="selConnColor" onchange="applyConnStyle()">
+      <option value="#0F6E56">Verde (principal)</option>
+      <option value="#1D9E75">Verde claro</option>
+      <option value="#D4A017">Ámbar</option>
+      <option value="#6B7280">Gris</option>
+    </select>
+  </div>
+
+  <div class="color-opts" id="colorOpts">
+    <label>Relleno:</label>
+    <input type="color" id="colorFill" value="#ffffff" oninput="applyNodeColor()">
+    <label>Borde:</label>
+    <input type="color" id="colorStroke" value="#0F6E56" oninput="applyNodeColor()">
+    <label>Texto:</label>
+    <input type="color" id="colorText" value="#0F6E56" oninput="applyTextColor()">
+  </div>
+
+  <div class="sep"></div>
+  <button class="btn btn-action" id="btnUndo" onclick="undo()" disabled>↩ Deshacer</button>
+  <button class="btn btn-del" id="btnDel" onclick="deleteSelected()" disabled>🗑 Borrar</button>
+  <span class="hint" id="hint">Seleccioná un modo para comenzar</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('flujo',this)">📊 Diagrama de Flujo</div>
+  <div class="tab" onclick="switchTab('raci',this)">📋 Matriz RACI</div>
+</div>
+
+<div id="flujo" class="panel active">
+<svg id="svgFlujo" width="1800" height="990" viewBox="0 0 1800 990" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="#0F6E56" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <marker id="arrD" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <marker id="arrO" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="#D4A017" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <marker id="arrGray" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <marker id="arrStart" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+    <path d="M8 1L2 5L8 9" fill="none" stroke="#0F6E56" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <marker id="arrStartO" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+    <path d="M8 1L2 5L8 9" fill="none" stroke="#D4A017" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <marker id="arrStartGray" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+    <path d="M8 1L2 5L8 9" fill="none" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+<rect x="0" y="0" width="1652" height="34" fill="#0F6E56"/>
+<text x="826" y="22" text-anchor="middle" font-family="Arial" font-size="13" font-weight="700" fill="white">MEGALABS S.A. — Proceso de Gestión de Productos Discontinuados</text>
+<rect x="150" y="34"  width="430" height="630" fill="#EBF5F2"/>
+<rect x="580" y="34"  width="530" height="630" fill="#F2FAF7"/>
+<rect x="1110" y="34" width="690" height="630" fill="#EBF5F2"/>
+<rect x="150"  y="34" width="430" height="46" fill="#0F6E56"/>
+<text x="365"  y="53" text-anchor="middle" font-family="Arial" font-size="12" font-weight="700" fill="white">1. Detección de SKU a Discontinuar</text>
+<text x="365"  y="69" text-anchor="middle" font-family="Arial" font-size="9"  fill="#9FE1CB">Supply Corp · Mkt Corp · S&amp;OP Global</text>
+<rect x="580"  y="34" width="530" height="46" fill="#0F6E56"/>
+<text x="845"  y="53" text-anchor="middle" font-family="Arial" font-size="12" font-weight="700" fill="white">2. Análisis de la Discontinuación</text>
+<text x="845"  y="69" text-anchor="middle" font-family="Arial" font-size="9"  fill="#9FE1CB">Supply Corp · Mkt Corp · Plantas</text>
+<rect x="1110" y="34" width="690" height="46" fill="#0F6E56"/>
+<text x="1455" y="53" text-anchor="middle" font-family="Arial" font-size="12" font-weight="700" fill="white">3. Confirmación Final de Discontinuación</text>
+<text x="1455" y="69" text-anchor="middle" font-family="Arial" font-size="9"  fill="#9FE1CB">Supply Corp · S&amp;OP · Mkt Corp · Todos los departamentos</text>
+<rect x="0" y="0"   width="150" height="1060" fill="#0a5c45"/>
+<text x="22" y="22" font-family="Arial" font-size="10" font-weight="700" fill="white">ÁREA</text>
+<rect x="0" y="34"  width="150" height="185" fill="#085041" opacity="0.80"/>
+<text transform="translate(75,126) rotate(-90)" font-family="Arial" font-size="11" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="central">Mkt Corp</text>
+<line x1="150" y1="219" x2="1800" y2="219" stroke="#0F6E56" stroke-width="0.8" opacity="0.5"/>
+<rect x="0" y="219" width="150" height="120" fill="#085041" opacity="0.80"/>
+<text transform="translate(75,279) rotate(-90)" font-family="Arial" font-size="11" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="central">Supply Corp</text>
+<line x1="150" y1="339" x2="1800" y2="339" stroke="#0F6E56" stroke-width="0.8" opacity="0.5"/>
+<rect x="0" y="339" width="150" height="335" fill="#085041" opacity="0.40"/>
+<text transform="translate(75,506) rotate(-90)" font-family="Arial" font-size="11" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="central">Plantas</text>
+<line x1="150" y1="674" x2="1800" y2="674" stroke="#0F6E56" stroke-width="0.8" opacity="0.5"/>
+<rect x="0" y="674" width="150" height="70" fill="#085041" opacity="0.60"/>
+<text transform="translate(75,709) rotate(-90)" font-family="Arial" font-size="9.5" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="central">Planificación Demanda Local</text>
+<line x1="150" y1="744" x2="1800" y2="744" stroke="#0F6E56" stroke-width="1.5"/>
+<rect x="0"   y="744" width="1800" height="220" fill="#085041" opacity="0.04"/>
+<rect x="0"   y="744" width="150"  height="220" fill="#085041" opacity="0.80"/>
+<text transform="translate(75,854) rotate(-90)" font-family="Arial" font-size="11" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="central">S&amp;OP Global</text>
+<rect x="162" y="758" width="1624" height="195" rx="10" fill="none" stroke="#0F6E56" stroke-width="1.5" stroke-dasharray="6,3"/>
+<circle cx="214" cy="800" r="20" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1.5"/>
+<ellipse cx="214" cy="800" rx="11" ry="7.5" fill="none" stroke="#0F6E56" stroke-width="1.5"/>
+<circle cx="214" cy="800" r="3.5" fill="#0F6E56"/>
+<text x="248" y="782" font-family="Arial" font-size="10" font-weight="700" fill="#0F6E56">Rol transversal de supervisión y control de proceso</text>
+<text x="248" y="798" font-family="Arial" font-size="9" fill="#085041">S&amp;OP Global supervisa el cumplimiento de todas las etapas y hitos en tiempo y forma, sin ser ejecutor en ninguna de ellas.</text>
+<text x="248" y="813" font-family="Arial" font-size="9" fill="#085041">Recibe copia de todas las comunicaciones clave. Coordina escalaciones, gestiona alertas y asegura la trazabilidad corporativa.</text>
+<text x="248" y="828" font-family="Arial" font-size="9" fill="#085041">Emite la Notificación Final al cierre del proceso.</text>
+<rect x="248" y="842" width="108" height="14" rx="6" fill="#0F6E56" opacity="0.15"/>
+<text x="302" y="852" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56">Control de hitos</text>
+<rect x="366" y="842" width="128" height="14" rx="6" fill="#0F6E56" opacity="0.15"/>
+<text x="430" y="852" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56">Gestión escalaciones</text>
+<rect x="504" y="842" width="108" height="14" rx="6" fill="#0F6E56" opacity="0.15"/>
+<text x="558" y="852" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56">Trazabilidad global</text>
+<rect x="622" y="842" width="120" height="14" rx="6" fill="#0F6E56" opacity="0.15"/>
+<text x="682" y="852" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56">Notificación Final</text>
+<line x1="365"  y1="758" x2="365"  y2="705" stroke="#0F6E56" stroke-width="1" stroke-dasharray="4,3" opacity="0.35" marker-end="url(#arr)"/>
+<line x1="845"  y1="758" x2="845"  y2="705" stroke="#0F6E56" stroke-width="1" stroke-dasharray="4,3" opacity="0.35" marker-end="url(#arr)"/>
+<line x1="1455" y1="758" x2="1455" y2="705" stroke="#0F6E56" stroke-width="1" stroke-dasharray="4,3" opacity="0.35" marker-end="url(#arr)"/>
+<line x1="580"  y1="34" x2="580"  y2="744" stroke="#0F6E56" stroke-width="1.5"/>
+<line x1="1110" y1="34" x2="1110" y2="744" stroke="#0F6E56" stroke-width="1.5"/>
+<line x1="150"  y1="34" x2="150"  y2="1060" stroke="#0F6E56" stroke-width="1.5"/>
+<!-- NODOS -->
+<circle cx="175" cy="265" r="17" fill="white" stroke="#0F6E56" stroke-width="2"/>
+<circle cx="175" cy="265" r="12" fill="none" stroke="#0F6E56" stroke-width="1.5"/>
+<text x="175" y="291" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="#0F6E56">Detección</text>
+<text x="175" y="302" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="#0F6E56">SKU</text>
+<rect x="154" y="310" width="88" height="15" rx="5" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1" stroke-dasharray="3,2"/>
+<text x="198" y="321" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#085041">Cualquier área</text>
+<circle cx="186" cy="127" r="17" fill="white" stroke="#D4A017" stroke-width="2"/>
+<circle cx="186" cy="127" r="12" fill="none" stroke="#D4A017" stroke-width="1.5"/>
+<text x="186" y="153" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#D4A017">Presupuesto</text>
+<text x="186" y="163" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#D4A017">Anual</text>
+<rect x="220" y="96" width="148" height="54" rx="6" fill="white" stroke="#D4A017" stroke-width="1.8"/>
+<text x="294" y="115" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">Presentación</text>
+<text x="294" y="127" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">Presupuesto Anual</text>
+<text x="294" y="141" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#1D9E75">Mkt Corp</text>
+<rect x="388" y="96" width="152" height="54" rx="6" fill="white" stroke="#D4A017" stroke-width="1.8"/>
+<text x="464" y="115" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">Análisis de Template</text>
+<text x="464" y="127" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">de Discontinuación</text>
+<text x="464" y="141" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#1D9E75">Mkt Corp</text>
+<rect x="220" y="238" width="155" height="54" rx="6" fill="white" stroke="#0F6E56" stroke-width="1.5"/>
+<text x="298" y="258" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">Aviso de</text>
+<text x="298" y="270" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">discontinuación</text>
+<text x="298" y="284" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#1D9E75">Supply Corp (cc: S&amp;OP)</text>
+<polygon points="402,265 424,287 446,265 424,243" fill="white" stroke="#0F6E56" stroke-width="1.5"/>
+<text x="424" y="269" text-anchor="middle" font-family="Arial" font-size="10" font-weight="700" fill="#0F6E56">+</text>
+<rect x="605" y="232" width="155" height="66" rx="6" fill="white" stroke="#0F6E56" stroke-width="1.5"/>
+<text x="682" y="252" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">Análisis de PT</text>
+<text x="682" y="265" text-anchor="middle" font-family="Arial" font-size="8" fill="#085041">Stock · Ubicación</text>
+<text x="682" y="278" text-anchor="middle" font-family="Arial" font-size="8" fill="#085041">¿Exportar unidades?</text>
+<text x="682" y="291" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#1D9E75">Supply Corp</text>
+<polygon points="793,265 815,287 837,265 815,243" fill="white" stroke="#0F6E56" stroke-width="1.5"/>
+<text x="815" y="269" text-anchor="middle" font-family="Arial" font-size="13" font-weight="700" fill="#0F6E56">+</text>
+<rect x="866" y="96" width="148" height="54" rx="6" fill="white" stroke="#0F6E56" stroke-width="1.5" stroke-dasharray="5,3"/>
+<text x="940" y="115" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">Notificación</text>
+<text x="940" y="127" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">a Mkt Corp</text>
+<text x="940" y="141" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#1D9E75">Supply Corp</text>
+<rect x="858" y="240" width="190" height="68" rx="6" fill="white" stroke="#0F6E56" stroke-width="1.5"/>
+<text x="953" y="262" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">Recepción de respuestas</text>
+<text x="953" y="276" text-anchor="middle" font-family="Arial" font-size="8.5" fill="#085041">de Planta y de Marketing</text>
+<text x="953" y="296" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#1D9E75">Supply Corp</text>
+<rect x="866" y="354" width="215" height="132" rx="7" fill="white" stroke="#0F6E56" stroke-width="2"/>
+<text x="973" y="375" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">Análisis de impacto en Planta</text>
+<text x="880" y="392" font-family="Arial" font-size="8" fill="#085041">• Inventario PT y materiales</text>
+<text x="880" y="406" font-family="Arial" font-size="8" fill="#085041">• Productos en cola producción</text>
+<text x="880" y="420" font-family="Arial" font-size="8" fill="#085041">• Costo destrucción (PT / Mat. / API)</text>
+<text x="880" y="434" font-family="Arial" font-size="8" fill="#085041">• Última OC firme (MM/AAAA)</text>
+<text x="880" y="448" font-family="Arial" font-size="8" fill="#085041">• Impacto en graneles (%)</text>
+<text x="973" y="466" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#1D9E75">Plantas → confirma a Supply Corp</text>
+<rect x="1138" y="93" width="155" height="66" rx="6" fill="white" stroke="#0F6E56" stroke-width="1.5"/>
+<text x="1215" y="113" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">Confirmación</text>
+<text x="1215" y="125" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">con Mkt Corp</text>
+<text x="1215" y="138" text-anchor="middle" font-family="Arial" font-size="8" fill="#085041">¿OK para continuar?</text>
+<text x="1215" y="150" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#1D9E75">Supply Corp + S&amp;OP</text>
+<rect x="1115" y="248" width="155" height="52" rx="6" fill="white" stroke="#0F6E56" stroke-width="1.5"/>
+<text x="1192" y="265" text-anchor="middle" font-family="Arial" font-size="8" font-weight="700" fill="#0F6E56">Supply notifica a Cía</text>
+<text x="1192" y="278" text-anchor="middle" font-family="Arial" font-size="8" fill="#085041">y aguarda respuesta MKT</text>
+<text x="1192" y="292" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#1D9E75">Supply Corp</text>
+<rect x="1315" y="238" width="148" height="52" rx="6" fill="white" stroke="#0F6E56" stroke-width="1.5"/>
+<text x="1389" y="257" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">Inactivación</text>
+<text x="1389" y="269" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">del código</text>
+<text x="1389" y="283" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#1D9E75">Supply Corp</text>
+<rect x="1318" y="235" width="185" height="80" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="2"/>
+<text x="1410" y="260" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">Notificación a todos</text>
+<text x="1410" y="272" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">los departamentos</text>
+<text x="1410" y="286" text-anchor="middle" font-family="Arial" font-size="8" fill="#085041">Mkt · Compliance · AARR</text>
+<text x="1410" y="298" text-anchor="middle" font-family="Arial" font-size="8" fill="#085041">Finanzas · Planta · Cías</text>
+<text x="1410" y="312" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#1D9E75">S&amp;OP Global</text>
+<rect x="1318" y="684" width="185" height="50" rx="6" fill="white" stroke="#0F6E56" stroke-width="1.5"/>
+<text x="1410" y="703" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">Plan de desagote</text>
+<text x="1410" y="715" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">de inventario</text>
+<text x="1410" y="727" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#1D9E75">Planif. Demanda Local</text>
+<circle cx="1755" cy="278" r="18" fill="#0F6E56"/>
+<circle cx="1755" cy="278" r="12" fill="none" stroke="white" stroke-width="2.5"/>
+<text x="1755" y="304" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">FIN</text>
+<!-- CONECTORES -->
+<line x1="203" y1="127" x2="220" y2="127" stroke="#D4A017" stroke-width="1.5" marker-end="url(#arrO)"/>
+<line x1="368" y1="123" x2="388" y2="123" stroke="#D4A017" stroke-width="1.5" marker-end="url(#arrO)"/>
+<path d="M464 150 L464 170 L424 170 L424 253" fill="none" stroke="#D4A017" stroke-width="1.5" marker-end="url(#arrO)"/>
+<line x1="192" y1="265" x2="220" y2="265" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arr)"/>
+<line x1="375" y1="265" x2="402" y2="265" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arr)"/>
+<line x1="446" y1="265" x2="605" y2="265" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arr)"/>
+<line x1="760" y1="265" x2="793" y2="265" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arr)"/>
+<path d="M815 243 L815 123 L866 123" fill="none" stroke="#0F6E56" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+<path d="M815 287 L815 400 L866 400" fill="none" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arr)"/>
+<path d="M540 123 L560 123 L560 420 L866 420" fill="none" stroke="#D4A017" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arrO)"/>
+<rect x="866" y="504" width="215" height="62" rx="7" fill="#FFFBF0" stroke="#D4A017" stroke-width="2"/>
+<text x="973" y="523" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#8B6000">Escalada a S&amp;OP de Suministro</text>
+<text x="973" y="536" text-anchor="middle" font-family="Arial" font-size="8" fill="#6B4C00">Graneles de compleja producción</text>
+<text x="973" y="549" text-anchor="middle" font-family="Arial" font-size="8" fill="#6B4C00">que generan problemas en Planta</text>
+<text x="973" y="562" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#D4A017">Plantas → S&amp;OP Global</text>
+<rect x="866" y="580" width="215" height="62" rx="7" fill="#FFFBF0" stroke="#D4A017" stroke-width="2"/>
+<text x="973" y="599" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#8B6000">S&amp;OP escala graneles</text>
+<text x="973" y="611" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="#8B6000">con Marketing Corp</text>
+<text x="973" y="624" text-anchor="middle" font-family="Arial" font-size="8" fill="#6B4C00">Resolución estratégica del impacto</text>
+<text x="973" y="636" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#D4A017">S&amp;OP → Marketing Corp</text>
+<line x1="973" y1="566" x2="973" y2="580" stroke="#D4A017" stroke-width="1.5" marker-end="url(#arrO)"/>
+<line x1="973" y1="486" x2="973" y2="504" stroke="#D4A017" stroke-width="1.5" marker-end="url(#arrO)"/>
+<path d="M1081 611 L1095 611 L1095 758" fill="none" stroke="#0F6E56" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+<path d="M866 420 L748 420 L748 285 L858 285" fill="none" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arr)"/>
+<polygon points="1215,176 1235,196 1215,216 1195,196" fill="white" stroke="#0F6E56" stroke-width="1.5"/>
+<text x="1215" y="200" text-anchor="middle" font-family="Arial" font-size="12" font-weight="700" fill="#0F6E56">X</text>
+<path d="M1215 159 L1215 176" fill="none" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arr)"/>
+<path d="M1215 216 L1215 222 L1272 222 L1272 310 L1315 310 L1315 290" fill="none" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="1238" y="219" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">Sí</text>
+<path d="M1215 216 L1215 224 L1410 224 L1410 235" fill="none" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arr)"/>
+<path d="M1235 196 L1360 196 L1360 128 L1480 128" fill="none" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="1268" y="190" font-family="Arial" font-size="8.5" font-weight="700" fill="#0F6E56">No</text>
+<rect x="1480" y="86" width="240" height="84" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="2"/>
+<text x="1600" y="109" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">Reunión multidisciplinaria</text>
+<text x="1600" y="123" text-anchor="middle" font-family="Arial" font-size="8.5" fill="#085041">Define el curso de acción</text>
+<text x="1600" y="137" text-anchor="middle" font-family="Arial" font-size="8.5" fill="#085041">ante la disconformidad</text>
+<text x="1600" y="157" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#1D9E75">Mkt Corp · Supply Corp · S&amp;OP Global</text>
+<path d="M1410 315 L1410 684" fill="none" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arr)"/>
+<path d="M1463 264 L1480 264 L1480 215 L1760 215 L1760 264 L1737 264" fill="none" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arr)"/>
+<path d="M940 150 L940 240" fill="none" stroke="#0F6E56" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+<path d="M1048 274 L1115 274" fill="none" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arr)"/>
+<path d="M1192 248 L1113 248 L1113 126 L1138 126" fill="none" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arr)"/>
+<!-- LEAD TIMES -->
+<rect x="491" y="248" width="74" height="18" rx="9" fill="#0F6E56"/>
+<text x="528" y="261" text-anchor="middle" font-family="Arial" font-size="7.5" font-weight="700" fill="white">24hs hábiles</text>
+<rect x="762" y="248" width="28" height="18" rx="9" fill="#0F6E56"/>
+<text x="776" y="261" text-anchor="middle" font-family="Arial" font-size="7" font-weight="700" fill="white">24hs</text>
+<rect x="782" y="411" width="50" height="18" rx="9" fill="#1D9E75"/>
+<text x="807" y="424" text-anchor="middle" font-family="Arial" font-size="7.5" font-weight="700" fill="white">resp. 48hs</text>
+<rect x="915" y="183" width="50" height="18" rx="9" fill="#1D9E75"/>
+<text x="940" y="196" text-anchor="middle" font-family="Arial" font-size="7.5" font-weight="700" fill="white">resp. 7 días</text>
+<!-- LEYENDA -->
+<rect x="162" y="840" width="880" height="60" rx="8" fill="#F8FFFE" stroke="#1D9E75" stroke-width="1"/>
+<text x="178" y="858" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">Leyenda:</text>
+<line x1="238" y1="854" x2="272" y2="854" stroke="#0F6E56" stroke-width="2"/>
+<text x="278" y="858" font-family="Arial" font-size="8.5" fill="#085041">Flujo principal</text>
+<line x1="400" y1="854" x2="434" y2="854" stroke="#0F6E56" stroke-width="1.5" stroke-dasharray="5,3"/>
+<text x="440" y="858" font-family="Arial" font-size="8.5" fill="#085041">Notificación / info</text>
+<line x1="580" y1="854" x2="614" y2="854" stroke="#D4A017" stroke-width="2"/>
+<text x="620" y="858" font-family="Arial" font-size="8.5" fill="#085041">Ruta Presupuesto Anual</text>
+<line x1="238" y1="881" x2="272" y2="881" stroke="#1D9E75" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="278" y="885" font-family="Arial" font-size="8.5" fill="#085041">Informados al cierre (Compliance / AARR / Finanzas)</text>
+<line x1="580" y1="881" x2="614" y2="881" stroke="#D4A017" stroke-width="1.5" stroke-dasharray="6,3"/>
+<text x="620" y="885" font-family="Arial" font-size="8.5" fill="#085041">Ruta presupuesto → Análisis Planta (directa)</text>
+</svg>
+</div>
+
+<div id="raci" class="panel">
+<svg id="svgRaci" width="1652" height="712" viewBox="0 0 1652 712" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="1652" height="34" fill="#0F6E56"/>
+<text x="826" y="22" text-anchor="middle" font-family="Arial" font-size="13" font-weight="700" fill="white">MEGALABS S.A. — Matriz RACI | Proceso de Gestión de Productos Discontinuados</text>
+<rect x="0" y="34" width="1652" height="30" fill="#E1F5EE"/>
+<text x="20"  y="53" font-family="Arial" font-size="9.5" font-weight="700" fill="#0F6E56">Leyenda:</text>
+<rect x="108" y="40" width="14" height="14" rx="3" fill="#0F6E56"/>
+<text x="128" y="51" font-family="Arial" font-size="9" fill="#085041" font-weight="700">R</text><text x="140" y="51" font-family="Arial" font-size="9" fill="#085041">= Responsible (Ejecuta)</text>
+<rect x="370" y="40" width="14" height="14" rx="3" fill="#1D9E75"/>
+<text x="390" y="51" font-family="Arial" font-size="9" fill="#085041" font-weight="700">A</text><text x="402" y="51" font-family="Arial" font-size="9" fill="#085041">= Accountable (Aprueba)</text>
+<rect x="640" y="40" width="14" height="14" rx="3" fill="#85C1A9"/>
+<text x="660" y="51" font-family="Arial" font-size="9" fill="#085041" font-weight="700">C</text><text x="672" y="51" font-family="Arial" font-size="9" fill="#085041">= Consulted</text>
+<rect x="830" y="40" width="14" height="14" rx="3" fill="#C8E6E2"/>
+<text x="850" y="51" font-family="Arial" font-size="9" fill="#085041" font-weight="700">I</text><text x="862" y="51" font-family="Arial" font-size="9" fill="#085041">= Informed</text>
+<text x="1010" y="51" font-family="Arial" font-size="9" fill="#666">  |  R/A = mismo rol ejecuta y aprueba  |  — = no participa</text>
+<rect x="0"    y="64" width="320" height="36" fill="#085041"/>
+<text x="160"  y="86" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="white">ACTIVIDAD / HITO</text>
+<rect x="320"  y="64" width="148" height="36" fill="#0F6E56"/>
+<text x="394"  y="76" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="white">Mkt Corp</text>
+<text x="394"  y="90" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#9FE1CB">Mkt Local</text>
+<rect x="468"  y="64" width="148" height="36" fill="#0F6E56"/>
+<text x="542"  y="84" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="white">Compliance</text>
+<rect x="616"  y="64" width="148" height="36" fill="#0F6E56"/>
+<text x="690"  y="84" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="white">AARR</text>
+<rect x="764"  y="64" width="148" height="36" fill="#0F6E56"/>
+<text x="838"  y="84" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="white">Finanzas</text>
+<rect x="912"  y="64" width="148" height="36" fill="#0F6E56"/>
+<text x="986"  y="76" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="white">Supply Corp</text>
+<text x="986"  y="90" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#9FE1CB">S&amp;OP cc</text>
+<rect x="1060" y="64" width="148" height="36" fill="#0F6E56"/>
+<text x="1134" y="84" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="white">Plantas</text>
+<rect x="1208" y="64" width="148" height="36" fill="#0F6E56"/>
+<text x="1282" y="76" text-anchor="middle" font-family="Arial" font-size="7.5" font-weight="700" fill="white">Planificación</text>
+<text x="1282" y="88" text-anchor="middle" font-family="Arial" font-size="7.5" font-weight="700" fill="white">Demanda Local</text>
+<rect x="1356" y="64" width="148" height="36" fill="#085041"/>
+<text x="1430" y="76" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="white">S&amp;OP Global</text>
+<text x="1430" y="90" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#9FE1CB">(Transversal)</text>
+<rect x="1504" y="64" width="148" height="36" fill="#085041"/>
+<text x="1578" y="84" text-anchor="middle" font-family="Arial" font-size="8.5" font-weight="700" fill="white">Etapa</text>
+<rect x="0" y="100" width="1652" height="22" fill="#006B70" opacity="0.9"/>
+<text x="12" y="115" font-family="Arial" font-size="9" font-weight="700" fill="white">ETAPA 1 — DETECCIÓN</text>
+<rect x="0" y="122" width="1652" height="32" fill="#F4FBF9"/><rect x="0" y="122" width="320" height="32" fill="#DFF2EC"/>
+<text x="10" y="135" font-family="Arial" font-size="8" fill="#085041" font-weight="700">1.1</text>
+<text x="28" y="135" font-family="Arial" font-size="8" fill="#085041">Aviso / Detección del SKU a discontinuar</text>
+<text x="28" y="147" font-family="Arial" font-size="7.5" fill="#1D9E75">Cualquier área puede originar el aviso · ambas rutas</text>
+<text x="394" y="141" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R</text><text x="542" y="141" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#085041">R</text><text x="690" y="141" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#085041">R</text><text x="838" y="141" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#085041">R</text><text x="986" y="141" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1134" y="141" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#085041">R</text><text x="1282" y="141" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#085041">R</text><text x="1430" y="141" text-anchor="middle" font-family="Arial" font-size="9" fill="#1D9E75">I</text><text x="1578" y="141" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">1</text>
+<rect x="0" y="154" width="1652" height="32" fill="white"/><rect x="0" y="154" width="320" height="32" fill="#DFF2EC"/>
+<text x="10" y="173" font-family="Arial" font-size="8" fill="#085041" font-weight="700">1.2</text><text x="28" y="173" font-family="Arial" font-size="8" fill="#085041">Presentación de Presupuesto Anual (ruta presupuesto)</text>
+<text x="394" y="173" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="542" y="173" text-anchor="middle" font-family="Arial" font-size="9" fill="#85C1A9">C</text><text x="690" y="173" text-anchor="middle" font-family="Arial" font-size="9" fill="#85C1A9">C</text><text x="838" y="173" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="986" y="173" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="1134" y="173" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1282" y="173" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="1430" y="173" text-anchor="middle" font-family="Arial" font-size="9" fill="#1D9E75">I</text><text x="1578" y="173" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">1</text>
+<rect x="0" y="186" width="1652" height="32" fill="#F4FBF9"/><rect x="0" y="186" width="320" height="32" fill="#DFF2EC"/>
+<text x="10" y="205" font-family="Arial" font-size="8" fill="#085041" font-weight="700">1.3</text><text x="28" y="205" font-family="Arial" font-size="8" fill="#085041">Análisis de Template de Discontinuación (ruta presupuesto)</text>
+<text x="394" y="205" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="542" y="205" text-anchor="middle" font-family="Arial" font-size="9" fill="#85C1A9">C</text><text x="690" y="205" text-anchor="middle" font-family="Arial" font-size="9" fill="#85C1A9">C</text><text x="838" y="205" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="986" y="205" text-anchor="middle" font-family="Arial" font-size="9" fill="#85C1A9">C</text><text x="1134" y="205" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1282" y="205" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="1430" y="205" text-anchor="middle" font-family="Arial" font-size="9" fill="#1D9E75">I</text><text x="1578" y="205" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">1</text>
+<rect x="0" y="218" width="1652" height="32" fill="white"/><rect x="0" y="218" width="320" height="32" fill="#DFF2EC"/>
+<text x="10" y="237" font-family="Arial" font-size="8" fill="#085041" font-weight="700">1.4</text><text x="28" y="237" font-family="Arial" font-size="8" fill="#085041">Aviso de discontinuación a Supply Corp (cc: S&amp;OP)</text>
+<text x="394" y="237" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="542" y="237" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="690" y="237" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="838" y="237" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="986" y="237" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1134" y="237" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1282" y="237" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1430" y="237" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1578" y="237" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">1</text>
+<rect x="0" y="250" width="1652" height="22" fill="#006B70" opacity="0.9"/>
+<text x="12" y="265" font-family="Arial" font-size="9" font-weight="700" fill="white">ETAPA 2 — ANÁLISIS</text>
+<rect x="0" y="272" width="1652" height="32" fill="#F4FBF9"/><rect x="0" y="272" width="320" height="32" fill="#DFF2EC"/>
+<text x="10" y="291" font-family="Arial" font-size="8" fill="#085041" font-weight="700">2.1</text><text x="28" y="291" font-family="Arial" font-size="8" fill="#085041">Análisis de PT: stock, ubicación, ¿exportar unidades?</text>
+<text x="394" y="291" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="542" y="291" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="690" y="291" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="838" y="291" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="986" y="291" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1134" y="291" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1282" y="291" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1430" y="291" text-anchor="middle" font-family="Arial" font-size="9" fill="#1D9E75">I</text><text x="1578" y="291" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">2</text>
+<rect x="0" y="304" width="1652" height="32" fill="white"/><rect x="0" y="304" width="320" height="32" fill="#DFF2EC"/>
+<text x="10" y="323" font-family="Arial" font-size="8" fill="#085041" font-weight="700">2.2</text><text x="28" y="323" font-family="Arial" font-size="8" fill="#085041">Notificación a Mkt Corp + aviso a Planta (en paralelo)</text>
+<text x="394" y="323" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="542" y="323" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="690" y="323" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="838" y="323" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="986" y="323" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1134" y="323" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="1282" y="323" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1430" y="323" text-anchor="middle" font-family="Arial" font-size="9" fill="#1D9E75">I</text><text x="1578" y="323" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">2</text>
+<rect x="0" y="336" width="1652" height="32" fill="#F4FBF9"/><rect x="0" y="336" width="320" height="32" fill="#DFF2EC"/>
+<text x="10" y="355" font-family="Arial" font-size="8" fill="#085041" font-weight="700">2.3</text><text x="28" y="355" font-family="Arial" font-size="8" fill="#085041">Análisis de impacto en Planta + confirmación a Supply</text>
+<text x="394" y="355" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="542" y="355" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="690" y="355" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="838" y="355" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="986" y="355" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">A</text><text x="1134" y="355" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1282" y="355" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1430" y="355" text-anchor="middle" font-family="Arial" font-size="9" fill="#1D9E75">I</text><text x="1578" y="355" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">2</text>
+<rect x="0" y="368" width="1652" height="36" fill="white"/><rect x="0" y="368" width="320" height="36" fill="#DFF2EC"/>
+<text x="10" y="384" font-family="Arial" font-size="8" fill="#085041" font-weight="700">2.4</text><text x="28" y="382" font-family="Arial" font-size="8" fill="#085041">Escalada a S&amp;OP de Suministro: graneles problemáticos</text>
+<text x="28" y="396" font-family="Arial" font-size="7.5" fill="#1D9E75">La Planta escala aquellos graneles de compleja producción</text>
+<text x="394" y="390" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="542" y="390" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="690" y="390" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="838" y="390" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="986" y="390" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">A</text><text x="1134" y="390" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1282" y="390" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1430" y="390" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1578" y="390" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">2</text>
+<rect x="0" y="404" width="1652" height="32" fill="white"/><rect x="0" y="404" width="320" height="32" fill="#DFF2EC"/>
+<text x="10" y="420" font-family="Arial" font-size="8" fill="#085041" font-weight="700">2.5</text><text x="28" y="418" font-family="Arial" font-size="8" fill="#085041">S&amp;OP escala graneles con Marketing Corp</text>
+<text x="28" y="431" font-family="Arial" font-size="7.5" fill="#1D9E75">Resolución estratégica del impacto</text>
+<text x="394" y="425" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">A</text><text x="542" y="425" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="690" y="425" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="838" y="425" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="986" y="425" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1134" y="425" text-anchor="middle" font-family="Arial" font-size="9" fill="#1D9E75">I</text><text x="1282" y="425" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1430" y="425" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R</text><text x="1578" y="425" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">2</text>
+<rect x="0" y="436" width="1652" height="32" fill="#F4FBF9"/><rect x="0" y="436" width="320" height="32" fill="#DFF2EC"/>
+<text x="10" y="452" font-family="Arial" font-size="8" fill="#085041" font-weight="700">2.6</text><text x="28" y="450" font-family="Arial" font-size="8" fill="#085041">Recepción de respuestas de Planta y de Marketing</text>
+<text x="28" y="463" font-family="Arial" font-size="7.5" fill="#1D9E75">Consolidación previa a la confirmación final</text>
+<text x="394" y="457" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="542" y="457" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="690" y="457" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="838" y="457" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="986" y="457" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1134" y="457" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="1282" y="457" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1430" y="457" text-anchor="middle" font-family="Arial" font-size="9" fill="#1D9E75">I</text><text x="1578" y="457" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">2</text>
+<rect x="0" y="468" width="1652" height="22" fill="#006B70" opacity="0.9"/>
+<text x="12" y="483" font-family="Arial" font-size="9" font-weight="700" fill="white">ETAPA 3 — CONFIRMACIÓN FINAL</text>
+<rect x="0" y="490" width="1652" height="32" fill="white"/><rect x="0" y="490" width="320" height="32" fill="#DFF2EC"/>
+<text x="10" y="509" font-family="Arial" font-size="8" fill="#085041" font-weight="700">3.1</text><text x="28" y="509" font-family="Arial" font-size="8" fill="#085041">Confirmación con Mkt Corp (¿OK para continuar?)</text>
+<text x="394" y="509" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="542" y="509" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="690" y="509" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="838" y="509" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="986" y="509" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1134" y="509" text-anchor="middle" font-family="Arial" font-size="9" fill="#85C1A9">C</text><text x="1282" y="509" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="1430" y="509" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1578" y="509" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">3</text>
+<rect x="0" y="522" width="1652" height="32" fill="white"/><rect x="0" y="522" width="320" height="32" fill="#DFF2EC"/>
+<text x="10" y="538" font-family="Arial" font-size="8" fill="#085041" font-weight="700">3.2</text><text x="28" y="536" font-family="Arial" font-size="8" fill="#085041">Decisión: ¿Marketing confirma la discontinuación?</text>
+<text x="28" y="549" font-family="Arial" font-size="7.5" fill="#1D9E75">Gateway exclusivo (Sí / No)</text>
+<text x="394" y="542" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">A</text><text x="542" y="542" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="690" y="542" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="838" y="542" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="986" y="542" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">C</text><text x="1134" y="542" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1282" y="542" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1430" y="542" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">C</text><text x="1578" y="542" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">3</text>
+<rect x="0" y="554" width="1652" height="32" fill="#FFFBF0"/><rect x="0" y="554" width="320" height="32" fill="#FBEFD0"/>
+<text x="10" y="570" font-family="Arial" font-size="8" fill="#8B6000" font-weight="700">3.3</text><text x="28" y="568" font-family="Arial" font-size="8" fill="#8B6000">Reunión multidisciplinaria (si Marketing no confirma)</text>
+<text x="28" y="581" font-family="Arial" font-size="7.5" fill="#B98A00">Define el curso de acción ante la disconformidad</text>
+<text x="394" y="574" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="542" y="574" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="690" y="574" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="838" y="574" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="986" y="574" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1134" y="574" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1282" y="574" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1430" y="574" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1578" y="574" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">3</text>
+<rect x="0" y="586" width="1652" height="32" fill="#F4FBF9"/><rect x="0" y="586" width="320" height="32" fill="#DFF2EC"/>
+<text x="10" y="605" font-family="Arial" font-size="8" fill="#085041" font-weight="700">3.4</text><text x="28" y="605" font-family="Arial" font-size="8" fill="#085041">Notificación a todos los departamentos (incl. Compliance, AARR, Finanzas)</text>
+<text x="394" y="605" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="542" y="605" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="690" y="605" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="838" y="605" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="986" y="605" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="1134" y="605" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="1282" y="605" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="1430" y="605" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1578" y="605" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">3</text>
+<rect x="0" y="618" width="1652" height="32" fill="white"/><rect x="0" y="618" width="320" height="32" fill="#DFF2EC"/>
+<text x="10" y="637" font-family="Arial" font-size="8" fill="#085041" font-weight="700">3.5</text><text x="28" y="637" font-family="Arial" font-size="8" fill="#085041">Inactivación del código en sistema</text>
+<text x="394" y="637" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="542" y="637" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="690" y="637" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="838" y="637" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="986" y="637" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1134" y="637" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1282" y="637" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1430" y="637" text-anchor="middle" font-family="Arial" font-size="9" fill="#1D9E75">I</text><text x="1578" y="637" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">3</text>
+<rect x="0" y="650" width="1652" height="32" fill="#F4FBF9"/><rect x="0" y="650" width="320" height="32" fill="#DFF2EC"/>
+<text x="10" y="669" font-family="Arial" font-size="8" fill="#085041" font-weight="700">3.6</text><text x="28" y="669" font-family="Arial" font-size="8" fill="#085041">Plan de desagote de inventario</text>
+<text x="394" y="669" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">I</text><text x="542" y="669" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="690" y="669" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="838" y="669" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="986" y="669" text-anchor="middle" font-family="Arial" font-size="9" fill="#085041">A</text><text x="1134" y="669" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">—</text><text x="1282" y="669" text-anchor="middle" font-family="Arial" font-size="9" font-weight="700" fill="#0F6E56">R/A</text><text x="1430" y="669" text-anchor="middle" font-family="Arial" font-size="9" fill="#1D9E75">I</text><text x="1578" y="669" text-anchor="middle" font-family="Arial" font-size="8" fill="#0F6E56" font-weight="700">3</text>
+<line x1="320" y1="64" x2="320" y2="682" stroke="#CCCCCC" stroke-width="0.8"/><line x1="468" y1="64" x2="468" y2="682" stroke="#CCCCCC" stroke-width="0.8"/><line x1="616" y1="64" x2="616" y2="682" stroke="#CCCCCC" stroke-width="0.8"/><line x1="764" y1="64" x2="764" y2="682" stroke="#CCCCCC" stroke-width="0.8"/><line x1="912" y1="64" x2="912" y2="682" stroke="#CCCCCC" stroke-width="0.8"/><line x1="1060" y1="64" x2="1060" y2="682" stroke="#CCCCCC" stroke-width="0.8"/><line x1="1208" y1="64" x2="1208" y2="682" stroke="#CCCCCC" stroke-width="0.8"/><line x1="1356" y1="64" x2="1356" y2="682" stroke="#CCCCCC" stroke-width="0.8"/><line x1="1652" y1="64" x2="1652" y2="682" stroke="#CCCCCC" stroke-width="0.8"/>
+<line x1="0" y1="122" x2="1652" y2="122" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="154" x2="1652" y2="154" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="186" x2="1652" y2="186" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="218" x2="1652" y2="218" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="250" x2="1652" y2="250" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="272" x2="1652" y2="272" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="304" x2="1652" y2="304" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="336" x2="1652" y2="336" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="368" x2="1652" y2="368" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="404" x2="1652" y2="404" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="436" x2="1652" y2="436" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="468" x2="1652" y2="468" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="490" x2="1652" y2="490" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="522" x2="1652" y2="522" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="554" x2="1652" y2="554" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="586" x2="1652" y2="586" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="618" x2="1652" y2="618" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="650" x2="1652" y2="650" stroke="#CCCCCC" stroke-width="0.5"/><line x1="0" y1="682" x2="1652" y2="682" stroke="#CCCCCC" stroke-width="0.5"/>
+<text x="826" y="696" text-anchor="middle" font-family="Arial" font-size="7.5" fill="#888">MEGALABS S.A. | Supply Chain | S&amp;OP Global | Uso Interno | Confidencial</text>
+</svg>
+</div>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+let mode='select', placeShape='task';
+let activeSVG=null, groups=[], connectors=[], selected=null;
+let drag=null, wpDrag=null, undoStack=[];
+let arrowSrc=null, previewLine=null;
+
+document.addEventListener('DOMContentLoaded',()=>{
+  activeSVG=document.getElementById('svgFlujo');
+  buildModel(activeSVG);
+  attach(activeSVG);
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key==='z'){undo();e.preventDefault();}
+    if(e.key==='Delete'||e.key==='Backspace'){if(selected&&document.activeElement===document.body)deleteSelected();}
+    if(e.key==='Escape'){cancelArrow();deselect();}
+  });
+});
+
+function switchTab(id,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+  cancelArrow(); deselect();
+  activeSVG=id==='flujo'?document.getElementById('svgFlujo'):document.getElementById('svgRaci');
+  buildModel(activeSVG); attach(activeSVG);
+}
+
+// ── Mode ──────────────────────────────────────────
+function setMode(m){
+  mode=m;
+  document.querySelectorAll('.btn-mode').forEach(b=>b.classList.remove('active'));
+  document.getElementById(m==='select'?'btnSelect':m==='place'?'btnPlace':'btnArrow').classList.add('active');
+  document.getElementById('palette').classList.toggle('show',m==='place');
+  document.getElementById('connOpts').classList.toggle('show',m==='arrow');
+  const hints={select:'Clic→seleccionar · Arrastrar→mover · Doble clic en texto→editar · Clic en flecha→puntos de control',place:'Clic en el diagrama para agregar la forma seleccionada',arrow:'Clic en nodo origen, luego en nodo destino para dibujar flecha'};
+  document.getElementById('hint').textContent=hints[m];
+  if(m!=='arrow')cancelArrow();
+  if(m!=='select')deselect();
+  activeSVG.style.cursor=m==='place'?'crosshair':m==='arrow'?'crosshair':'default';
+}
+
+function selectShape(el){
+  document.querySelectorAll('.pitem').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  placeShape=el.dataset.shape;
+}
+
+// ── Model ──────────────────────────────────────────
+function isNode(el){
+  const tag=el.tagName;
+  if(tag==='polygon')return true;
+  if(tag==='circle'){const r=+el.getAttribute('r');return r>=12&&r<=25;}
+  if(tag==='rect'){
+    const x=+el.getAttribute('x')|0,y=+el.getAttribute('y')|0;
+    const w=+el.getAttribute('width')|0,h=+el.getAttribute('height')|0;
+    const fill=el.getAttribute('fill')||'',stroke=el.getAttribute('stroke')||'';
+    if(w>380||h>220)return false;
+    if(x<=0||(y<35&&h>40))return false;
+    if(!stroke||stroke==='none')return false;
+    const dark=['#0F6E56','#085041','#0a5c45'];
+    if(dark.includes(fill)&&!(w<130&&h<30))return false;
+    if(y>=744)return false;
+    return true;
+  }
+  return false;
+}
+
+function bb(sh){
+  const tag=sh.tagName;
+  if(tag==='rect')return{x:+sh.getAttribute('x'),y:+sh.getAttribute('y'),w:+sh.getAttribute('width'),h:+sh.getAttribute('height')};
+  if(tag==='circle'){const cx=+sh.getAttribute('cx'),cy=+sh.getAttribute('cy'),r=+sh.getAttribute('r');return{x:cx-r,y:cy-r,w:r*2,h:r*2};}
+  if(tag==='polygon'){
+    const nums=sh.getAttribute('points').trim().split(/[\s,]+/).map(Number);
+    const xs=[],ys=[];for(let i=0;i<nums.length;i+=2){xs.push(nums[i]);ys.push(nums[i+1]);}
+    const mx=Math.min(...xs),my=Math.min(...ys);return{x:mx,y:my,w:Math.max(...xs)-mx,h:Math.max(...ys)-my};
+  }
+  return{x:0,y:0,w:0,h:0};
+}
+
+function buildModel(svg){
+  groups=[];connectors=[];
+  const shapes=[...svg.querySelectorAll('rect,polygon,circle')].filter(isNode);
+  const allT=[...svg.querySelectorAll('text')];
+  const pad=55;
+  for(const sh of shapes){
+    const b=bb(sh);
+    const texts=allT.filter(t=>{
+      const tx=+t.getAttribute('x')|0,ty=+t.getAttribute('y')|0;
+      return tx>=b.x-pad&&tx<=b.x+b.w+pad&&ty>=b.y-pad&&ty<=b.y+b.h+pad;
+    });
+    groups.push({sh,texts,b});
+  }
+  connectors=[...svg.querySelectorAll('path,line')].filter(el=>{
+    if(el.classList.contains('sel')||el.classList.contains('wph'))return false;
+    return true;
+  }).map(el=>({el,wps:parsePath(el.getAttribute('d')||''),handles:[]}));
+}
+
+function parsePath(d){
+  const wps=[],re=/([ML])\s*([-\d.]+)[\s,]+([-\d.]+)/g;let m;
+  while((m=re.exec(d)))wps.push({cmd:m[1],x:+m[2],y:+m[3]});
+  return wps;
+}
+function wpsToD(wps){return wps.map(w=>`${w.cmd}${w.x} ${w.y}`).join(' ');}
+
+// ── Handlers ───────────────────────────────────────
+function attach(svg){
+  svg.onmousedown=onDown;svg.onmousemove=onMove;svg.onmouseup=onUp;
+  svg.onmouseleave=onUp;svg.ondblclick=onDbl;
+}
+
+function svgPt(e){
+  const pt=activeSVG.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;
+  return pt.matrixTransform(activeSVG.getScreenCTM().inverse());
+}
+
+function onDown(e){
+  if(mode==='place'){placeNode(svgPt(e));e.preventDefault();return;}
+  if(mode==='arrow'){handleArrowClick(e);e.preventDefault();return;}
+  if(mode!=='select')return;
+  const t=e.target;
+  if(t.dataset.wci!==undefined){wpDrag={ci:+t.dataset.wci,wi:+t.dataset.wii};saveHistory();e.stopPropagation();e.preventDefault();return;}
+  if(t.tagName==='path'||t.tagName==='line'){
+    const idx=connectors.findIndex(c=>c.el===t);
+    if(idx>=0){deselect();selectPath(idx);showConnOpts(connectors[idx]);e.stopPropagation();return;}
+  }
+  const p=svgPt(e);
+  const gi=hitGroup(p.x,p.y);
+  if(gi>=0){
+    deselect();selectGroup(gi);showColorOpts(groups[gi]);
+    saveHistory();
+    drag={gi,sx:p.x,sy:p.y,orig:captureGroup(groups[gi])};
+    e.preventDefault();return;
+  }
+  deselect();
+}
+
+function onMove(e){
+  if(mode==='arrow'&&arrowSrc&&previewLine){
+    const p=svgPt(e);
+    previewLine.setAttribute('x2',p.x);previewLine.setAttribute('y2',p.y);return;
+  }
+  if(mode!=='select')return;
+  if(!drag&&!wpDrag)return;
+  const p=svgPt(e);
+  if(wpDrag){
+    const c=connectors[wpDrag.ci];
+    c.wps[wpDrag.wi].x=Math.round(p.x);c.wps[wpDrag.wi].y=Math.round(p.y);
+    c.el.setAttribute('d',wpsToD(c.wps));
+    const h=activeSVG.querySelector(`[data-wci="${wpDrag.ci}"][data-wii="${wpDrag.wi}"]`);
+    if(h){h.setAttribute('cx',Math.round(p.x));h.setAttribute('cy',Math.round(p.y));}
+    return;
+  }
+  if(drag){
+    const dx=Math.round(p.x-drag.sx),dy=Math.round(p.y-drag.sy);
+    applyGroup(groups[drag.gi],drag.orig,dx,dy);
+    groups[drag.gi].b=bb(groups[drag.gi].sh);
+    updateRing(groups[drag.gi].b);
+  }
+}
+
+function onUp(){drag=null;wpDrag=null;}
+
+function onDbl(e){
+  if(mode!=='select')return;
+  let t=e.target;
+  if(t.tagName==='tspan')t=t.parentElement;
+  if(t.tagName!=='text')return;
+  editText(t);e.preventDefault();
+}
+
+// ── Arrow drawing ──────────────────────────────────
+function handleArrowClick(e){
+  const p=svgPt(e);
+  const gi=hitGroup(p.x,p.y);
+  if(!arrowSrc){
+    if(gi<0)return;
+    arrowSrc=groups[gi];
+    const cx=arrowSrc.b.x+arrowSrc.b.w/2,cy=arrowSrc.b.y+arrowSrc.b.h/2;
+    previewLine=document.createElementNS(NS,'line');
+    previewLine.setAttribute('x1',cx);previewLine.setAttribute('y1',cy);
+    previewLine.setAttribute('x2',cx);previewLine.setAttribute('y2',cy);
+    previewLine.setAttribute('stroke','#2563EB');previewLine.setAttribute('stroke-width','2');
+    previewLine.setAttribute('stroke-dasharray','6,3');previewLine.setAttribute('pointer-events','none');
+    previewLine.classList.add('sel');
+    activeSVG.appendChild(previewLine);
+    document.getElementById('hint').textContent='Ahora clic en el nodo destino (Escape para cancelar)';
+  } else {
+    if(gi<0){cancelArrow();return;}
+    const src=arrowSrc,dst=groups[gi];
+    cancelArrow();
+    saveHistory();
+    drawArrow(src,dst);
+    buildModel(activeSVG);
+  }
+}
+
+function cancelArrow(){
+  if(previewLine)previewLine.remove();
+  previewLine=null;arrowSrc=null;
+  if(mode==='arrow')document.getElementById('hint').textContent='Clic en nodo origen, luego en nodo destino para dibujar flecha';
+}
+
+function drawArrow(src,dst){
+  const sx=src.b.x+src.b.w/2,sy=src.b.y+src.b.h/2;
+  const dx=dst.b.x+dst.b.w/2,dy=dst.b.y+dst.b.h/2;
+  const color=document.getElementById('selConnColor').value;
+  const strokeVal=document.getElementById('selStroke').value;
+  const arrowType=document.getElementById('selArrow').value;
+  const markerId=color===#D4A017?'arrO':color==='#6B7280'?'arrGray':'arr';
+  const p=document.createElementNS(NS,'path');
+  p.setAttribute('d',`M${sx} ${sy} L${dx} ${dy}`);
+  p.setAttribute('fill','none');
+  p.setAttribute('stroke',color);
+  p.setAttribute('stroke-width','1.8');
+  if(strokeVal==='dashed')p.setAttribute('stroke-dasharray','6,3');
+  else if(strokeVal==='dotted')p.setAttribute('stroke-dasharray','2,3');
+  if(arrowType==='end'||arrowType==='both')p.setAttribute('marker-end',`url(#${markerId})`);
+  if(arrowType==='both'){
+    const startId=color==='#D4A017'?'arrStartO':color==='#6B7280'?'arrStartGray':'arrStart';
+    p.setAttribute('marker-start',`url(#${startId})`);
+  }
+  p.dataset.userConn='1';
+  activeSVG.appendChild(p);
+}
+
+// ── Place node ─────────────────────────────────────
+function placeNode(p){
+  saveHistory();
+  const x=Math.round(p.x),y=Math.round(p.y);
+  const shapes={
+    task:()=>createTask(x,y),
+    start:()=>createEvent(x,y,'start'),
+    end:()=>createEvent(x,y,'end'),
+    xor:()=>createGateway(x,y,'X'),
+    and:()=>createGateway(x,y,'+'),
+    inter:()=>createEvent(x,y,'inter'),
+    annot:()=>createAnnotation(x,y)
+  };
+  (shapes[placeShape]||shapes.task)();
+  buildModel(activeSVG);
+}
+
+function createTask(cx,cy){
+  const w=130,h=50,x=cx-w/2,y=cy-h/2;
+  const r=document.createElementNS(NS,'rect');
+  r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',w);r.setAttribute('height',h);
+  r.setAttribute('rx','6');r.setAttribute('fill','white');r.setAttribute('stroke','#0F6E56');r.setAttribute('stroke-width','1.5');
+  const t=document.createElementNS(NS,'text');
+  t.setAttribute('x',cx);t.setAttribute('y',cy+4);
+  t.setAttribute('text-anchor','middle');t.setAttribute('font-family','Arial');t.setAttribute('font-size','9');
+  t.setAttribute('font-weight','700');t.setAttribute('fill','#0F6E56');
+  t.textContent='Nueva tarea';
+  activeSVG.appendChild(r);activeSVG.appendChild(t);
+}
+
+function createEvent(cx,cy,type){
+  const r=type==='end'?16:15;
+  const c=document.createElementNS(NS,'circle');
+  c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);
+  if(type==='end'){c.setAttribute('fill','#0F6E56');c.setAttribute('stroke','none');}
+  else{c.setAttribute('fill','white');c.setAttribute('stroke','#0F6E56');c.setAttribute('stroke-width','2');}
+  if(type==='inter'){
+    const c2=document.createElementNS(NS,'circle');
+    c2.setAttribute('cx',cx);c2.setAttribute('cy',cy);c2.setAttribute('r',r-4);
+    c2.setAttribute('fill','none');c2.setAttribute('stroke','#0F6E56');c2.setAttribute('stroke-width','1.5');
+    activeSVG.appendChild(c);activeSVG.appendChild(c2);
+  } else {
+    if(type==='start'){
+      const c2=document.createElementNS(NS,'circle');
+      c2.setAttribute('cx',cx);c2.setAttribute('cy',cy);c2.setAttribute('r',r-5);
+      c2.setAttribute('fill','none');c2.setAttribute('stroke','#0F6E56');c2.setAttribute('stroke-width','1.5');
+      activeSVG.appendChild(c);activeSVG.appendChild(c2);
+    } else {
+      activeSVG.appendChild(c);
+      const inner=document.createElementNS(NS,'circle');
+      inner.setAttribute('cx',cx);inner.setAttribute('cy',cy);inner.setAttribute('r','8');
+      inner.setAttribute('fill','none');inner.setAttribute('stroke','white');inner.setAttribute('stroke-width','2');
+      activeSVG.appendChild(inner);
+    }
+  }
+  const t=document.createElementNS(NS,'text');
+  t.setAttribute('x',cx);t.setAttribute('y',cy+r+12);
+  t.setAttribute('text-anchor','middle');t.setAttribute('font-family','Arial');t.setAttribute('font-size','8');
+  t.setAttribute('fill','#0F6E56');t.textContent=type==='end'?'FIN':'Inicio';
+  activeSVG.appendChild(t);
+}
+
+function createGateway(cx,cy,symbol){
+  const s=22;
+  const poly=document.createElementNS(NS,'polygon');
+  poly.setAttribute('points',`${cx},${cy-s} ${cx+s},${cy} ${cx},${cy+s} ${cx-s},${cy}`);
+  poly.setAttribute('fill','white');poly.setAttribute('stroke','#0F6E56');poly.setAttribute('stroke-width','1.5');
+  const t=document.createElementNS(NS,'text');
+  t.setAttribute('x',cx);t.setAttribute('y',cy+4);
+  t.setAttribute('text-anchor','middle');t.setAttribute('font-family','Arial');
+  t.setAttribute('font-size',symbol==='+'?'14':'12');t.setAttribute('font-weight','700');t.setAttribute('fill','#0F6E56');
+  t.textContent=symbol;
+  activeSVG.appendChild(poly);activeSVG.appendChild(t);
+}
+
+function createAnnotation(cx,cy){
+  const w=120,h=40,x=cx-w/2,y=cy-h/2;
+  const path=document.createElementNS(NS,'path');
+  path.setAttribute('d',`M${x+15} ${y} L${x} ${y} L${x} ${y+h} L${x+15} ${y+h}`);
+  path.setAttribute('fill','none');path.setAttribute('stroke','#085041');path.setAttribute('stroke-width','1.5');
+  const t=document.createElementNS(NS,'text');
+  t.setAttribute('x',cx);t.setAttribute('y',cy+4);
+  t.setAttribute('text-anchor','middle');t.setAttribute('font-family','Arial');t.setAttribute('font-size','8.5');t.setAttribute('fill','#085041');
+  t.textContent='Anotación';
+  activeSVG.appendChild(path);activeSVG.appendChild(t);
+}
+
+// ── Selection ─────────────────────────────────────
+function deselect(){
+  activeSVG&&activeSVG.querySelectorAll('.sel,.wph').forEach(el=>el.remove());
+  selected=null;
+  document.getElementById('btnDel').disabled=true;
+  document.getElementById('colorOpts').classList.remove('show');
+  document.getElementById('connOpts').classList.toggle('show',mode==='arrow');
+}
+
+function selectGroup(gi){
+  selected={type:'group',gi};
+  const g=groups[gi];g.b=bb(g.sh);drawRing(g.b);
+  document.getElementById('btnDel').disabled=false;
+}
+
+function selectPath(ci){
+  selected={type:'path',ci};drawWps(connectors[ci],ci);
+  document.getElementById('btnDel').disabled=false;
+}
+
+function showColorOpts(g){
+  document.getElementById('colorOpts').classList.add('show');
+  document.getElementById('connOpts').classList.remove('show');
+  const fill=g.sh.getAttribute('fill')||'#ffffff';
+  const stroke=g.sh.getAttribute('stroke')||'#0F6E56';
+  try{document.getElementById('colorFill').value=toHex(fill);}catch(e){}
+  try{document.getElementById('colorStroke').value=toHex(stroke);}catch(e){}
+  if(g.texts.length>0){
+    const tc=g.texts[0].getAttribute('fill')||'#0F6E56';
+    try{document.getElementById('colorText').value=toHex(tc);}catch(e){}
+  }
+}
+
+function showConnOpts(c){
+  document.getElementById('colorOpts').classList.remove('show');
+  document.getElementById('connOpts').classList.add('show');
+  const dash=c.el.getAttribute('stroke-dasharray')||'';
+  document.getElementById('selStroke').value=dash.includes('2,3')?'dotted':dash?'dashed':'solid';
+  const me=c.el.getAttribute('marker-end')||'';
+  const ms=c.el.getAttribute('marker-start')||'';
+  document.getElementById('selArrow').value=ms?'both':me?'end':'none';
+  const s=c.el.getAttribute('stroke')||'#0F6E56';
+  const colorSel=document.getElementById('selConnColor');
+  for(let opt of colorSel.options)if(opt.value===s){colorSel.value=s;break;}
+}
+
+function toHex(c){
+  if(c&&c[0]==='#'){if(c.length===4)return'#'+c[1]+c[1]+c[2]+c[2]+c[3]+c[3];return c;}
+  return '#0F6E56';
+}
+
+function applyNodeColor(){
+  if(!selected||selected.type!=='group')return;
+  const g=groups[selected.gi];
+  saveHistory();
+  g.sh.setAttribute('fill',document.getElementById('colorFill').value);
+  g.sh.setAttribute('stroke',document.getElementById('colorStroke').value);
+}
+
+function applyTextColor(){
+  if(!selected||selected.type!=='group')return;
+  const g=groups[selected.gi];
+  const tc=document.getElementById('colorText').value;
+  g.texts.forEach(t=>t.setAttribute('fill',tc));
+}
+
+function applyConnStyle(){
+  if(!selected||selected.type!=='path')return;
+  const c=connectors[selected.ci];
+  const color=document.getElementById('selConnColor').value;
+  const strokeVal=document.getElementById('selStroke').value;
+  const arrowType=document.getElementById('selArrow').value;
+  const markerId=color==='#D4A017'?'arrO':color==='#6B7280'?'arrGray':'arr';
+  const startMarkerId=color==='#D4A017'?'arrStartO':color==='#6B7280'?'arrStartGray':'arrStart';
+  c.el.setAttribute('stroke',color);
+  if(strokeVal==='dashed')c.el.setAttribute('stroke-dasharray','6,3');
+  else if(strokeVal==='dotted')c.el.setAttribute('stroke-dasharray','2,3');
+  else c.el.removeAttribute('stroke-dasharray');
+  if(arrowType==='end'){c.el.setAttribute('marker-end',`url(#${markerId})`);c.el.removeAttribute('marker-start');}
+  else if(arrowType==='both'){c.el.setAttribute('marker-end',`url(#${markerId})`);c.el.setAttribute('marker-start',`url(#${startMarkerId})`);}
+  else{c.el.removeAttribute('marker-end');c.el.removeAttribute('marker-start');}
+}
+
+// ── Delete ─────────────────────────────────────────
+function deleteSelected(){
+  if(!selected)return;
+  saveHistory();
+  if(selected.type==='group'){
+    const g=groups[selected.gi];
+    g.sh.remove();g.texts.forEach(t=>t.remove());
+  } else if(selected.type==='path'){
+    connectors[selected.ci].el.remove();
+  }
+  deselect();buildModel(activeSVG);
+}
+
+// ── Visual helpers ─────────────────────────────────
+function drawRing(b){
+  const p=6,r=document.createElementNS(NS,'rect');
+  r.setAttribute('class','sel');
+  r.setAttribute('x',b.x-p);r.setAttribute('y',b.y-p);
+  r.setAttribute('width',b.w+p*2);r.setAttribute('height',b.h+p*2);
+  r.setAttribute('rx','10');r.setAttribute('fill','none');
+  r.setAttribute('stroke','#2563EB');r.setAttribute('stroke-width','2');
+  r.setAttribute('stroke-dasharray','6,3');r.setAttribute('pointer-events','none');
+  activeSVG.appendChild(r);
+}
+
+function updateRing(b){
+  const p=6,r=activeSVG.querySelector('.sel');
+  if(!r)return;
+  r.setAttribute('x',b.x-p);r.setAttribute('y',b.y-p);
+  r.setAttribute('width',b.w+p*2);r.setAttribute('height',b.h+p*2);
+}
+
+function drawWps(c,ci){
+  c.handles=[];
+  for(let wi=0;wi<c.wps.length;wi++){
+    const wp=c.wps[wi];
+    const h=document.createElementNS(NS,'circle');
+    h.setAttribute('class','wph');h.setAttribute('data-wci',ci);h.setAttribute('data-wii',wi);
+    h.setAttribute('cx',wp.x);h.setAttribute('cy',wp.y);h.setAttribute('r','7');
+    h.setAttribute('fill',wp.cmd==='M'?'#2563EB':'#93C5FD');
+    h.setAttribute('stroke','white');h.setAttribute('stroke-width','2');h.style.cursor='crosshair';
+    activeSVG.appendChild(h);c.handles[wi]=h;
+  }
+}
+
+// ── Hit detection ──────────────────────────────────
+function hitGroup(x,y){
+  for(let i=groups.length-1;i>=0;i--){
+    const g=groups[i],b=g.b;
+    if(g.sh.tagName==='circle'){
+      const cx=+g.sh.getAttribute('cx'),cy=+g.sh.getAttribute('cy'),r=+g.sh.getAttribute('r');
+      if(Math.hypot(x-cx,y-cy)<=r)return i;
+    } else {
+      if(x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)return i;
+    }
+  }
+  return -1;
+}
+
+// ── Drag ──────────────────────────────────────────
+function captureGroup(g){
+  const sh=g.sh,tag=sh.tagName;
+  let shData;
+  if(tag==='rect')shData={x:sh.getAttribute('x'),y:sh.getAttribute('y')};
+  else if(tag==='circle')shData={cx:sh.getAttribute('cx'),cy:sh.getAttribute('cy')};
+  else if(tag==='polygon')shData={points:sh.getAttribute('points')};
+  const textData=g.texts.map(t=>({x:t.getAttribute('x'),y:t.getAttribute('y'),tf:t.getAttribute('transform')}));
+  return{shData,textData};
+}
+
+function applyGroup(g,orig,dx,dy){
+  const sh=g.sh,tag=sh.tagName;
+  if(tag==='rect'){sh.setAttribute('x',+orig.shData.x+dx);sh.setAttribute('y',+orig.shData.y+dy);}
+  else if(tag==='circle'){sh.setAttribute('cx',+orig.shData.cx+dx);sh.setAttribute('cy',+orig.shData.cy+dy);}
+  else if(tag==='polygon'){
+    const nums=orig.shData.points.trim().split(/[\s,]+/).map(Number);
+    const pts=[];for(let i=0;i<nums.length;i+=2)pts.push(`${nums[i]+dx},${nums[i+1]+dy}`);
+    sh.setAttribute('points',pts.join(' '));
+  }
+  g.texts.forEach((t,i)=>{
+    const o=orig.textData[i];
+    if(o.x!==null)t.setAttribute('x',+o.x+dx);
+    if(o.y!==null)t.setAttribute('y',+o.y+dy);
+    if(o.tf){const nt=o.tf.replace(/translate\(([-\d.]+),\s*([-\d.]+)\)/,(_,tx,ty)=>`translate(${+tx+dx},${+ty+dy})`);t.setAttribute('transform',nt);}
+  });
+}
+
+// ── Text edit ─────────────────────────────────────
+function editText(textEl){
+  const pt=activeSVG.createSVGPoint();
+  pt.x=+textEl.getAttribute('x')||0;pt.y=+textEl.getAttribute('y')||0;
+  const scr=pt.matrixTransform(activeSVG.getScreenCTM());
+  const inp=document.createElement('input');
+  inp.type='text';inp.value=textEl.textContent.trim();
+  const fs=Math.max(11,(+textEl.getAttribute('font-size')||10)*(activeSVG.getBoundingClientRect().width/1800)*1.4);
+  Object.assign(inp.style,{position:'fixed',left:(scr.x-50)+'px',top:(scr.y-14)+'px',width:'220px',fontFamily:'Arial,sans-serif',fontSize:fs+'px',border:'2px solid #2563EB',borderRadius:'4px',padding:'2px 6px',outline:'none',zIndex:'9999',background:'white',color:'#162219',boxShadow:'0 2px 12px rgba(0,0,0,.25)'});
+  document.body.appendChild(inp);inp.focus();inp.select();
+  const commit=()=>{textEl.textContent=inp.value;inp.remove();};
+  const cancel=()=>inp.remove();
+  inp.addEventListener('blur',commit);
+  inp.addEventListener('keydown',ev=>{
+    if(ev.key==='Enter'){inp.removeEventListener('blur',commit);commit();}
+    if(ev.key==='Escape'){inp.removeEventListener('blur',commit);cancel();}
+    ev.stopPropagation();
+  });
+}
+
+// ── History ───────────────────────────────────────
+function saveHistory(){
+  undoStack.push(activeSVG.innerHTML);
+  if(undoStack.length>30)undoStack.shift();
+  document.getElementById('btnUndo').disabled=false;
+}
+
+function undo(){
+  if(!undoStack.length)return;
+  activeSVG.innerHTML=undoStack.pop();
+  buildModel(activeSVG);attach(activeSVG);
+  if(!undoStack.length)document.getElementById('btnUndo').disabled=true;
+  deselect();
+}
+</script>
