@@ -1,0 +1,14 @@
+{
+  "name": "sop-plant-reports",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "SOP Plant Reports: editor de informes de planta + consolidador (Netlify)",
+  "scripts": {
+    "dev": "node dev/server.mjs",
+    "test:api": "node dev/test-api.mjs"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}

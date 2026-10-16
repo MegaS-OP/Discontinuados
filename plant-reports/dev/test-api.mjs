@@ -1,0 +1,72 @@
+// Prueba de la API contra un servidor local temporal. Uso: npm run test:api
+import { spawn } from 'node:child_process';
+import os from 'node:os';
+import path from 'node:path';
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sop-'));
+const PORT = 8899, B = `http://localhost:${PORT}`;
+const srv = spawn('node', ['dev/server.mjs'], { env: { ...process.env, PORT, LOCAL_STORE_DIR: dir }, stdio: 'inherit' });
+await new Promise((r) => setTimeout(r, 1200));
+const call = async (p, { method = 'GET', body, token, raw } = {}) => {
+  const r = await fetch(B + p, { method, headers: { ...(token ? { authorization: 'Bearer ' + token } : {}), ...(body && !raw ? { 'content-type': 'application/json' } : {}) }, body: raw || (body ? JSON.stringify(body) : undefined) });
+  const ct = r.headers.get('content-type') || '';
+  return { status: r.status, data: ct.includes('json') ? await r.json() : await r.arrayBuffer() };
+};
+let n = 0; const ok = (m) => console.log('  ✓', m, ++n && '');
+try {
+  assert.equal((await call('/api/auth', { method: 'POST', body: { role: 'admin', password: 'mal' } })).status, 401);
+  const admin = (await call('/api/auth', { method: 'POST', body: { role: 'admin', password: 'admin-dev' } })).data.token;
+  ok('login admin');
+  const codes = {};
+  for (const p of ['pdlc', 'rowe']) codes[p] = (await call(`/api/config?action=gencode&plant=${p}`, { method: 'POST', token: admin })).data.code;
+  const tok = {};
+  for (const p of ['pdlc', 'rowe']) tok[p] = (await call('/api/auth', { method: 'POST', body: { role: 'plant', plantId: p, code: codes[p] } })).data.token;
+  assert.ok(tok.pdlc && tok.rowe); ok('login de plantas con código generado');
+  assert.equal((await call('/api/auth', { method: 'POST', body: { role: 'plant', plantId: 'pdlc', code: codes.rowe } })).status, 401); ok('código de otra planta rechazado');
+  for (let i = 0; i < 5; i++) await call('/api/auth', { method: 'POST', body: { role: 'plant', plantId: 'iclos', code: 'x' } });
+  assert.equal((await call('/api/auth', { method: 'POST', body: { role: 'plant', plantId: 'iclos', code: 'x' } })).status, 429); ok('límite de intentos');
+  assert.equal((await call('/api/cycles', { method: 'POST', body: { id: '2026-09', label: 'Setiembre/2026', deadline: '2026-10-05' }, token: tok.pdlc })).status, 403); ok('planta no crea ciclos');
+  await call('/api/cycles', { method: 'POST', body: { id: '2026-09', label: 'Setiembre/2026', deadline: '2026-10-05' }, token: admin });
+  assert.equal((await call('/api/report?cycle=2026-09&plant=pdlc', { token: tok.pdlc })).status, 403); ok('ciclo en borrador oculto a plantas');
+  await call('/api/cycles?id=2026-09', { method: 'PATCH', body: { status: 'abierto' }, token: admin });
+  const get = await call('/api/report?cycle=2026-09&plant=pdlc', { token: tok.pdlc });
+  assert.equal(get.status, 200); assert.equal(get.data.canEdit, true);
+  assert.equal((await call('/api/report?cycle=2026-09&plant=rowe', { token: tok.pdlc })).status, 403); ok('planta NO lee informe de otra planta');
+  assert.equal((await call('/api/report?cycle=2026-09&plant=rowe', { method: 'PUT', token: tok.pdlc, body: { baseVersion: 0, report: {} } })).status, 403); ok('planta NO escribe informe de otra planta');
+  assert.equal((await call('/api/report?cycle=2026-09', { token: tok.pdlc })).status, 403); ok('planta NO lista todos los informes');
+  const evil = '<script>alert(1)</script><b onclick="x()" style="color:#f00;position:fixed">hola</b><img src=x onerror=1>& <i>ok</i>';
+  const rep = { slides: [{ id: 's1', section: 'kpis', title: 'T', blocks: [{ id: 'b1', type: 'text', x: 3, y: 15, w: 50, h: 50, content: { html: evil } }, { id: 'b2', type: 'image', x: 0, y: 0, w: 10, h: 10, content: { hash: 'zz' } }] }] };
+  const put = await call('/api/report?cycle=2026-09&plant=pdlc', { method: 'PUT', token: tok.pdlc, body: { baseVersion: 0, report: rep } });
+  assert.equal(put.status, 200);
+  const html = put.data.report.slides[0].blocks[0].content.html;
+  assert.ok(!/script|onclick|onerror|<img|position/.test(html), html); assert.ok(html.includes('color:#ff0000') || html.includes('color:#f00') === false);
+  assert.equal(put.data.report.slides[0].blocks[1].content.hash, ''); ok('HTML saneado en el servidor: ' + html);
+  assert.equal((await call('/api/report?cycle=2026-09&plant=pdlc', { method: 'PUT', token: tok.pdlc, body: { baseVersion: 0, report: rep } })).status, 409); ok('bloqueo optimista (409)');
+  const sub = await call('/api/report?cycle=2026-09&plant=pdlc&action=submit', { method: 'POST', token: tok.pdlc });
+  assert.equal(sub.status, 400); ok('enviar sin secciones obligatorias: ' + sub.data.error.slice(0, 60));
+  // imágenes
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==', 'base64');
+  const up = await call('/api/image', { method: 'POST', token: tok.pdlc, raw: png });
+  assert.equal(up.status, 200); assert.match(up.data.hash, /^[a-f0-9]{64}$/);
+  assert.equal((await call('/api/image', { method: 'POST', token: tok.pdlc, raw: Buffer.from('<svg onload=1>') })).status, 415);
+  assert.equal((await call('/api/image', { method: 'POST', token: tok.pdlc, raw: Buffer.alloc(5.5 * 1024 * 1024, 1) })).status, 413);
+  assert.equal((await call(`/api/image?h=${up.data.hash}&t=${tok.rowe}`)).status, 200);
+  assert.equal((await call(`/api/image?h=${up.data.hash}`)).status, 401); ok('imágenes: subir, validar tipo, leer con token');
+  const done = { slides: ['kpis', 'bo_critico', 'faltantes', 'lanzamientos', 'riesgos', 'capacidad'].map((s, i) => ({ id: 'x' + i, section: s, title: s, blocks: [{ id: 'bb', type: 'text', x: 3, y: 15, w: 50, h: 50, content: { html: 'ok' } }] })) };
+  const p2 = await call('/api/report?cycle=2026-09&plant=pdlc', { method: 'PUT', token: tok.pdlc, body: { baseVersion: put.data.report.version, report: done } });
+  assert.equal((await call('/api/report?cycle=2026-09&plant=pdlc&action=submit', { method: 'POST', token: tok.pdlc })).status, 200);
+  assert.equal((await call('/api/report?cycle=2026-09&plant=pdlc', { method: 'PUT', token: tok.pdlc, body: { baseVersion: p2.data.report.version + 1, report: done } })).status, 403); ok('enviado = sólo lectura para la planta');
+  assert.equal((await call('/api/report?cycle=2026-09&plant=pdlc&action=reopen', { method: 'POST', token: tok.pdlc })).status, 200); ok('reabrir');
+  await call('/api/cycles?id=2026-09', { method: 'PATCH', body: { status: 'cerrado' }, token: admin });
+  assert.equal((await call('/api/report?cycle=2026-09&plant=pdlc', { token: tok.rowe })).status, 200); ok('ciclo cerrado: lectura cruzada permitida');
+  assert.equal((await call('/api/report?cycle=2026-09&plant=pdlc', { method: 'PUT', token: tok.pdlc, body: { baseVersion: 9, report: done } })).status, 403); ok('ciclo cerrado: sin escritura');
+  const all = await call('/api/report?cycle=2026-09', { token: admin });
+  assert.equal(Object.keys(all.data.reports).length, 8); ok('admin lee todos los informes');
+  assert.equal((await call('/api/consolidation?cycle=2026-09', { token: tok.pdlc })).status, 403);
+  assert.equal((await call('/api/consolidation?cycle=2026-09', { method: 'PUT', token: admin, body: { order: ['a'], hidden: ['b'] } })).status, 200); ok('consolidación sólo admin');
+  const cfg = await call('/api/config', { token: tok.pdlc });
+  assert.ok(!JSON.stringify(cfg.data).includes('hash')); ok('config no expone hashes');
+  console.log('\nTODO OK');
+} catch (e) { console.error('\nFALLÓ:', e); process.exitCode = 1; } finally { srv.kill(); fs.rmSync(dir, { recursive: true, force: true }); }

@@ -1,0 +1,10 @@
+#print-root { display: none; }
+@page { size: 13.333in 7.5in; margin: 0; }
+@media print {
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body > *:not(#print-root) { display: none !important; }
+  #print-root { display: block; }
+  .print-page { width: 13.333in; height: 7.5in; overflow: hidden; break-after: page; page-break-after: always; position: relative; }
+  .print-page:last-child { break-after: auto; page-break-after: auto; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
