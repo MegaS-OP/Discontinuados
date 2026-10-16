@@ -14,7 +14,7 @@ function shell(active) {
   const nav = a.role === 'admin' ? [['admin', 'Tablero'], ['admin/cycles', 'Ciclos'], ['admin/plants', 'Plantas y accesos'], ['admin/content', 'Contenido']] : [];
   const main = h('main', { class: 'main' });
   app.append(h('header', { class: 'topbar' },
-    h('img', { src: 'assets/logo.png', class: 'tb-logo', alt: '' }), h('b', {}, 'S&OP Plant Reports'),
+    h('img', { src: 'assets/megalabs-white.png', class: 'tb-logo', alt: '' }), h('b', {}, 'S&OP Plant Reports'),
     h('nav', {}, nav.map(([p, n]) => h('a', { href: '#/' + p, class: active === p ? 'on' : '' }, n))),
     h('span', { class: 'grow' }),
     h('span', { class: 'who' }, a.name),

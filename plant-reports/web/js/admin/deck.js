@@ -15,8 +15,8 @@ export function buildDeck({ cycle, cfg, reports, layer }) {
   for (const p of withSlides) {
     const idx = withSlides.indexOf(p);
     const list = withSlides.map((q, i) => (q === p
-      ? `<p><b style="color:#14a0a0">▶ ${i + 1}. ${esc(q.name)}</b></p>`
-      : `<p><span style="color:#5b6b7b">${i + 1}. ${esc(q.name)}</span></p>`)).join('');
+      ? `<p><b style="color:#00a650">▶ ${i + 1}. ${esc(q.name)}</b></p>`
+      : `<p><span style="color:#575e69">${i + 1}. ${esc(q.name)}</span></p>`)).join('');
     gen('agenda:' + p.id, { title: 'Contenido de la sesión', blocks: [{ id: 'ag', type: 'text', x: 6, y: 17, w: 88, h: 74, content: { html: list, size: 30, align: 'left' } }] }, `Agenda · ${p.shortName} (${idx + 1})`);
     for (const s of reports[p.id].slides.filter((x) => !x.hidden)) {
       entries.push({ key: `p:${p.id}:${s.id}`, slide: s, plantId: p.id, plant: p, label: s.title || '(sin título)', sectionName: secName(s.section), editedByAdmin: s.editedByAdmin });

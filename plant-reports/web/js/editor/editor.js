@@ -14,7 +14,7 @@ const DEFAULTS = {
   image: () => ({ hash: '', fit: 'contain', alt: '' }),
   table: () => ({ rows: blankTable(4, 3), header: true, fs: 14, colW: null }),
 };
-const BOX = { text: [5, 18, 50, 30], callout: [69, 15, 28, 77], image: [5, 17, 60, 72], table: [3, 16, 64, 60] };
+const BOX = { text: [5, 18, 50, 30], callout: [69, 14, 28, 74], image: [5, 16, 60, 70], table: [3, 16, 64, 60] };
 const put = (el, ...kids) => el.append(...kids.flat(Infinity).filter((k) => k != null && k !== false));
 const isEditable = (t) => t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 
@@ -518,11 +518,11 @@ export async function mountEditor(root, { cycleId, plantId, viewOnly = false }) 
       const tgt = targetBlock('image');
       if (tgt) mutate(() => { tgt.content.hash = hash; S.sel = tgt.id; });
       else {
-        const aw = 94, ah = 77; // área útil en %
+        const aw = 94, ah = 74; // área útil en %
         const ratio = width / height, areaRatio = (aw * W) / (ah * H);
         let w = aw, hh = ah;
         if (ratio > areaRatio) hh = (aw * W) / ratio / H; else w = (ah * H * ratio) / W;
-        addBlock('image', { hash }, [3 + (aw - w) / 2, 15 + (ah - hh) / 2, w, hh]);
+        addBlock('image', { hash }, [3 + (aw - w) / 2, 14 + (ah - hh) / 2, w, hh]);
       }
       toast('Imagen cargada ✓', 'ok', 1800);
       renderNav();
@@ -638,7 +638,7 @@ export async function mountEditor(root, { cycleId, plantId, viewOnly = false }) 
       b.type === 'callout' && field('Título del cuadro', h('input', { type: 'text', value: c.title, disabled: dis, maxlength: 80, oninput: (e) => { c.title = e.target.value; scaled.wrap.querySelector(`.blk[data-id="${b.id}"] .co-h`).textContent = e.target.value; changed(true); } })),
       field('Tamaño de letra', h('select', { disabled: dis, onchange: (e) => mutate(() => { c.size = +e.target.value; }) }, [12, 14, 16, 18, 20, 22, 24, 28, 32, 40, 48, 60].map((n) => h('option', { value: n, selected: n === c.size }, n + ' px')))),
       field('Alineación', h('select', { disabled: dis, onchange: (e) => mutate(() => { c.align = e.target.value; }) }, [['left', 'Izquierda'], ['center', 'Centro'], ['right', 'Derecha']].map(([v, n]) => h('option', { value: v, selected: v === c.align }, n)))),
-      field('Color del texto', swatches(['#1b2733', '#0d2f5a', '#14a0a0', '#d64545', '#e0a100', '#2e9e5b', '#7a7a7a'], c.color, (v) => mutate(() => { c.color = v; }))),
+      field('Color del texto', swatches(['#000000', '#00886d', '#00a650', '#01557a', '#e0a100', '#d64545', '#575e69'], c.color, (v) => mutate(() => { c.color = v; }))),
       h('p', { class: 'hint' }, 'Doble clic en el bloque para escribir. Al pegar texto se limpia el formato.'));
   }
   function swatches(list, cur, fn) {

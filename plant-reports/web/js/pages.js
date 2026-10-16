@@ -24,7 +24,7 @@ export async function loginPage(app) {
       location.hash = '#/';
     } catch (ex) { err.textContent = ex.message; }
   } },
-  h('img', { src: 'assets/logo.png', class: 'login-logo', alt: '' }), h('h1', {}, 'S&OP Plant Reports'),
+  h('img', { src: 'assets/sop-green.png', class: 'login-logo', alt: '' }), h('h1', {}, 'S&OP Plant Reports'),
   h('p', { class: 'muted' }, 'Informes mensuales de planta · Reunión de suministro'),
   h('div', { class: 'tabs' }, t1, t2), plantBox, adminBox, err, h('button', { class: 'btn primary full', type: 'submit' }, 'Ingresar'),
   h('p', { class: 'muted small' }, 'Información confidencial de Megalabs. Uso interno.'));

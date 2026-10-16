@@ -11,21 +11,25 @@ export const W = 1280, H = 720;
 export function renderSlide(slide, ctx = {}) {
   const kind = slide.kind || 'content';
   const el = h('div', { class: 'slide kind-' + kind, 'data-sid': slide.id });
-  if (kind === 'cover' || kind === 'end') {
-    el.append(h('img', { class: 's-logo-big', src: 'assets/logo.png', alt: '' }),
-      h('div', { class: 'cv-t' }, slide.title || ''), h('div', { class: 'cv-b' }), h('div', { class: 'cv-s' }, slide.subtitle || ''));
+  if (kind === 'cover') {
+    el.append(h('img', { class: 'cv-logo', src: 'assets/sop-white.png', alt: 'S&OP Global' }),
+      h('div', { class: 'cv-t' }, slide.title || ''), h('div', { class: 'cv-s' }, slide.subtitle || ''));
+    return el;
+  }
+  if (kind === 'end') {
+    el.append(h('img', { class: 'dv-logo', src: 'assets/sop-green.png', alt: 'S&OP Global' }),
+      h('div', { class: 'dv-t' }, slide.title || ''), h('div', { class: 'dv-s' }, slide.subtitle || ''));
     return el;
   }
   const tag = [ctx.plantName, ctx.sectionName].filter(Boolean).join(' · ');
-  el.append(h('div', { class: 's-bar' },
-    h('div', { class: 's-title' }, slide.title || (ctx.edit ? 'Título de la diapositiva' : '')),
-    tag && h('div', { class: 's-tag' }, tag),
-    h('img', { class: 's-logo', src: 'assets/logo.png', alt: '' })));
+  el.append(h('div', { class: 's-title' }, slide.title || (ctx.edit ? 'Título de la diapositiva' : '')),
+    tag && h('div', { class: 's-tag' }, tag));
   for (const b of slide.blocks || []) {
     const bl = renderBlock(b, ctx);
     if (bl) el.append(bl);
   }
-  el.append(h('div', { class: 's-foot' }, h('span', {}, ctx.cycleLabel ? 'S&OP Ciclo: ' + ctx.cycleLabel : ''), h('span', {}, ctx.page ? (ctx.total ? `${ctx.page} / ${ctx.total}` : String(ctx.page)) : '')));
+  el.append(h('img', { class: 's-lg-m', src: 'assets/megalabs-white.png', alt: 'Megalabs' }), h('img', { class: 's-lg-s', src: 'assets/sop-white.png', alt: 'S&OP Global' }),
+    h('div', { class: 's-foot' }, h('span', {}, ctx.cycleLabel ? 'S&OP Ciclo: ' + ctx.cycleLabel : ''), h('span', {}, ctx.page ? (ctx.total ? `${ctx.page} / ${ctx.total}` : String(ctx.page)) : '')));
   return el;
 }
 

@@ -49,18 +49,18 @@ export const KPI_DEFINITIONS = [
 // Plantillas de diapositiva: coordenadas en % del lienzo (el contenido útil va de y=15 a y=93).
 export const TEMPLATES = {
   imagen_texto: { name: 'Imagen + Puntos a destacar', blocks: [
-    { type: 'image', x: 3, y: 15, w: 64, h: 77 },
-    { type: 'callout', x: 69, y: 15, w: 28, h: 77 }] },
+    { type: 'image', x: 3, y: 14, w: 64, h: 74 },
+    { type: 'callout', x: 69, y: 14, w: 28, h: 74 }] },
   imagen_grande: { name: 'Título + imagen grande', blocks: [
-    { type: 'image', x: 3, y: 15, w: 94, h: 77 }] },
+    { type: 'image', x: 3, y: 14, w: 94, h: 74 }] },
   dos_imagenes: { name: 'Dos imágenes', blocks: [
-    { type: 'image', x: 3, y: 15, w: 46, h: 77 },
-    { type: 'image', x: 51, y: 15, w: 46, h: 77 }] },
+    { type: 'image', x: 3, y: 14, w: 46, h: 74 },
+    { type: 'image', x: 51, y: 14, w: 46, h: 74 }] },
   tabla_comentarios: { name: 'Tabla + comentarios', blocks: [
-    { type: 'table', x: 3, y: 15, w: 64, h: 77 },
-    { type: 'callout', x: 69, y: 15, w: 28, h: 77 }] },
+    { type: 'table', x: 3, y: 14, w: 64, h: 74 },
+    { type: 'callout', x: 69, y: 14, w: 28, h: 74 }] },
   solo_texto: { name: 'Solo texto', blocks: [
-    { type: 'text', x: 3, y: 15, w: 94, h: 77 }] },
+    { type: 'text', x: 3, y: 14, w: 94, h: 74 }] },
   libre: { name: 'Libre (en blanco)', blocks: [] },
 };
 

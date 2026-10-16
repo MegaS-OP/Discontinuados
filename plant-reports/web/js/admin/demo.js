@@ -7,12 +7,12 @@ async function chart(title, seed, color) {
   const c = document.createElement('canvas'); c.width = 1200; c.height = 640;
   const x = c.getContext('2d');
   x.fillStyle = '#fff'; x.fillRect(0, 0, 1200, 640);
-  x.fillStyle = '#0d2f5a'; x.font = 'bold 34px sans-serif'; x.fillText(title, 40, 56);
+  x.fillStyle = '#01557a'; x.font = 'bold 34px sans-serif'; x.fillText(title, 40, 56);
   const months = ['May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct'];
   months.forEach((m, i) => {
     const v = 40 + r() * 55;
     const bh = v * 5;
-    x.fillStyle = i === 5 ? '#14a0a0' : color; x.fillRect(100 + i * 180, 580 - bh, 110, bh);
+    x.fillStyle = i === 5 ? '#00a650' : color; x.fillRect(100 + i * 180, 580 - bh, 110, bh);
     x.fillStyle = '#333'; x.font = '26px sans-serif'; x.fillText(m, 120 + i * 180, 620); x.fillText(v.toFixed(1) + '%', 110 + i * 180, 570 - bh);
   });
   x.strokeStyle = '#d64545'; x.setLineDash([10, 8]); x.lineWidth = 3; x.beginPath(); x.moveTo(80, 580 - 400); x.lineTo(1160, 580 - 400); x.stroke();
@@ -21,14 +21,14 @@ async function chart(title, seed, color) {
 const T = (rows) => rows.map((r, i) => r.map((t) => ({ h: String(t), bg: '', al: i === 0 ? 'center' : '' })));
 const col = (rows, c, fn) => rows.forEach((r, i) => { if (i) r[c].bg = fn(r[c].h); });
 const sem = (v) => ({ OK: '#c6efce', Atención: '#ffeb9c', Crítico: '#ffc7ce' }[v] || '');
-const txt = (html, size = 22) => ({ type: 'text', x: 3, y: 15, w: 94, h: 77, content: { html, size, color: null, align: 'left' } });
-const call = (html) => ({ type: 'callout', x: 69, y: 15, w: 28, h: 77, content: { title: 'Puntos a destacar', html, size: 18 } });
-const img = (hash) => ({ type: 'image', x: 3, y: 15, w: 64, h: 77, content: { hash, fit: 'contain', alt: '' } });
-const tbl = (rows, fs = 14) => ({ type: 'table', x: 3, y: 15, w: 64, h: 77, content: { rows, header: true, fs, colW: null } });
+const txt = (html, size = 22) => ({ type: 'text', x: 3, y: 14, w: 94, h: 74, content: { html, size, color: null, align: 'left' } });
+const call = (html) => ({ type: 'callout', x: 69, y: 14, w: 28, h: 74, content: { title: 'Puntos a destacar', html, size: 18 } });
+const img = (hash) => ({ type: 'image', x: 3, y: 14, w: 64, h: 74, content: { hash, fit: 'contain', alt: '' } });
+const tbl = (rows, fs = 14) => ({ type: 'table', x: 3, y: 14, w: 64, h: 74, content: { rows, header: true, fs, colW: null } });
 
 async function reportFor(plant, n) {
   const hashes = [];
-  for (let i = 0; i < 3; i++) hashes.push(await uploadImage(await chart(['OTIF', 'Backorder', '% Faltante'][i] + ' · ' + plant.shortName, n * 31 + i + 7, ['#0d2f5a', '#5a7fb0', '#7a8da3'][i])));
+  for (let i = 0; i < 3; i++) hashes.push(await uploadImage(await chart(['OTIF', 'Backorder', '% Faltante'][i] + ' · ' + plant.shortName, n * 31 + i + 7, ['#01557a', '#00a88e', '#78d721'][i])));
   const bo = T([['SKU', 'Producto', 'Días BO', 'Unid.', 'Causa', 'Estado'],
     ...Array.from({ length: 8 }, (_, i) => [`${100200 + i * 17}`, ['Amoxicilina 500', 'Ibuprofeno 400', 'Loratadina 10', 'Omeprazol 20', 'Metformina 850', 'Losartán 50', 'Atorvastatina 20', 'Paracetamol 1g'][i], 5 + ((i * n) % 40), 800 + i * 350, ['Falta de MP', 'Capacidad', 'Liberación QA', 'Material de empaque'][i % 4], ['OK', 'Atención', 'Crítico'][(i + n) % 3]])]);
   col(bo, 5, sem);
