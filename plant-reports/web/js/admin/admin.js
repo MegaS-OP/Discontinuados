@@ -85,8 +85,9 @@ export async function adminCycles(main) {
       return h('tr', {}, h('td', {}, h('b', {}, c.label), h('small', {}, ' ' + c.id)), h('td', {}, h('span', { class: 'chip ' + c.status }, c.status)), h('td', {}, fmtDay(c.deadline)),
         h('td', { class: 'acts' },
           c.status === 'borrador' && h('button', { class: 'btn small primary', onclick: () => openCycle(c, prev, set) }, 'Abrir a las plantas'),
-          c.status === 'abierto' && h('button', { class: 'btn small', onclick: () => set('cerrado') }, 'Cerrar ciclo'),
+          c.status === 'abierto' && h('button', { class: 'btn small primary', onclick: () => closeCycle(c) }, 'Cerrar y archivar'),
           c.status === 'cerrado' && h('button', { class: 'btn small', onclick: () => set('abierto') }, 'Reabrir ciclo'),
+          ['cerrado', 'consolidado'].includes(c.status) && h('a', { class: 'btn small', href: '#/admin/archive' }, 'Ver archivo'),
           c.status === 'cerrado' && h('button', { class: 'btn small', onclick: () => set('consolidado') }, 'Marcar consolidado'),
           c.status === 'consolidado' && h('button', { class: 'btn small', onclick: () => set('cerrado') }, 'Quitar "consolidado"'),
           h('a', { class: 'btn small', href: `#/admin/consolidate/${c.id}` }, 'Consolidado'),
@@ -95,6 +96,17 @@ export async function adminCycles(main) {
             try { await api(`/api/cycles?id=${c.id}`, { method: 'DELETE' }); location.reload(); } catch (e) { toast(e.message, 'bad'); }
           } }, 'Eliminar')));
     }))));
+}
+async function closeCycle(c) {
+  const [{ reports }, cfg] = await Promise.all([api(`/api/report?cycle=${c.id}`), getConfig()]);
+  const pend = cfg.plants.filter((p) => p.active && reports[p.id].status !== 'enviado').map((p) => p.name + (reports[p.id].slides.length ? ' (borrador)' : ' (sin informe)'));
+  modal({ title: 'Cerrar y archivar ' + c.label, wide: true,
+    body: h('div', {}, h('p', {}, 'Al cerrar el ciclo, automáticamente:'),
+      h('ul', {}, h('li', {}, 'el informe de cada planta se guarda en su historial del mes (las plantas lo ven en su inicio);'), h('li', {}, 'el consolidado del mes (con tu orden y diapositivas ocultas) queda guardado en el Archivo;'), h('li', {}, 'las plantas dejan de poder editar.')),
+      pend.length ? h('p', { class: 'warn' }, 'Todavía no enviaron: ' + pend.join(', ') + '. Se archivan tal como están.') : h('p', { class: 'okmsg' }, 'Todas las plantas enviaron su informe.')),
+    buttons: [{ label: 'Cancelar' }, { label: 'Cerrar y archivar', cls: 'primary', onclick: async () => {
+      try { const r = await api(`/api/cycles?id=${c.id}`, { method: 'PATCH', body: { status: 'cerrado' } }); toast(`Archivado ✓ ${r.archived?.consolidatedSlides ?? ''} diapositivas en el consolidado`, 'ok', 5000); location.reload(); } catch (e) { toast(e.message, 'bad', 6000); return false; }
+    } }] });
 }
 function openCycle(c, prev, set) {
   const chk = h('input', { type: 'checkbox', checked: !!prev, disabled: !prev });
@@ -191,4 +203,22 @@ export async function adminContent(main) {
       } }, 'Guardar definiciones')),
     h('h3', {}, 'Secciones del informe (iguales para todas las plantas)'),
     h('ul', {}, cfg.sections.map((s) => h('li', {}, `${s.icon} ${s.name}`, s.required ? ' — obligatoria' : ' — opcional'))));
+}
+
+export async function adminArchive(main) {
+  const [{ months }, cfg] = await Promise.all([api('/api/archive'), getConfig(true)]);
+  const plants = cfg.plants.filter((p) => p.active).sort((a, b) => a.order - b.order);
+  main.append(h('h2', {}, 'Archivo mensual'), h('p', { class: 'muted' }, 'Al cerrar un ciclo se guarda solo: el informe de cada planta y el consolidado del mes. Es una copia congelada; se puede ver, presentar y exportar a PDF idéntica cuando haga falta.'));
+  if (!months.length) { main.append(h('div', { class: 'card' }, 'Todavía no hay meses archivados. Se crean al usar "Cerrar y archivar" en ', h('a', { href: '#/admin/cycles' }, 'Ciclos'), '.')); return; }
+  for (const m of months) {
+    main.append(h('div', { class: 'card' },
+      h('div', { class: 'row' }, h('h3', { style: 'margin:0' }, m.label), h('span', { class: 'muted' }, `cerrado el ${fmtDate(m.closedAt)} por ${m.closedBy}`), h('span', { class: 'grow' }),
+        h('a', { class: 'btn primary', href: `#/admin/archived/${m.cycleId}` }, '🧩 Consolidado (' + m.consolidatedSlides + ' diapositivas)')),
+      h('table', { class: 'tbl', style: 'margin-top:10px' }, h('thead', {}, h('tr', {}, ['Planta', 'Estado al cierre', 'Diapositivas', ''].map((t) => h('th', {}, t)))),
+        h('tbody', {}, plants.map((p) => { const x = m.plants[p.id] || { status: 'sin informe', slides: 0 };
+          return h('tr', {}, h('td', {}, h('b', {}, p.name)),
+            h('td', {}, h('span', { class: 'chip ' + (x.status === 'enviado' ? 'enviado' : x.status === 'borrador' ? 'borrador' : '') }, x.status === 'enviado' ? 'Enviado ' + fmtDate(x.submittedAt) : x.status === 'borrador' ? 'No enviado' : 'Sin informe')),
+            h('td', {}, x.slides),
+            h('td', { class: 'acts' }, x.slides > 0 && [h('a', { class: 'btn small', href: `#/archive/${m.cycleId}/${p.id}` }, 'Ver informe'), h('a', { class: 'btn small', href: `#/present/${m.cycleId}/${p.id}/a` }, '▶ Presentar')])); })))));
+  }
 }

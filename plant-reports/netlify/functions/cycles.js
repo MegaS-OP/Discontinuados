@@ -1,4 +1,5 @@
 import { json, fail, readJson, store, handler, requireAdmin, loadCycle, CYCLE_ID_RE, STATUSES } from './_lib.js';
+import { archiveCycle, deleteArchive } from './_archive.js';
 
 const clean = (b, old = {}) => ({
   ...old,
@@ -37,12 +38,15 @@ export default handler(async ({ req, url, user }) => {
       c.status = b.status;
     }
     await s.setJSON(id, c);
-    return json({ cycle: c });
+    // Al cerrar el ciclo se archiva solo: informe de cada planta + consolidado del mes
+    const archived = ['cerrado', 'consolidado'].includes(b.status) && ['borrador', 'abierto'].includes(old.status) ? await archiveCycle(c, user.name) : null;
+    return json({ cycle: c, archived });
   }
   if (req.method === 'DELETE') {
     const rs = await store('reports');
     for (const b of (await rs.list({ prefix: id + '/' })).blobs) await rs.delete(b.key);
     await (await store('consolidation')).delete(id);
+    await deleteArchive(id);
     await s.delete(id);
     return json({ ok: true });
   }

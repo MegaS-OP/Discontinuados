@@ -52,17 +52,26 @@ async function reportFor(plant, n) {
   };
 }
 
-/** Crea el ciclo "demo" con 3 plantas cargadas (2 enviadas, 1 en borrador). */
+/** Crea dos ciclos: "Setiembre (demo)" ya cerrado y archivado, y "Demo / Ejemplo" abierto con 3 plantas (2 enviadas, 1 en borrador). */
 export async function loadDemo(onStep = () => {}) {
   const cfg = await getConfig();
-  try { await api('/api/cycles?id=demo', { method: 'DELETE' }); } catch { /* no existía */ }
-  await api('/api/cycles', { method: 'POST', body: { id: 'demo', label: 'Demo / Ejemplo', deadline: new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10) } });
-  await api('/api/cycles?id=demo', { method: 'PATCH', body: { status: 'abierto' } });
   const pick = ['pdlc', 'rowe', 'acromax'].map((id) => cfg.plants.find((p) => p.id === id));
-  for (const [i, p] of pick.entries()) {
-    onStep(`Cargando ${p.name}…`);
-    const rep = await reportFor(p, i + 1);
-    await api(`/api/report?cycle=demo&plant=${p.id}`, { method: 'PUT', body: { baseVersion: 0, report: rep } });
-    if (i < 2) await api(`/api/report?cycle=demo&plant=${p.id}&action=submit`, { method: 'POST' });
-  }
+  for (const id of ['demo', '2000-demo']) { try { await api('/api/cycles?id=' + id, { method: 'DELETE' }); } catch { /* no existía */ } }
+  const day = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+  const fill = async (cycle, plants, submitCount, seedBase) => {
+    for (const [i, p] of plants.entries()) {
+      onStep(`Cargando ${p.name}…`);
+      await api(`/api/report?cycle=${cycle}&plant=${p.id}`, { method: 'PUT', body: { baseVersion: 0, report: await reportFor(p, i + seedBase) } });
+      if (i < submitCount) await api(`/api/report?cycle=${cycle}&plant=${p.id}&action=submit`, { method: 'POST' });
+    }
+  };
+  // mes anterior, ya cerrado: queda en el Archivo y en el historial de cada planta
+  await api('/api/cycles', { method: 'POST', body: { id: '2000-demo', label: 'Setiembre/2026 (demo)', deadline: day(-25) } });
+  await api('/api/cycles?id=2000-demo', { method: 'PATCH', body: { status: 'abierto' } });
+  await fill('2000-demo', pick.slice(0, 2), 2, 4);
+  await api('/api/cycles?id=2000-demo', { method: 'PATCH', body: { status: 'cerrado' } });
+  // mes actual, abierto
+  await api('/api/cycles', { method: 'POST', body: { id: 'demo', label: 'Demo / Ejemplo', deadline: day(5) } });
+  await api('/api/cycles?id=demo', { method: 'PATCH', body: { status: 'abierto' } });
+  await fill('demo', pick, 2, 1);
 }

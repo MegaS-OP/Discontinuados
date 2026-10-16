@@ -80,3 +80,26 @@ export async function consolidatePage(root, cycleId) {
   warnings(); draw();
   return () => { if (pending) persist.flush(); };
 }
+
+/** Consolidado archivado de un mes cerrado: copia congelada, sólo lectura. */
+export async function archivedDeckPage(root, cycleId) {
+  const snap = await api(`/api/archive?cycle=${cycleId}&consolidated=1`);
+  const cycle = snap.cycle;
+  const entries = snap.entries.map((e) => ({ ...e, hidden: false }));
+  const items = () => deckItems(entries, cycle);
+  const grid = h('div', { class: 'deck-grid' });
+  entries.forEach((e, i) => {
+    const ctx = { cycleLabel: cycle.label, plantName: e.plant?.shortName, sectionName: e.sectionName, page: i + 1, total: entries.length, lazy: true };
+    grid.append(h('div', { class: 'dk', draggable: 'false', style: 'cursor:default' }, lazyThumb(236, () => renderSlide(e.slide, ctx)),
+      h('div', { class: 'dk-l' }, h('span', { class: 'dk-n' }, i + 1), h('span', { class: 'dk-t' }, e.label, e.editedByAdmin && h('em', {}, ' · editado por admin')))));
+  });
+  root.append(h('div', { class: 'cons' },
+    h('div', { class: 'ed-top' },
+      h('a', { class: 'btn small', href: '#/admin/archive' }, '← Archivo'),
+      h('div', { class: 'ed-title' }, h('b', {}, 'Consolidado archivado'), ` · ${cycle.label}`, ' ', h('span', { class: 'chip cerrado' }, 'congelado')),
+      h('span', { class: 'grow' }), h('b', {}, `${entries.length} diapositivas`),
+      h('button', { class: 'btn small', onclick: () => present(items()) }, '▶ Presentar'),
+      h('button', { class: 'btn small primary', onclick: () => exportPdf(items(), `SOP-Consolidado-${cycle.label.replace(/\W+/g, '-')}`) }, '⬇ Exportar PDF')),
+    h('div', { class: 'banner' }, `Copia congelada al cierre del ciclo (${fmtDate(snap.closedAt)}, por ${snap.closedBy}). No cambia aunque después se edite algún informe.`),
+    grid));
+}

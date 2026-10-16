@@ -67,12 +67,29 @@ try {
   assert.equal((await call('/api/report?cycle=2026-09&plant=pdlc&action=submit', { method: 'POST', token: tok.pdlc })).status, 200);
   assert.equal((await call('/api/report?cycle=2026-09&plant=pdlc', { method: 'PUT', token: tok.pdlc, body: { baseVersion: p2.data.report.version + 1, report: done } })).status, 403); ok('enviado = sólo lectura para la planta');
   assert.equal((await call('/api/report?cycle=2026-09&plant=pdlc&action=reopen', { method: 'POST', token: tok.pdlc })).status, 200); ok('reabrir');
-  await call('/api/cycles?id=2026-09', { method: 'PATCH', body: { status: 'cerrado' }, token: admin });
+  const closed = await call('/api/cycles?id=2026-09', { method: 'PATCH', body: { status: 'cerrado' }, token: admin });
+  assert.equal(closed.data.archived.consolidatedSlides > 0, true); ok('cerrar el ciclo archiva solo (' + closed.data.archived.consolidatedSlides + ' diapositivas en el consolidado)');
   assert.equal((await call('/api/report?cycle=2026-09&plant=pdlc', { token: tok.rowe })).status, 403); ok('ciclo cerrado: tampoco se ve la planta ajena');
   assert.equal((await call('/api/report?cycle=2026-09&plant=pdlc', { token: tok.lector })).status, 200); ok('lector ve su propia planta');
   assert.equal((await call('/api/report?cycle=2026-09&plant=pdlc', { method: 'PUT', token: tok.pdlc, body: { baseVersion: 9, report: done } })).status, 403); ok('ciclo cerrado: sin escritura');
   const all = await call('/api/report?cycle=2026-09', { token: admin });
   assert.equal(Object.keys(all.data.reports).length, 8); ok('admin lee todos los informes');
+  // archivo mensual
+  const frozen = await call('/api/archive?cycle=2026-09&plant=pdlc', { token: tok.pdlc });
+  assert.equal(frozen.status, 200); assert.equal(frozen.data.canEdit, false); assert.equal(frozen.data.report.slides.length, 6); ok('planta ve el archivo congelado de SU planta');
+  assert.equal((await call('/api/archive?cycle=2026-09&plant=pdlc', { token: tok.rowe })).status, 403); ok('planta NO ve el archivo de otra planta');
+  assert.equal((await call('/api/archive?cycle=2026-09&consolidated=1', { token: tok.pdlc })).status, 403); ok('planta NO ve el consolidado archivado');
+  const mine = await call('/api/archive', { token: tok.pdlc });
+  assert.deepEqual(mine.data.months.map((m) => m.cycleId), ['2026-09']); assert.equal(mine.data.months[0].plants, undefined); ok('historial de planta: sólo sus meses');
+  const adm = await call('/api/archive', { token: admin });
+  assert.equal(Object.keys(adm.data.months[0].plants).length, 8); ok('admin ve el archivo de todas las plantas');
+  const cons = await call('/api/archive?cycle=2026-09&consolidated=1', { token: admin });
+  assert.ok(cons.data.entries.some((e) => e.key === 'cover') && cons.data.entries.some((e) => e.key.startsWith('p:pdlc:'))); ok('consolidado del mes guardado');
+  // el archivo no cambia aunque el informe vivo se edite después
+  const live = (await call('/api/report?cycle=2026-09&plant=pdlc', { token: admin })).data.report;
+  await call('/api/report?cycle=2026-09&plant=pdlc', { method: 'PUT', token: admin, body: { baseVersion: live.version, report: { slides: [] } } });
+  const again = await call('/api/archive?cycle=2026-09&plant=pdlc', { token: tok.pdlc });
+  assert.equal(again.data.report.slides.length, 6); ok('el archivo queda congelado');
   assert.equal((await call('/api/consolidation?cycle=2026-09', { token: tok.pdlc })).status, 403);
   assert.equal((await call('/api/consolidation?cycle=2026-09', { method: 'PUT', token: admin, body: { order: ['a'], hidden: ['b'] } })).status, 200); ok('consolidación sólo admin');
   const cfg = await call('/api/config', { token: tok.pdlc });

@@ -18,9 +18,10 @@ const BOX = { text: [5, 18, 50, 30], callout: [69, 14, 28, 74], image: [5, 16, 6
 const put = (el, ...kids) => el.append(...kids.flat(Infinity).filter((k) => k != null && k !== false));
 const isEditable = (t) => t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 
-export async function mountEditor(root, { cycleId, plantId, viewOnly = false }) {
+export async function mountEditor(root, { cycleId, plantId, viewOnly = false, archive = false }) {
   const user = auth.get();
-  const [res, cfg] = await Promise.all([api(`/api/report?cycle=${cycleId}&plant=${plantId}`), getConfig()]);
+  viewOnly = viewOnly || archive;
+  const [res, cfg] = await Promise.all([api(`/api/${archive ? 'archive' : 'report'}?cycle=${cycleId}&plant=${plantId}`), getConfig()]);
   const { cycle } = res;
   const plant = cfg.plants.find((p) => p.id === plantId);
   const sections = cfg.sections;
@@ -130,8 +131,8 @@ export async function mountEditor(root, { cycleId, plantId, viewOnly = false }) 
     top.innerHTML = '';
     const sent = S.status === 'enviado';
     put(top, [
-      h('a', { class: 'btn small', href: isAdmin ? '#/admin' : '#/' }, '← Volver'),
-      h('div', { class: 'ed-title' }, h('b', {}, plant.name), ` · ${cycle.label}`, ' ', h('span', { class: 'chip ' + S.status }, sent ? 'Enviado' : cycle.status !== 'abierto' ? 'Ciclo ' + cycle.status : 'Borrador')),
+      h('a', { class: 'btn small', href: isAdmin ? (archive ? '#/admin/archive' : '#/admin') : '#/' }, '← Volver'),
+      h('div', { class: 'ed-title' }, h('b', {}, plant.name), ` · ${cycle.label}`, ' ', h('span', { class: 'chip ' + S.status }, archive ? 'Archivo' : sent ? 'Enviado' : cycle.status !== 'abierto' ? 'Ciclo ' + cycle.status : 'Borrador')),
       statusEl,
       h('span', { class: 'grow' }),
       canEdit && h('button', { class: 'btn small', title: 'Ctrl+Z', disabled: !S.undo.length, onclick: undo }, '↶ Deshacer'),
@@ -142,10 +143,10 @@ export async function mountEditor(root, { cycleId, plantId, viewOnly = false }) 
       ownPlant && !sent && canEdit && h('button', { class: 'btn small primary', onclick: () => checklist(true) }, 'Enviar informe'),
       ownPlant && sent && (isAdmin || cycle.status === 'abierto') && !viewOnly && h('button', { class: 'btn small', onclick: reopen }, 'Reabrir'),
     ]);
-    banner.hidden = !(sent || (!canEdit && !S.conflict));
+    banner.hidden = !(sent || archive || (!canEdit && !S.conflict));
     if (!banner.hidden && !S.conflict) {
       banner.className = 'banner';
-      banner.textContent = sent ? `Informe enviado${S.submittedAt ? ' el ' + fmtDate(S.submittedAt) : ''}. Sólo lectura${isAdmin ? ' (como administrador igual podés editar)' : ''}.`
+      banner.textContent = archive ? `Archivo de ${cycle.label}: copia congelada al cierre del ciclo${res.closedAt ? ' (' + fmtDate(res.closedAt) + ')' : ''}. Sólo lectura.` : sent ? `Informe enviado${S.submittedAt ? ' el ' + fmtDate(S.submittedAt) : ''}. Sólo lectura${isAdmin ? ' (como administrador igual podés editar)' : ''}.`
         : viewOnly ? 'Modo lectura.' : `Modo lectura (ciclo ${cycle.status}).`;
     }
   }

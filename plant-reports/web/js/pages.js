@@ -31,12 +31,13 @@ export async function loginPage(app) {
 
 export async function plantHome(main) {
   const a = auth.get();
-  const [{ cycles }, cfg] = await Promise.all([api('/api/cycles'), getConfig()]);
+  const [{ cycles: all }, cfg, { months }] = await Promise.all([api('/api/cycles'), getConfig(), api('/api/archive')]);
+  const cycles = all.filter((c) => !['cerrado', 'consolidado'].includes(c.status) || !months.some((m) => m.cycleId === c.id));
   const plant = cfg.plants.find((p) => p.id === a.plantId);
   const editor = a.perm === 'editor';
   main.append(h('h2', {}, plant.name), h('p', { class: 'muted' }, editor ? 'Armá tu informe del mes, presentalo desde acá y enviálo cuando esté listo.' : 'Tu usuario es Lector: podés ver y presentar el informe de tu planta, pero no editarlo.'),
     h('p', {}, h('span', { class: 'chip ' + (editor ? 'enviado' : 'na') }, editor ? 'Rol: Editor' : 'Rol: Lector'), ' ' + a.name));
-  if (!cycles.length) { main.append(h('div', { class: 'card' }, 'Todavía no hay ciclos abiertos. Te avisará el equipo de S&OP.')); return; }
+
   const open = cycles.find((c) => c.status === 'abierto');
   const reps = {};
   await Promise.all(cycles.map(async (c) => { try { reps[c.id] = (await api(`/api/report?cycle=${c.id}&plant=${a.plantId}`)).report; } catch { /* sin acceso */ } }));
@@ -67,15 +68,21 @@ export async function plantHome(main) {
   if (open) main.append(card(open, true));
   else main.append(h('div', { class: 'card' }, 'No hay un ciclo abierto en este momento.'));
   const others = cycles.filter((c) => c !== open);
-  if (others.length) main.append(h('h3', {}, 'Ciclos anteriores'), h('div', { class: 'grid' }, others.map((c) => card(c, false))));
+  if (others.length) main.append(h('h3', {}, 'Otros ciclos'), h('div', { class: 'grid' }, others.map((c) => card(c, false))));
+  main.append(h('h3', {}, 'Historial de meses cerrados'));
+  if (!months.length) main.append(h('p', { class: 'muted' }, 'Cuando el equipo de S&OP cierre un ciclo, el informe de tu planta queda guardado acá, mes por mes.'));
+  else main.append(h('div', { class: 'grid' }, months.map((m) => h('div', { class: 'card cycle' },
+    h('div', { class: 'row' }, h('h3', {}, m.label), h('span', { class: 'chip ' + (m.status === 'enviado' ? 'enviado' : 'borrador') }, m.status === 'enviado' ? 'Enviado' : m.status === 'borrador' ? 'No enviado' : 'Sin informe')),
+    h('p', { class: 'muted' }, `Cerrado el ${fmtDate(m.closedAt)} · ${m.slides} diapositivas`),
+    m.slides > 0 && h('div', { class: 'btns' }, h('a', { class: 'btn', href: `#/archive/${m.cycleId}/${a.plantId}` }, 'Ver informe'), h('a', { class: 'btn', href: `#/present/${m.cycleId}/${a.plantId}/a` }, '▶ Presentar'))))));
 }
 
-export async function presentReport(cycleId, plantId) {
-  const [{ cycle, report }, cfg] = await Promise.all([api(`/api/report?cycle=${cycleId}&plant=${plantId}`), getConfig()]);
+export async function presentReport(cycleId, plantId, archive = false) {
+  const [{ cycle, report }, cfg] = await Promise.all([api(`/api/${archive ? 'archive' : 'report'}?cycle=${cycleId}&plant=${plantId}`), getConfig()]);
   const plant = cfg.plants.find((p) => p.id === plantId);
   const slides = report.slides.filter((s) => !s.hidden);
   if (!slides.length) { toast('El informe no tiene diapositivas.', 'bad'); history.back(); return; }
   const items = slides.map((s, i) => ({ slide: s, ctx: { cycleLabel: cycle.label, plantName: plant.shortName, sectionName: cfg.sections.find((x) => x.id === s.section)?.name, page: i + 1, total: slides.length } }));
-  const back = auth.get().role === 'admin' ? '#/admin' : '#/';
+  const back = auth.get().role === 'admin' ? (archive ? '#/admin/archive' : '#/admin') : '#/';
   present(items, { onExit: () => { location.hash = back; } });
 }

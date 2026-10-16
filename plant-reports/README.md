@@ -63,6 +63,13 @@ Netlify Blobs no requiere configuración: se activa solo para el sitio.
 - **Consolidar**: portada, agenda (resaltando la planta), informes, Back Up y cierre se arman solos. Arrastrar para reordenar, 👁 oculta sólo en el consolidado, ✎ edita en el informe de la planta (queda "editado por admin"). Cambios se guardan solos.
 - **⬇ Exportar PDF**: en la ventana de impresión elegir *Destino: Guardar como PDF · Márgenes: Ninguno · Gráficos de fondo activado*.
 
+## Archivo mensual (automático)
+Al usar **Ciclos → Cerrar y archivar**, el sistema guarda solo y de forma congelada:
+- **Por planta y mes**: el informe de cada planta (también las que no enviaron, marcadas como tal). Cada usuario de planta lo ve en **Historial de meses cerrados** en su inicio; sólo el de SU planta.
+- **Consolidado del mes**: con el orden y las diapositivas ocultas que dejaste al cerrar. Está en **Archivo → Consolidado** (sólo corporativo), se puede presentar y exportar a PDF idéntico cuando haga falta.
+- Es una copia: aunque después se edite el informe original, el archivo no cambia. Si reabrís un ciclo y lo cerrás de nuevo, el archivo de ese mes se actualiza.
+- Eliminar un ciclo también elimina su archivo (pide confirmación).
+
 ## Seguridad
 - **Usuarios individuales** (correo + código personal; sólo se guarda el hash SHA-256 con sal); sesión firmada HMAC de 12 h; 5 intentos fallidos/15 min por IP y usuario.
 - **Roles**: *Editor* (arma, presenta y envía el informe de SU planta) y *Lector* (sólo ve y presenta SU planta). El administrador (contraseña en Netlify) ve todo.
