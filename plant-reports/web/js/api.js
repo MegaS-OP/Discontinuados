@@ -38,6 +38,7 @@ export async function api(path, { method = 'GET', body, raw, type } = {}) {
 }
 
 export function uploadImage(blob, onProgress) {
+  if (window.__PV_UPLOAD) return window.__PV_UPLOAD(blob, onProgress); // vista previa sin servidor
   return new Promise((resolve, reject) => {
     const x = new XMLHttpRequest();
     x.open('POST', '/api/image');
@@ -52,7 +53,7 @@ export function uploadImage(blob, onProgress) {
     x.send(blob);
   });
 }
-export const imgUrl = (hash) => `/api/image?h=${hash}&t=${encodeURIComponent(auth.get()?.token || '')}`;
+export const imgUrl = (hash) => window.__PV_IMG?.(hash) ?? `/api/image?h=${hash}&t=${encodeURIComponent(auth.get()?.token || '')}`;
 
 // Config en memoria (se recarga bajo demanda)
 let cfgCache = null;
