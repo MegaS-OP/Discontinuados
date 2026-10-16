@@ -4,27 +4,25 @@ import { sectionStatus } from './model/sanitize.js';
 import { present } from './present/present.js';
 
 export async function loginPage(app) {
-  let plants = [];
-  try { plants = (await api('/api/auth')).plants; } catch (e) { toast(e.message, 'bad'); }
   let role = 'plant';
   const err = h('div', { class: 'err' });
-  const sel = h('select', { id: 'plant' }, plants.map((p) => h('option', { value: p.id }, p.name)));
-  const code = h('input', { type: 'password', id: 'code', placeholder: 'Código de acceso de la planta', autocomplete: 'off' });
+  const email = h('input', { type: 'text', id: 'email', placeholder: 'tu.correo@megalabs.com', autocomplete: 'username' });
+  const code = h('input', { type: 'password', id: 'code', placeholder: 'Código personal (XXXX-XXXX-XXXX)', autocomplete: 'off' });
   const pw = h('input', { type: 'password', id: 'pw', placeholder: 'Contraseña de administrador', autocomplete: 'off' });
-  const plantBox = h('div', {}, h('label', {}, 'Planta', sel), h('label', {}, 'Código de acceso', code));
+  const plantBox = h('div', {}, h('label', {}, 'Usuario (correo)', email), h('label', {}, 'Código de acceso', code));
   const adminBox = h('div', { hidden: true }, h('label', {}, 'Contraseña', pw));
-  const t1 = h('button', { class: 'tab on', type: 'button' }, 'Planta'), t2 = h('button', { class: 'tab', type: 'button' }, 'Administrador');
+  const t1 = h('button', { class: 'tab on', type: 'button' }, 'Usuario de planta'), t2 = h('button', { class: 'tab', type: 'button' }, 'Administrador');
   const setRole = (r) => { role = r; plantBox.hidden = r !== 'plant'; adminBox.hidden = r !== 'admin'; t1.classList.toggle('on', r === 'plant'); t2.classList.toggle('on', r === 'admin'); err.textContent = ''; };
   t1.onclick = () => setRole('plant'); t2.onclick = () => setRole('admin');
   const form = h('form', { class: 'login-card', onsubmit: async (e) => {
     e.preventDefault(); err.textContent = '';
     try {
-      const body = role === 'admin' ? { role, password: pw.value } : { role, plantId: sel.value, code: code.value };
+      const body = role === 'admin' ? { role, password: pw.value } : { role, email: email.value, code: code.value };
       auth.set(await api('/api/auth', { method: 'POST', body }));
       location.hash = '#/';
     } catch (ex) { err.textContent = ex.message; }
   } },
-  h('img', { src: 'assets/sop-green.png', class: 'login-logo', alt: '' }), h('h1', {}, 'S&OP Plant Reports'),
+  h('img', { src: 'assets/sop-green.png', class: 'login-logo', alt: 'S&OP Global' }), h('h1', {}, 'S&OP Suministro Reports'),
   h('p', { class: 'muted' }, 'Informes mensuales de planta · Reunión de suministro'),
   h('div', { class: 'tabs' }, t1, t2), plantBox, adminBox, err, h('button', { class: 'btn primary full', type: 'submit' }, 'Ingresar'),
   h('p', { class: 'muted small' }, 'Información confidencial de Megalabs. Uso interno.'));
@@ -35,7 +33,9 @@ export async function plantHome(main) {
   const a = auth.get();
   const [{ cycles }, cfg] = await Promise.all([api('/api/cycles'), getConfig()]);
   const plant = cfg.plants.find((p) => p.id === a.plantId);
-  main.append(h('h2', {}, plant.name), h('p', { class: 'muted' }, 'Armá tu informe del mes, presentalo desde acá y enviálo cuando esté listo.'));
+  const editor = a.perm === 'editor';
+  main.append(h('h2', {}, plant.name), h('p', { class: 'muted' }, editor ? 'Armá tu informe del mes, presentalo desde acá y enviálo cuando esté listo.' : 'Tu usuario es Lector: podés ver y presentar el informe de tu planta, pero no editarlo.'),
+    h('p', {}, h('span', { class: 'chip ' + (editor ? 'enviado' : 'na') }, editor ? 'Rol: Editor' : 'Rol: Lector'), ' ' + a.name));
   if (!cycles.length) { main.append(h('div', { class: 'card' }, 'Todavía no hay ciclos abiertos. Te avisará el equipo de S&OP.')); return; }
   const open = cycles.find((c) => c.status === 'abierto');
   const reps = {};
@@ -43,7 +43,7 @@ export async function plantHome(main) {
   const card = (c, big) => {
     const r = reps[c.id] || { slides: [], status: 'borrador', version: 0, naSections: {} };
     const sent = r.status === 'enviado';
-    const isOpen = c.status === 'abierto';
+    const isOpen = c.status === 'abierto' && editor;
     const prev = cycles.find((x) => x.id < c.id);
     const done = cfg.sections.filter((s) => s.required && sectionStatus(r, s.id) !== 'vacia').length;
     const req = cfg.sections.filter((s) => s.required).length;

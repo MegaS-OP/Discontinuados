@@ -1,4 +1,4 @@
-# S&OP Plant Reports
+# S&OP Suministro Reports
 
 Editor de informes mensuales de planta + consolidador para la reunión de suministro.
 Salida: **presentación en pantalla + PDF** (no genera .pptx). Interfaz en español.
@@ -42,15 +42,15 @@ Netlify Blobs no requiere configuración: se activa solo para el sitio.
 
 ### 4. Primer uso
 1. Abrí la URL → pestaña **Administrador** → ingresá con `ADMIN_PASSWORD`.
-2. **Plantas y accesos** → **Generar código** en cada planta y enviáselo (se muestra una sola vez).
+2. **Usuarios** → **Nuevo usuario**: nombre, correo, planta y rol (**Editor** o **Lector**). Al crearlo se muestra su código personal **una sola vez**; enviáselo. Se puede regenerar, desactivar o eliminar en cualquier momento.
 3. **Contenido** → reemplazá los textos provisionales de definiciones de KPI (Back Up).
 4. **Ciclos** → crear ciclo (mes + fecha límite) → **Abrir a las plantas** (con opción de pre-cargar desde el mes anterior).
 5. Para probar sin cargar nada: **Tablero** → **Cargar datos de ejemplo** (crea el ciclo "Demo / Ejemplo" con 3 plantas). Se borra desde **Ciclos → Eliminar**.
 
 ## Manual de uso (1 página)
 
-**Plantas**
-- Ingresan con su código → **Empezar el informe** o **Duplicar del mes anterior**.
+**Usuarios de planta (Editor)**
+- Ingresan con su correo + código personal → **Empezar el informe** o **Duplicar del mes anterior**.
 - Columna izquierda: diapositivas por sección (＋ agrega con la plantilla típica; ▾ elige otra). Arrastrá para reordenar.
 - **Ctrl+V** pega capturas (se comprimen solas a ≤1920 px), **tablas de Excel** (quedan editables, conservan colores de celda) o texto. También se pueden arrastrar archivos al lienzo.
 - Doble clic en un texto/celda para escribir. Mover y redimensionar con el mouse; flechas (Shift = 5%); Supr borra; Ctrl+C/V/D copia/pega/duplica bloques; Ctrl+Z / Ctrl+Y.
@@ -64,8 +64,9 @@ Netlify Blobs no requiere configuración: se activa solo para el sitio.
 - **⬇ Exportar PDF**: en la ventana de impresión elegir *Destino: Guardar como PDF · Márgenes: Ninguno · Gráficos de fondo activado*.
 
 ## Seguridad
-- Código por planta (sólo se guarda el hash SHA-256 con sal); sesión firmada HMAC de 12 h; 5 intentos fallidos/15 min por IP.
-- Una planta no puede leer ni escribir informes de otra hasta que el ciclo se cierra (entonces sólo lectura).
+- **Usuarios individuales** (correo + código personal; sólo se guarda el hash SHA-256 con sal); sesión firmada HMAC de 12 h; 5 intentos fallidos/15 min por IP y usuario.
+- **Roles**: *Editor* (arma, presenta y envía el informe de SU planta) y *Lector* (sólo ve y presenta SU planta). El administrador (contraseña en Netlify) ve todo.
+- Un usuario de planta **nunca** puede ver ni editar informes de otras plantas, ni el consolidado, tampoco con el ciclo cerrado. Planta y rol se validan en el servidor en cada llamada: desactivar a alguien o cambiarlo de planta/rol se aplica al instante.
 - HTML saneado con lista blanca al guardar y al mostrar; imágenes validadas por contenido (≤5 MB); CSP y cabeceras en `netlify.toml`.
 
 ## Desarrollo local (opcional, requiere Node 20+)
@@ -76,7 +77,7 @@ npm run test:api   # pruebas de la API (incluye aislamiento entre plantas)
 ```
 
 ## Estado por fases
-- **Fase 1 (esta entrega)**: login planta/admin, ciclos, editor (texto, imagen, tabla, "Puntos a destacar"), pegado/arrastre/compresión, autoguardado + respaldo local + bloqueo por versión, presentación, enviar/reabrir, tablero, consolidador (orden, ocultas, portada, agenda, Back Up) y PDF, duplicar mes anterior, demo.
+- **Fase 1 (esta entrega)**: usuarios y permisos por planta (Editor/Lector), login, ciclos, editor (texto, imagen, tabla, "Puntos a destacar"), pegado/arrastre/compresión, autoguardado + respaldo local + bloqueo por versión, presentación, enviar/reabrir, tablero, consolidador (orden, ocultas, portada, agenda, Back Up) y PDF, duplicar mes anterior, demo.
 - **Fase 2**: KPIs estructurados + resumen comparativo, aviso de contenido sin cambios, dividir tablas largas, historial, orden por sección, congelar consolidado.
 - **Fase 3**: importar PPTX, correos por Gmail SMTP, exportar HTML autocontenido.
 

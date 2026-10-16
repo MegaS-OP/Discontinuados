@@ -25,7 +25,7 @@ export async function mountEditor(root, { cycleId, plantId, viewOnly = false }) 
   const plant = cfg.plants.find((p) => p.id === plantId);
   const sections = cfg.sections;
   const isAdmin = user.role === 'admin';
-  const ownPlant = isAdmin || user.plantId === plantId;
+  const ownPlant = isAdmin || (user.plantId === plantId && user.perm === 'editor');
 
   const S = {
     slides: res.report.slides || [], na: res.report.naSections || {}, kpis: res.report.kpis || {},

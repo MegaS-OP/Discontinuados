@@ -38,4 +38,4 @@ http.createServer(async (req, res) => {
     res.writeHead(200, { 'content-type': MIME[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-cache' });
     res.end(data);
   } catch { res.writeHead(404); res.end('No encontrado'); }
-}).listen(PORT, () => console.log(`SOP Plant Reports en http://localhost:${PORT}  (admin: ${process.env.ADMIN_PASSWORD})`));
+}).listen(PORT, () => console.log(`S&OP Suministro Reports en http://localhost:${PORT}  (admin: ${process.env.ADMIN_PASSWORD})`));

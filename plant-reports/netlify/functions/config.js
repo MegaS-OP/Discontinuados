@@ -1,28 +1,13 @@
-import crypto from 'node:crypto';
-import { json, fail, readJson, handler, requireAdmin, loadConfig, saveConfig, loadAccess, saveAccess, hashCode } from './_lib.js';
-
-const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const genCode = () => Array.from({ length: 12 }, () => ALPHABET[crypto.randomInt(ALPHABET.length)]).join('').replace(/(.{4})(?=.)/g, '$1-');
+import { json, fail, readJson, handler, requireAdmin, loadConfig, saveConfig } from './_lib.js';
 
 export default handler(async ({ req, url, user }) => {
   const cfg = await loadConfig();
   if (req.method === 'GET') {
-    const access = await loadAccess();
-    return json({ ...cfg, plants: cfg.plants.map((p) => ({ ...p, hasCode: !!access[p.id] })) });
+    return json(cfg);
   }
   const denied = requireAdmin(user);
   if (denied) return denied;
 
-  if (req.method === 'POST' && url.searchParams.get('action') === 'gencode') {
-    const id = url.searchParams.get('plant');
-    if (!cfg.plants.some((p) => p.id === id)) return fail(404, 'Planta inexistente');
-    const code = genCode();
-    const salt = crypto.randomBytes(16).toString('hex');
-    const access = await loadAccess();
-    access[id] = { salt, hash: hashCode(salt, code), at: new Date().toISOString() };
-    await saveAccess(access);
-    return json({ code }); // se muestra una sola vez; sólo se guarda el hash
-  }
   if (req.method === 'PUT') {
     const b = (await readJson(req)) || {};
     const num = (v) => (v === null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));

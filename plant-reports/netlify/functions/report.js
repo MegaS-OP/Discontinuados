@@ -23,15 +23,15 @@ export default handler(async ({ req, url, user }) => {
   }
   if (!cfg.plants.some((p) => p.id === plantId)) return fail(404, 'Planta inexistente');
 
-  const own = isAdmin || user.plantId === plantId;
-  const closed = cycle.status === 'cerrado' || cycle.status === 'consolidado';
-  if (!own && !closed) return fail(403, 'No tenés acceso al informe de otra planta.');
+  const own = isAdmin || user.plantId === plantId; // cada usuario sólo accede a SU planta, también con el ciclo cerrado
+  if (!own) return fail(403, 'No tenés acceso al informe de otra planta.');
+  const canWrite = isAdmin || user.perm === 'editor';
   const method = req.method;
   const stored = (await rs.get(reportKey(cycleId, plantId), { type: 'json' })) || emptyReport();
 
-  if (method === 'GET') return json({ cycle, report: stored, canEdit: own && (isAdmin || (cycle.status === 'abierto' && stored.status !== 'enviado')) });
+  if (method === 'GET') return json({ cycle, report: stored, canEdit: canWrite && (isAdmin || (cycle.status === 'abierto' && stored.status !== 'enviado')) });
 
-  if (!own) return fail(403, 'No tenés acceso al informe de otra planta.');
+  if (!canWrite) return fail(403, 'Tu usuario es de sólo lectura (Lector).');
   if (!isAdmin && cycle.status !== 'abierto') return fail(403, 'El ciclo no está abierto para edición.');
   const who = isAdmin ? 'admin' : user.name;
   const sectionIds = cfg.sections.map((s) => s.id);

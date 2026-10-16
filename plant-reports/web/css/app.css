@@ -44,7 +44,7 @@ label.chk input { width: auto; }
 .tbl { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
 .tbl th, .tbl td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
 .tbl th { background: #eaf0f6; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--mut); }
-.tbl .acts { display: flex; gap: 6px; flex-wrap: wrap; } .scroll { overflow-x: auto; }
+.tbl td.acts { white-space: nowrap; } .tbl td.acts > * { margin: 2px 6px 2px 0; } .scroll { overflow-x: auto; }
 .stats { display: flex; gap: 12px; align-items: stretch; margin: 12px 0; flex-wrap: wrap; }
 .stat { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 18px; display: flex; flex-direction: column; } .stat b { font-size: 22px; }
 .stats .btn { align-self: center; margin-left: auto; padding: 12px 20px; }
@@ -60,7 +60,7 @@ label.chk input { width: auto; }
 .tabs { display: flex; margin: 14px 0 6px; border-bottom: 2px solid var(--line); } .tab { flex: 1; border: 0; background: none; padding: 8px; font: inherit; cursor: pointer; color: var(--mut); border-bottom: 3px solid transparent; margin-bottom: -2px; } .tab.on { color: var(--brand); border-color: var(--acc); font-weight: 600; }
 .err { color: var(--bad); min-height: 20px; font-size: 13px; }
 /* editor */
-.full { height: 100vh; width: 100%; }
+.screen { height: 100vh; width: 100%; }
 .editor, .cons { height: 100vh; display: flex; flex-direction: column; }
 .ed-top { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #fff; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .ed-title { font-size: 15px; } .save-st { font-size: 12px; color: var(--mut); } .save-st.ok { color: var(--ok); } .save-st.bad { color: var(--bad); font-weight: 600; }
@@ -126,3 +126,5 @@ td.cell-sel { box-shadow: inset 0 0 0 3px #1e88ff; }
 .dk-n { background: var(--brand); color: #fff; border-radius: 9px; padding: 0 6px; font-size: 11px; }
 .cons { background: var(--bg); }
 @media (max-width: 1100px) { .ed-main { grid-template-columns: 190px 1fr 240px; } }
+
+.perms p { margin: 4px 0; }

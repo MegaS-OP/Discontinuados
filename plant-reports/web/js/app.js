@@ -2,7 +2,7 @@ import { h } from './util.js';
 import { auth, api, clearConfig } from './api.js';
 import { loginPage, plantHome, presentReport } from './pages.js';
 import { mountEditor } from './editor/editor.js';
-import { adminDashboard, adminCycles, adminPlants, adminContent } from './admin/admin.js';
+import { adminDashboard, adminCycles, adminPlants, adminUsers, adminContent } from './admin/admin.js';
 import { consolidatePage } from './admin/consolidate.js';
 
 const app = document.getElementById('app');
@@ -11,10 +11,10 @@ let token = 0;
 
 function shell(active) {
   const a = auth.get();
-  const nav = a.role === 'admin' ? [['admin', 'Tablero'], ['admin/cycles', 'Ciclos'], ['admin/plants', 'Plantas y accesos'], ['admin/content', 'Contenido']] : [];
+  const nav = a.role === 'admin' ? [['admin', 'Tablero'], ['admin/cycles', 'Ciclos'], ['admin/plants', 'Plantas'], ['admin/users', 'Usuarios'], ['admin/content', 'Contenido']] : [];
   const main = h('main', { class: 'main' });
   app.append(h('header', { class: 'topbar' },
-    h('img', { src: 'assets/megalabs-white.png', class: 'tb-logo', alt: '' }), h('b', {}, 'S&OP Plant Reports'),
+    h('img', { src: 'assets/megalabs-white.png', class: 'tb-logo', alt: '' }), h('b', {}, 'S&OP Suministro Reports'),
     h('nav', {}, nav.map(([p, n]) => h('a', { href: '#/' + p, class: active === p ? 'on' : '' }, n))),
     h('span', { class: 'grow' }),
     h('span', { class: 'who' }, a.name),
@@ -34,14 +34,14 @@ async function render() {
     const done = (c) => { if (my === token) cleanup = c; else c?.(); };
     if (page === 'login') return loginPage(app);
     if (page === 'edit' || page === 'view') {
-      const root = h('div', { class: 'full' }); app.append(root);
+      const root = h('div', { class: 'screen' }); app.append(root);
       return done(await mountEditor(root, { cycleId: a[0], plantId: a[1], viewOnly: page === 'view' }));
     }
     if (page === 'present') return await presentReport(a[0], a[1]);
     if (page === 'admin' && user.role === 'admin') {
-      if (sub === 'consolidate') { const root = h('div', { class: 'full' }); app.append(root); return done(await consolidatePage(root, a[1])); }
+      if (sub === 'consolidate') { const root = h('div', { class: 'screen' }); app.append(root); return done(await consolidatePage(root, a[1])); }
       const main = shell('admin' + (sub ? '/' + sub : ''));
-      return done(await ({ undefined: adminDashboard, cycles: adminCycles, plants: adminPlants, content: adminContent }[sub] || adminDashboard)(main, a));
+      return done(await ({ undefined: adminDashboard, cycles: adminCycles, plants: adminPlants, users: adminUsers, content: adminContent }[sub] || adminDashboard)(main, a));
     }
     if (user.role === 'admin') { location.hash = '#/admin'; return; }
     return done(await plantHome(shell('')));

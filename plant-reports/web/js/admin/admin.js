@@ -114,28 +114,58 @@ export async function adminPlants(main) {
   const plants = cfg.plants.map((p) => ({ ...p, kpiTargets: { ...p.kpiTargets } })).sort((a, b) => a.order - b.order);
   const tkeys = KPI_KEYS.filter((k) => k.key in plants[0].kpiTargets);
   const inp = (obj, key, type = 'text', w = '') => h('input', { type, value: obj[key] ?? '', class: w, onchange: (e) => { obj[key] = type === 'number' ? e.target.value : e.target.value; } });
-  main.append(h('h2', {}, 'Plantas y accesos'),
-    h('p', { class: 'muted' }, 'El orden define la agenda del consolidado. Cada planta entra con su código de acceso (se muestra una sola vez al generarlo; si se pierde, se genera otro).'),
+  main.append(h('h2', {}, 'Plantas'),
+    h('p', { class: 'muted' }, 'El orden define la agenda del consolidado. Los accesos se administran en ', h('a', { href: '#/admin/users' }, 'Usuarios'), '.'),
     h('div', { class: 'scroll' }, h('table', { class: 'tbl' },
-      h('thead', {}, h('tr', {}, ['Orden', 'Nombre', 'Nombre corto', 'Activa', ...tkeys.map((k) => 'Meta ' + k.name.split(' ')[0].replace('Adherencia', 'Adh.') + (k.key.startsWith('adh') ? ' ' + k.key.slice(3) : '')), 'Acceso'].map((t) => h('th', {}, t)))),
+      h('thead', {}, h('tr', {}, ['Orden', 'Nombre', 'Nombre corto', 'Activa', ...tkeys.map((k) => 'Meta ' + k.name.split(' ')[0].replace('Adherencia', 'Adh.') + (k.key.startsWith('adh') ? ' ' + k.key.slice(3) : ''))].map((t) => h('th', {}, t)))),
       h('tbody', {}, plants.map((p) => h('tr', {},
         h('td', {}, inp(p, 'order', 'number', 'w50')), h('td', {}, inp(p, 'name')), h('td', {}, inp(p, 'shortName')),
         h('td', {}, h('input', { type: 'checkbox', checked: p.active, onchange: (e) => { p.active = e.target.checked; } })),
-        tkeys.map((k) => h('td', {}, inp(p.kpiTargets, k.key, 'number', 'w60'))),
-        h('td', {}, h('span', { class: 'chip ' + (p.hasCode ? 'enviado' : '') }, p.hasCode ? 'Con código' : 'Sin código'), ' ',
-          h('button', { class: 'btn small', onclick: () => genCode(p) }, p.hasCode ? 'Regenerar' : 'Generar código'))))))),
+        tkeys.map((k) => h('td', {}, inp(p.kpiTargets, k.key, 'number', 'w60')))))))),
     h('p', {}, h('button', { class: 'btn primary', onclick: async () => {
       try { await api('/api/config', { method: 'PUT', body: { plants } }); clearConfig(); toast('Guardado ✓', 'ok'); } catch (e) { toast(e.message, 'bad'); }
     } }, 'Guardar cambios')));
 }
-async function genCode(p) {
-  if (p.hasCode && !(await confirmBox('Regenerar código', `El código actual de ${p.name} dejará de funcionar.`, 'Regenerar'))) return;
-  try {
-    const { code } = await api(`/api/config?action=gencode&plant=${p.id}`, { method: 'POST' });
-    clearConfig();
-    modal({ title: 'Código de acceso de ' + p.name, body: h('div', {}, h('p', {}, 'Copialo y enviáselo a la planta. ', h('b', {}, 'No se vuelve a mostrar.')), h('div', { class: 'code' }, code)),
-      buttons: [{ label: 'Copiar', onclick: async () => { try { await navigator.clipboard.writeText(code); toast('Copiado', 'ok'); } catch { toast('Copialo a mano', 'bad'); } return false; } }, { label: 'Listo', cls: 'primary', onclick: () => location.reload() }] });
-  } catch (e) { toast(e.message, 'bad'); }
+export async function adminUsers(main) {
+  const [{ users }, cfg] = await Promise.all([api('/api/users'), getConfig(true)]);
+  const plants = cfg.plants.slice().sort((a, b) => a.order - b.order);
+  const pname = (id) => cfg.plants.find((p) => p.id === id)?.name || id;
+  const showCode = (title, code) => modal({ title, body: h('div', {}, h('p', {}, 'Copialo y enviáselo a la persona. ', h('b', {}, 'No se vuelve a mostrar.')), h('div', { class: 'code' }, code)),
+    buttons: [{ label: 'Copiar', onclick: async () => { try { await navigator.clipboard.writeText(code); toast('Copiado', 'ok'); } catch { toast('Copialo a mano', 'bad'); } return false; } }, { label: 'Listo', cls: 'primary', onclick: () => location.reload() }] });
+  const act = async (fn) => { try { await fn(); } catch (e) { toast(e.message, 'bad', 6000); } };
+
+  main.append(h('div', { class: 'row' }, h('h2', {}, 'Usuarios y permisos'), h('span', { class: 'grow' }), h('button', { class: 'btn primary', onclick: newUser }, '＋ Nuevo usuario')),
+    h('div', { class: 'card perms' },
+      h('p', {}, h('b', {}, 'Editor'), ': arma, presenta y envía el informe de SU planta.'),
+      h('p', {}, h('b', {}, 'Lector'), ': sólo ve y presenta el informe de SU planta.'),
+      h('p', { class: 'muted' }, 'Ningún usuario de planta puede ver ni editar informes de otras plantas, ni el consolidado. El administrador (contraseña en Netlify) ve todo.')));
+  if (!users.length) main.append(h('div', { class: 'card' }, 'Todavía no hay usuarios. Creá el primero con "Nuevo usuario".'));
+  for (const p of plants) {
+    const list = users.filter((u) => u.plantId === p.id);
+    if (!list.length) continue;
+    main.append(h('h3', {}, p.name), h('table', { class: 'tbl' },
+      h('thead', {}, h('tr', {}, ['Nombre', 'Correo (usuario)', 'Rol', 'Estado', ''].map((t) => h('th', {}, t)))),
+      h('tbody', {}, list.map((u) => h('tr', {},
+        h('td', {}, h('b', {}, u.name)), h('td', {}, u.email),
+        h('td', {}, h('select', { onchange: (e) => act(async () => { await api('/api/users?id=' + u.id, { method: 'PATCH', body: { perm: e.target.value } }); toast('Rol actualizado', 'ok'); }) },
+          [['editor', 'Editor'], ['lector', 'Lector']].map(([v, n]) => h('option', { value: v, selected: v === u.perm }, n)))),
+        h('td', {}, h('span', { class: 'chip ' + (u.active ? 'enviado' : 'cerrado') }, u.active ? 'Activo' : 'Desactivado')),
+        h('td', { class: 'acts' },
+          h('button', { class: 'btn small', onclick: () => act(async () => { const { code } = await api(`/api/users?id=${u.id}&action=regen`, { method: 'POST' }); showCode('Nuevo código de ' + u.name, code); }) }, 'Nuevo código'),
+          h('button', { class: 'btn small', onclick: () => act(async () => { await api('/api/users?id=' + u.id, { method: 'PATCH', body: { active: !u.active } }); location.reload(); }) }, u.active ? 'Desactivar' : 'Activar'),
+          h('button', { class: 'btn small bad', onclick: async () => { if (await confirmBox('Eliminar usuario', `Se elimina a ${u.name}. No se puede deshacer.`, 'Eliminar')) act(async () => { await api('/api/users?id=' + u.id, { method: 'DELETE' }); location.reload(); }); } }, 'Eliminar')))))));
+  }
+
+  function newUser() {
+    const name = h('input', { type: 'text', id: 'u-name', maxlength: 80 });
+    const email = h('input', { type: 'text', id: 'u-email', placeholder: 'nombre@megalabs.com' });
+    const plant = h('select', { id: 'u-plant' }, plants.filter((p) => p.active).map((p) => h('option', { value: p.id }, p.name)));
+    const perm = h('select', { id: 'u-perm' }, h('option', { value: 'editor' }, 'Editor (arma y envía el informe)'), h('option', { value: 'lector' }, 'Lector (sólo ve y presenta)'));
+    modal({ title: 'Nuevo usuario', body: h('div', {}, h('label', {}, 'Nombre y apellido', name), h('label', {}, 'Correo (será su usuario)', email), h('label', {}, 'Planta', plant), h('label', {}, 'Rol', perm)),
+      buttons: [{ label: 'Cancelar' }, { label: 'Crear usuario', cls: 'primary', onclick: async () => {
+        try { const r = await api('/api/users', { method: 'POST', body: { name: name.value, email: email.value, plantId: plant.value, perm: perm.value } }); showCode('Código de ' + r.user.name, r.code); } catch (e) { toast(e.message, 'bad', 6000); return false; }
+      } }] });
+  }
 }
 
 export async function adminContent(main) {

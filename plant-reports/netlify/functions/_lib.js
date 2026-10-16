@@ -83,6 +83,11 @@ export function handler(fn, { auth = true } = {}) {
       if (auth) {
         user = readToken(req, url);
         if (!user) return fail(401, 'Sesión no válida o vencida. Ingresá nuevamente.');
+        if (user.role === 'plant') { // el usuario debe seguir activo; planta y rol se toman SIEMPRE del servidor
+          const u = (await loadUsers()).find((x) => x.id === user.userId);
+          if (!u || !u.active) return fail(401, 'Tu usuario está desactivado o no existe. Consultá al equipo de S&OP.');
+          user = { ...user, plantId: u.plantId, perm: u.perm, name: u.name };
+        }
       }
       return await fn({ req, ctx, url, user });
     } catch (e) {
@@ -105,8 +110,11 @@ export async function loadConfig() {
   return cfg;
 }
 export const saveConfig = async (cfg) => (await store('config')).setJSON('main', cfg);
-export const loadAccess = async () => (await (await store('config')).get('access', { type: 'json' })) || {};
-export const saveAccess = async (a) => (await store('config')).setJSON('access', a);
+// Usuarios: { id, name, email, plantId, perm: 'editor'|'lector', active, salt, hash, createdAt }
+export const loadUsers = async () => (await (await store('users')).get('main', { type: 'json' })) || [];
+export const saveUsers = async (u) => (await store('users')).setJSON('main', u);
+export const publicUser = ({ salt, hash, ...u }) => u;
+export const PERMS = ['editor', 'lector'];
 
 export const CYCLE_ID_RE = /^[a-z0-9-]{3,24}$/;
 export const STATUSES = ['borrador', 'abierto', 'cerrado', 'consolidado'];
