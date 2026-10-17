@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# SOP Plant Reports
+plant-reports/.dev-data
+plant-reports/node_modules

@@ -1,0 +1,47 @@
+/* Diseño corporativo Megalabs · S&OP Global (tomado de Template_SOP.pptx).
+   Paleta: verde #00A650 · lima #78D721 · verde azulado #00886D · turquesa #00A88E · azul #01557A · gris #575E69 / #9DA3AD / #DFE1E5.
+   Tipografía: Barlow (el template la usa en títulos y texto). */
+@font-face { font-family: "Barlow"; font-weight: 400; font-display: swap; src: url(../assets/fonts/barlow-400.ttf) format("truetype"); }
+@font-face { font-family: "Barlow"; font-weight: 600; font-display: swap; src: url(../assets/fonts/barlow-600.ttf) format("truetype"); }
+@font-face { font-family: "Barlow"; font-weight: 700; font-display: swap; src: url(../assets/fonts/barlow-700.ttf) format("truetype"); }
+:root {
+  --green: #00a650; --lime: #78d721; --teal: #00886d; --aqua: #00a88e; --blue: #01557a; --pale: #b5d29c;
+  --gray: #575e69; --gray-2: #9da3af; --gray-3: #dfe1e5;
+  --grad: linear-gradient(90deg, #01557a 0%, #3e8d67 55%, #78d721 100%);
+}
+.slide { position: relative; width: 1280px; height: 720px; background: #fff; color: #000; overflow: hidden;
+  font-family: "Barlow", "Segoe UI", Calibri, Arial, sans-serif; text-align: left; transform-origin: top left; }
+.slide * { box-sizing: border-box; }
+.slide.kind-content { background: #fff url(../assets/bg-content.jpg) center / 100% 100% no-repeat; }
+.slide.kind-cover { background: #1b6773 url(../assets/bg-cover.jpg) center / 100% 100% no-repeat; color: #fff; }
+.slide.kind-end { background: #f4f4f4 url(../assets/bg-divider.jpg) center / 100% 100% no-repeat; }
+/* contenido */
+.s-title { position: absolute; left: 40px; top: 36px; width: 800px; font-size: 35px; font-weight: 700; line-height: 1; color: var(--teal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s-tag { position: absolute; right: 56px; top: 44px; max-width: 360px; font-size: 16px; font-weight: 600; color: var(--gray); text-align: right; line-height: 1.1; }
+.s-lg-m { position: absolute; left: 15px; top: 670px; height: 40px; }
+.s-lg-s { position: absolute; left: 1165px; top: 668px; height: 50px; }
+.s-foot { position: absolute; left: 190px; right: 150px; top: 678px; height: 26px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600; color: #fff; }
+/* portada */
+.kind-cover .cv-logo { position: absolute; left: 276px; top: 154px; width: 774px; }
+.kind-cover .cv-t { position: absolute; left: 0; right: 0; top: 600px; text-align: center; font-size: 30px; font-weight: 600; }
+.kind-cover .cv-s { position: absolute; left: 0; right: 0; top: 640px; text-align: center; font-size: 26px; opacity: .92; }
+/* separador / cierre */
+.kind-end .dv-logo { position: absolute; left: 520px; top: 168px; width: 600px; }
+.kind-end .dv-t { position: absolute; left: 360px; width: 860px; top: 470px; text-align: center; font-size: 44px; font-weight: 700; color: var(--teal); line-height: 1.05; }
+.kind-end .dv-s { position: absolute; left: 360px; width: 860px; top: 540px; text-align: center; font-size: 26px; color: var(--gray); }
+/* bloques */
+.blk { position: absolute; overflow: hidden; }
+.blk-body { width: 100%; height: 100%; padding: 6px 8px; line-height: 1.25; overflow: hidden; word-wrap: break-word; }
+.blk-body p, .blk-body div { margin: 0 0 .35em; }
+.blk-body ul, .blk-body ol { margin: 0 0 .35em; padding-left: 1.3em; }
+.blk-body li::marker { color: var(--green); }
+.blk-callout { border: 2px solid var(--green); border-radius: 0; background: #f3faf5; display: flex; flex-direction: column; }
+.blk-callout .co-h { background: var(--green); color: #fff; font-weight: 700; padding: 6px 12px; font-size: 20px; flex: none; }
+.blk-callout .blk-body { flex: 1; min-height: 0; }
+.blk-image img { width: 100%; height: 100%; display: block; }
+.blk-table { overflow: hidden; }
+.blk-table table { border-collapse: collapse; width: 100%; table-layout: auto; }
+.blk-table table.fixed { table-layout: fixed; }
+.blk-table td { border: 1px solid var(--gray-2); padding: 3px 6px; vertical-align: middle; word-wrap: break-word; line-height: 1.2; }
+.blk-table table.hdr tr:first-of-type td { background: var(--teal); color: #fff; font-weight: 700; text-align: center; border-color: var(--teal); }
+.blk-table td p, .blk-table td div { margin: 0; }
