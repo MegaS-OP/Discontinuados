@@ -48,7 +48,7 @@ async function reportFor(plant, n) {
       s('d7', 'mp_insumos', 'Materias primas e insumos', [img(hashes[1]), call('<ul><li>Cobertura MP: 62 días</li></ul>')]),
     ],
     naSections: { log_acciones: 'Sin temas pendientes', otros: 'Sin otros temas' },
-    kpis: {},
+    kpis: { otif: 80 + n * 3, bo: 6 + n * 2, fo: 9, adhProd: 96 - n * 5, adhCap: 88 + n, adhSSAA: 91 - n, faltantePct: 3 + n },
   };
 }
 

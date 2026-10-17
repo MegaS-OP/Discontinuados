@@ -43,5 +43,5 @@
 .blk-table table { border-collapse: collapse; width: 100%; table-layout: auto; }
 .blk-table table.fixed { table-layout: fixed; }
 .blk-table td { border: 1px solid var(--gray-2); padding: 3px 6px; vertical-align: middle; word-wrap: break-word; line-height: 1.2; }
-.blk-table table.hdr tr:first-child td { background: var(--teal); color: #fff; font-weight: 700; text-align: center; border-color: var(--teal); }
+.blk-table table.hdr tr:first-of-type td { background: var(--teal); color: #fff; font-weight: 700; text-align: center; border-color: var(--teal); }
 .blk-table td p, .blk-table td div { margin: 0; }

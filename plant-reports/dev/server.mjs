@@ -16,7 +16,8 @@ const fdir = path.join(root, 'netlify/functions');
 for (const f of await fs.readdir(fdir)) {
   if (f.startsWith('_') || !f.endsWith('.js')) continue;
   const mod = await import(pathToFileURL(path.join(fdir, f)).href);
-  routes.set(mod.config.path, mod.default);
+  if (mod.config.path) routes.set(mod.config.path, mod.default);
+  else if (mod.config.schedule) routes.set('/__cron/' + f.replace('.js', ''), mod.default); // prueba manual de funciones programadas
 }
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json' };
 

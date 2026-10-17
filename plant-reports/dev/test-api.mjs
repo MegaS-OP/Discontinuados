@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sop-'));
 const PORT = 8899, B = `http://localhost:${PORT}`;
-const srv = spawn('node', ['dev/server.mjs'], { env: { ...process.env, PORT, LOCAL_STORE_DIR: dir }, stdio: 'inherit' });
+const srv = spawn('node', ['dev/server.mjs'], { env: { ...process.env, PORT, LOCAL_STORE_DIR: dir, MAIL_DRY_RUN: '1', ADMIN_NOTIFY_EMAIL: 'sop@x.com' }, stdio: 'inherit' });
 await new Promise((r) => setTimeout(r, 1200));
 const call = async (p, { method = 'GET', body, token, raw } = {}) => {
   const r = await fetch(B + p, { method, headers: { ...(token ? { authorization: 'Bearer ' + token } : {}), ...(body && !raw ? { 'content-type': 'application/json' } : {}) }, body: raw || (body ? JSON.stringify(body) : undefined) });
@@ -99,5 +99,46 @@ try {
   assert.equal((await login('ana@x.com', A.code)).status, 401); ok('usuario desactivado: pierde el acceso al instante');
   await call(`/api/users?id=${L.user.id}`, { method: 'PATCH', token: admin, body: { plantId: 'rowe' } });
   assert.equal((await call('/api/report?cycle=2026-09&plant=pdlc', { token: tok.lector })).status, 403); ok('cambio de planta se aplica de inmediato');
+  // ---- Fase 2: versiones, comparación con el mes anterior, correos ----
+  const mails = () => fs.existsSync(path.join(dir, 'maillog')) ? fs.readdirSync(path.join(dir, 'maillog')).filter((f) => !f.endsWith('.meta')).map((f) => JSON.parse(fs.readFileSync(path.join(dir, 'maillog', f), 'utf8'))) : [];
+  const C = await mkUser('Carlos Iclos', 'carlos@x.com', 'iclos', 'editor');
+  await mkUser('Dana Iclos', 'dana@x.com', 'iclos', 'lector');
+  await call('/api/cycles', { method: 'POST', body: { id: '2026-10', label: 'Octubre/2026', deadline: new Date(Date.now() + 864e5).toISOString().slice(0, 10) }, token: admin });
+  await call('/api/cycles?id=2026-10', { method: 'PATCH', body: { status: 'abierto' }, token: admin });
+  const n0 = mails().length;
+  const rem = await call('/api/notify', { method: 'POST', token: admin, body: { cycle: '2026-10', type: 'reminder' } });
+  const to = mails().slice(n0).map((m) => m.to).sort();
+  assert.deepEqual(to, ['carlos@x.com', 'rosa@x.com']); assert.equal(rem.data.sent, 2); ok('recordatorio: sólo editores activos que no enviaron (' + to.join(', ') + ')');
+  assert.equal((await call('/api/notify', { method: 'POST', token: tok.rowe, body: { cycle: '2026-10', type: 'opened' } })).status, 403); ok('planta NO dispara correos');
+  const op = await call('/api/notify', { method: 'POST', token: admin, body: { cycle: '2026-10', type: 'opened' } });
+  assert.equal(op.data.recipients, 4); ok('aviso de apertura a todos los usuarios activos');
+  const cron = await (await fetch(B + '/__cron/reminders')).json();
+  assert.equal(cron[0].cycle, '2026-10'); assert.equal((await (await fetch(B + '/__cron/reminders')).json()).length, 0); ok('recordatorio automático diario: una sola vez por día');
+  // versiones
+  const RP = '/api/report?cycle=2026-10&plant=pdlc';
+  let v = (await call(RP, { token: admin })).data.report.version;
+  v = (await call(RP, { method: 'PUT', token: admin, body: { baseVersion: v, report: done } })).data.report.version;
+  const half = { slides: done.slides.slice(0, 3) };
+  v = (await call(RP, { method: 'PUT', token: admin, body: { baseVersion: v, report: half } })).data.report.version;
+  assert.equal((await call(RP + '&action=submit', { method: 'POST', token: admin })).status, 400);
+  await call(RP, { method: 'PUT', token: admin, body: { baseVersion: v, report: done } });
+  const m1 = mails().length;
+  assert.equal((await call(RP + '&action=submit', { method: 'POST', token: admin })).status, 200);
+  assert.ok(mails().slice(m1).some((m) => m.to === 'sop@x.com' && m.subject.includes('envió su informe'))); ok('al enviar, aviso al equipo S&OP');
+  const hist = (await call('/api/history?cycle=2026-10&plant=pdlc', { token: admin })).data.versions;
+  assert.ok(hist.length >= 2 && hist.some((x) => x.event === 'enviado')); ok('historial de versiones: ' + hist.map((x) => 'v' + x.version + ' ' + x.event).join(' · '));
+  assert.equal((await call('/api/history?cycle=2026-10&plant=pdlc', { token: tok.rowe })).status, 403); ok('planta NO ve versiones de otra planta');
+  await call(RP + '&action=reopen', { method: 'POST', token: admin });
+  const first = hist[hist.length - 1];
+  const rest = await call(`/api/history?cycle=2026-10&plant=pdlc&version=${first.version}&action=restore`, { method: 'POST', token: admin });
+  assert.equal(rest.status, 200); assert.equal(rest.data.report.slides.length, first.slides); ok('restaurar una versión anterior (y la actual queda en el historial)');
+  // comparación con el mes anterior
+  const prev0 = (await call('/api/report?cycle=2026-10&plant=rowe&prev=1', { token: admin })).data.prev;
+  assert.equal(prev0, null);
+  const live9 = (await call('/api/report?cycle=2026-09&plant=rowe', { token: admin })).data.report;
+  await call('/api/report?cycle=2026-09&plant=rowe', { method: 'PUT', token: admin, body: { baseVersion: live9.version, report: done } });
+  const prev1 = (await call('/api/report?cycle=2026-10&plant=rowe&prev=1', { token: tok.rowe })).data.prev;
+  assert.equal(prev1.cycleId, '2026-09'); assert.equal(prev1.slides.length, 6); ok('informe del mes anterior de la propia planta');
+  assert.equal((await call('/api/report?cycle=2026-10&plant=pdlc&prev=1', { token: tok.rowe })).status, 403); ok('...y no el de otra planta');
   console.log('\nTODO OK');
 } catch (e) { console.error('\nFALLÓ:', e); process.exitCode = 1; } finally { srv.kill(); fs.rmSync(dir, { recursive: true, force: true }); }

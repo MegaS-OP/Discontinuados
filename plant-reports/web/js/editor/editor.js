@@ -1,7 +1,9 @@
 import { h, uid, clone, debounce, lsGet, lsSet, lsDel, toast, modal, confirmBox, promptBox, fmtDate } from '../util.js';
 import { api, ApiError, auth, getConfig } from '../api.js';
 import { renderSlide, mountScaled, lazyThumb, W, H } from '../slide/render.js';
-import { sanitizeHtml, sectionStatus, missingRequired, blockIsEmpty } from '../model/sanitize.js';
+import { sanitizeHtml, sectionStatus, missingRequired, blockIsEmpty, htmlToText } from '../model/sanitize.js';
+import { KPI_KEYS } from '../model/seed.js';
+import { kpiState, targetOf, buildKpiSlide, STATE_COLOR, STATE_NAME } from '../model/kpi.js';
 import { TEMPLATES, CELL_COLORS } from '../model/seed.js';
 import { prepareAndUpload, parseHtmlTable, parseTsv, blankTable, blankCell, plainToHtml } from './media.js';
 import { present } from '../present/present.js';
@@ -138,6 +140,8 @@ export async function mountEditor(root, { cycleId, plantId, viewOnly = false, ar
       canEdit && h('button', { class: 'btn small', title: 'Ctrl+Z', disabled: !S.undo.length, onclick: undo }, '↶ Deshacer'),
       canEdit && h('button', { class: 'btn small', title: 'Ctrl+Y', disabled: !S.redo.length, onclick: redo }, '↷ Rehacer'),
       h('button', { class: 'btn small', onclick: () => checklist(false) }, '☑ Secciones'),
+      h('button', { class: 'btn small', onclick: kpiForm }, '📈 KPIs'),
+      !archive && h('button', { class: 'btn small', onclick: versions }, '🕘 Versiones'),
       h('button', { class: 'btn small', onclick: () => exportPdf(visibleItems(), `${plant.shortName}-${cycle.label}`) }, '⬇ PDF'),
       h('button', { class: 'btn small', onclick: () => presentFrom(0) }, '▶ Presentar'),
       ownPlant && !sent && canEdit && h('button', { class: 'btn small primary', onclick: () => checklist(true) }, 'Enviar informe'),
@@ -190,7 +194,7 @@ export async function mountEditor(root, { cycleId, plantId, viewOnly = false, ar
           ondragover: (e) => { if (drag && drag !== s.id) e.preventDefault(); },
           ondrop: (e) => { e.preventDefault(); e.stopPropagation(); moveSlide(drag, s.id); },
         }, h('span', { class: 'nav-n' }, S.slides.indexOf(s) + 1), t,
-        h('div', { class: 'nav-t' }, s.title || '(sin título)', s.editedByAdmin && h('em', {}, ' · editado por admin')),
+        h('div', { class: 'nav-t' }, s.title || '(sin título)', s.editedByAdmin && h('em', {}, ' · editado por admin'), isSame(s) && h('span', { class: 'same', title: 'Idéntica a la del mes anterior (' + prev.label + ')' }, '= mes anterior')),
         canEdit && h('div', { class: 'nav-act' },
           h('button', { class: 'ib', title: 'Duplicar', onclick: (e) => { e.stopPropagation(); dupSlide(s.id); } }, '⧉'),
           h('button', { class: 'ib', title: s.hidden ? 'Mostrar' : 'Ocultar en la presentación', onclick: (e) => { e.stopPropagation(); mutate(() => { s.hidden = !s.hidden; }, { structural: true }); } }, s.hidden ? '🚫' : '👁'),
@@ -706,6 +710,8 @@ export async function mountEditor(root, { cycleId, plantId, viewOnly = false, ar
               if (why !== null) { mutate(() => { S.na[sec.id] = why.trim() || 'Sin novedades'; }, { structural: true, stage: false }); draw(); }
             } }, 'No aplica'))));
       }
+      const same = S.slides.filter((x) => !x.hidden && isSame(x));
+      if (same.length) body.append(h('p', { class: 'warn' }, `${same.length} diapositiva(s) son idénticas a las de ${prev.label}: ${same.map((x) => '“' + (x.title || 'sin título') + '”').join(', ')}. Revisá que no haya cifras o fechas desactualizadas.`));
       if (forSubmit) body.append(miss.length ? h('p', { class: 'warn' }, 'Faltan secciones obligatorias: ' + miss.map((x) => x.name).join(', ') + '. Completalas o marcalas como "No aplica".') : h('p', { class: 'okmsg' }, 'Todas las secciones obligatorias están completas.'));
     };
     const body = h('div', { class: 'ck' });
@@ -742,11 +748,78 @@ export async function mountEditor(root, { cycleId, plantId, viewOnly = false, ar
     } catch (e) { toast(e.message, 'bad'); }
   }
 
+  // ---------- Contenido sin cambios vs. el mes anterior ----------
+  let prev = null; // { label, fps:Set }
+  const fpOf = (sl) => (sl.blocks.some((b) => !blockIsEmpty(b)) ? JSON.stringify(sl.blocks.map((b) => [b.type, b.content])) : null);
+  const isSame = (sl) => { const f = prev && fpOf(sl); return !!f && prev.fps.has(f); };
+
+  // ---------- KPIs estructurados ----------
+  function kpiForm() {
+    const targets = plant.kpiTargets || {};
+    const inputs = {}, dots = {};
+    const dot = (def) => { const st = kpiState(def, inputs[def.key].value === '' ? null : inputs[def.key].value, targetOf(plant, def.key)); dots[def.key].style.background = st ? STATE_COLOR[st] : '#eee'; dots[def.key].title = st ? STATE_NAME[st] : 'Sin dato'; dots[def.key].textContent = st ? { ok: '✔', warn: '!', bad: '✖' }[st] : ''; };
+    const rowsEl = KPI_KEYS.map((def) => {
+      inputs[def.key] = h('input', { type: 'number', step: '0.1', id: 'kpi-' + def.key, disabled: !canEdit, value: S.kpis[def.key] ?? '', oninput: () => dot(def) });
+      dots[def.key] = h('span', { class: 'kdot' });
+      const t = targets[def.key];
+      return h('tr', {}, h('td', {}, def.name), h('td', {}, inputs[def.key], ' %'), h('td', { class: 'muted' }, t === null || t === undefined ? '—' : (def.dir === 'min' ? '≥ ' : '≤ ') + t + ' %'), h('td', {}, dots[def.key]));
+    });
+    const com = h('textarea', { rows: 5, id: 'kpi-com', disabled: !canEdit, placeholder: 'Una línea por punto a destacar…' }, htmlToText((S.kpis.comentario || '').replace(/<\/li>/g, '\n')));
+    const read = () => {
+      const k = { ...S.kpis };
+      for (const def of KPI_KEYS) k[def.key] = inputs[def.key].value === '' ? null : Number(inputs[def.key].value);
+      const lines = com.value.split('\n').map((x) => x.trim()).filter(Boolean);
+      k.comentario = lines.length ? '<ul>' + lines.map((l) => '<li>' + sanitizeHtml(l.replace(/</g, '&lt;')) + '</li>').join('') + '</ul>' : '';
+      return k;
+    };
+    const apply = (gen) => {
+      const k = read();
+      if (!gen) { pushUndo(); S.kpis = k; changed(false); return; }
+      const ex = S.slides.find((x) => x.layout === 'kpi_auto');
+      const ns = buildKpiSlide(k, plant, ex?.id);
+      mutate(() => {
+        S.kpis = k;
+        if (ex) S.slides[S.slides.indexOf(ex)] = { ...ns, hidden: ex.hidden, notes: ex.notes, title: ex.title };
+        else insertSorted(ns);
+        S.cur = ns.id; S.sel = null;
+      }, { structural: true });
+    };
+    modal({ title: 'KPIs del mes · ' + plant.name, wide: true,
+      body: h('div', {}, h('table', { class: 'tbl kpitbl' }, h('thead', {}, h('tr', {}, ['KPI', 'Valor del mes', 'Meta', ''].map((t) => h('th', {}, t)))), h('tbody', {}, rowsEl)),
+        h('label', {}, 'Puntos a destacar', com), h('p', { class: 'hint' }, 'El semáforo compara con la meta de tu planta. "Guardar y generar diapositiva" arma (o actualiza) la diapositiva de KPIs con una tabla editable; el comparativo entre plantas del consolidado sale de estos valores.')),
+      buttons: canEdit ? [{ label: 'Cancelar' }, { label: 'Guardar', onclick: () => apply(false) }, { label: 'Guardar y generar diapositiva', cls: 'primary', onclick: () => apply(true) }] : [{ label: 'Cerrar', cls: 'primary' }] });
+    KPI_KEYS.forEach(dot);
+  }
+
+  // ---------- Historial de versiones ----------
+  async function versions() {
+    let list;
+    try { list = (await api(`/api/history?cycle=${cycleId}&plant=${plantId}`)).versions; } catch (e) { toast(e.message, 'bad'); return; }
+    const m = modal({ title: 'Versiones del informe', wide: true,
+      body: list.length ? h('div', { class: 'ck' }, list.map((v) => h('div', { class: 'ck-row' },
+        h('b', {}, 'v' + v.version), h('span', { class: 'grow' }, `${v.event} · ${fmtDate(v.at)} · ${v.by} · ${v.slides} diapositivas`),
+        h('button', { class: 'btn small', onclick: async () => {
+          try { const snap = await api(`/api/history?cycle=${cycleId}&plant=${plantId}&version=${v.version}`); const sl = snap.slides.filter((x) => !x.hidden); if (!sl.length) return toast('Esa versión no tiene diapositivas.', 'bad'); m.close(); present(sl.map((x, i) => ({ slide: x, ctx: slideCtx(x, { page: i + 1, total: sl.length }) }))); } catch (e) { toast(e.message, 'bad'); }
+        } }, '▶ Ver'),
+        canEdit && h('button', { class: 'btn small', onclick: async () => {
+          if (!(await confirmBox('Restaurar versión', `El informe vuelve a la versión v${v.version}. La versión actual queda guardada en el historial.`, 'Restaurar'))) return;
+          try { saveLater.cancel(); S.dirty = true; await save(); await api(`/api/history?cycle=${cycleId}&plant=${plantId}&version=${v.version}&action=restore`, { method: 'POST' }); lsDel(bkKey); toast('Versión restaurada ✓', 'ok'); location.reload(); } catch (e) { toast(e.message, 'bad', 6000); }
+        } }, 'Restaurar')))) : h('p', {}, 'Todavía no hay versiones guardadas. Se guardan automáticamente al enviar, reabrir y cada ~10 minutos de edición.'),
+      buttons: [{ label: 'Cerrar', cls: 'primary' }] });
+  }
+
   function renderAll() { syncTop(); renderNav(); renderStage(); renderProps(); }
 
   // ---------- Recuperación de respaldo local ----------
   renderAll();
   setStatus(canEdit ? 'Guardado' : 'Sólo lectura');
+  if (canEdit && !archive) {
+    api(`/api/report?cycle=${cycleId}&plant=${plantId}&prev=1`).then(({ prev: p }) => {
+      if (!p) return;
+      prev = { label: p.label, fps: new Set(p.slides.map(fpOf).filter(Boolean)) };
+      renderNav();
+    }).catch(() => {});
+  }
   try {
     const bk = JSON.parse(lsGet(bkKey) || 'null');
     if (bk && canEdit && bk.base === S.version && JSON.stringify(bk.data.slides) !== JSON.stringify(S.slides)) {

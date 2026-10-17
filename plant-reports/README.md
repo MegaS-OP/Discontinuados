@@ -36,6 +36,7 @@ Netlify → tu sitio → **Site configuration** → **Environment variables** �
 |---|---|
 | `ADMIN_PASSWORD` | La contraseña del administrador (larga, ej. 16+ caracteres) |
 | `SESSION_SECRET` | Texto aleatorio de 32+ caracteres (sólo firma las sesiones; no la compartas) |
+| `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `ADMIN_NOTIFY_EMAIL` | *Opcionales*: correos (ver "KPIs, versiones y avisos") |
 
 Guardá y luego **Deploys** → **Trigger deploy** → **Deploy site** para que las funciones tomen las variables.
 Netlify Blobs no requiere configuración: se activa solo para el sitio.
@@ -63,6 +64,12 @@ Netlify Blobs no requiere configuración: se activa solo para el sitio.
 - **Consolidar**: portada, agenda (resaltando la planta), informes, Back Up y cierre se arman solos. Arrastrar para reordenar, 👁 oculta sólo en el consolidado, ✎ edita en el informe de la planta (queda "editado por admin"). Cambios se guardan solos.
 - **⬇ Exportar PDF**: en la ventana de impresión elegir *Destino: Guardar como PDF · Márgenes: Ninguno · Gráficos de fondo activado*.
 
+## KPIs, versiones y avisos
+- **📈 KPIs** (editor): formulario con los 7 KPIs del mes y semáforo contra la meta de la planta (verde cumple · amarillo cerca: hasta 10 pts por debajo de una meta mínima o 5 por encima de una máxima · rojo fuera). "Guardar y generar diapositiva" arma la diapositiva de KPIs (tabla editable). Con esos valores el consolidado incluye solo el **Resumen comparativo** de las plantas (se puede ocultar como cualquier diapositiva).
+- **🕘 Versiones** (editor): se guardan automáticamente al enviar, reabrir, duplicar y cada ~10 min de edición (últimas 30). Se puede ver y restaurar una versión; la versión actual no se pierde.
+- **"= mes anterior"**: las diapositivas idénticas a las del mes anterior se marcan en la columna izquierda y se advierte antes de enviar.
+- **Correos (opcional)**: cargar en Netlify `GMAIL_USER` (cuenta Gmail) y `GMAIL_APP_PASSWORD` ([contraseña de aplicación](https://myaccount.google.com/apppasswords), requiere verificación en dos pasos). Opcional `ADMIN_NOTIFY_EMAIL` (uno o varios correos separados por coma) para avisar cuando una planta envía. Avisos manuales al abrir/cerrar un ciclo y botón **📧 Recordatorio** en Ciclos; además un **recordatorio automático diario** (≈9:00 Argentina) a los editores que no enviaron cuando faltan 2 días o menos. Sin esas variables la app funciona igual, sin correos.
+
 ## Archivo mensual (automático)
 Al usar **Ciclos → Cerrar y archivar**, el sistema guarda solo y de forma congelada:
 - **Por planta y mes**: el informe de cada planta (también las que no enviaron, marcadas como tal). Cada usuario de planta lo ve en **Historial de meses cerrados** en su inicio; sólo el de SU planta.
@@ -85,8 +92,8 @@ npm run test:api   # pruebas de la API (incluye aislamiento entre plantas)
 
 ## Estado por fases
 - **Fase 1 (esta entrega)**: usuarios y permisos por planta (Editor/Lector), login, ciclos, editor (texto, imagen, tabla, "Puntos a destacar"), pegado/arrastre/compresión, autoguardado + respaldo local + bloqueo por versión, presentación, enviar/reabrir, tablero, consolidador (orden, ocultas, portada, agenda, Back Up) y PDF, duplicar mes anterior, demo.
-- **Fase 2**: KPIs estructurados + resumen comparativo, aviso de contenido sin cambios, dividir tablas largas, historial, orden por sección, congelar consolidado.
-- **Fase 3**: importar PPTX, correos por Gmail SMTP, exportar HTML autocontenido.
+- **Fase 2 (hecha)**: KPIs estructurados + resumen comparativo, aviso de contenido sin cambios, historial de versiones, archivo mensual congelado, correos y recordatorio diario. *Pendiente*: dividir tablas largas y orden por sección en el consolidado.
+- **Fase 3**: importar PPTX, exportar HTML autocontenido.
 
 ## Pendientes / decisiones por defecto
 - No llegaron los PPTX de ejemplo: **paleta, tipografía y logo son provisorios** (`web/css/slide.css`, `web/assets/logo.png`). Reemplazar el logo y pasar los PPTX a `reference/` para ajustar el tema.

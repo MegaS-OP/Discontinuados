@@ -1,5 +1,7 @@
 import { json, fail, readJson, store, handler, loadConfig, loadCycle, emptyReport, reportKey } from './_lib.js';
 import { normalizeReport, missingRequired } from '../../web/js/model/sanitize.js';
+import { snapshot } from './_history.js';
+import { notify } from './_notify.js';
 
 const MAX_HISTORY = 60;
 
@@ -29,6 +31,14 @@ export default handler(async ({ req, url, user }) => {
   const method = req.method;
   const stored = (await rs.get(reportKey(cycleId, plantId), { type: 'json' })) || emptyReport();
 
+  if (method === 'GET' && url.searchParams.get('prev')) { // informe de la misma planta en el ciclo anterior (para detectar contenido sin cambios)
+    const all = (await (await store('cycles')).list()).blobs.map((b) => b.key).filter((k) => k < cycleId).sort().reverse();
+    for (const id of all) {
+      const r = await rs.get(reportKey(id, plantId), { type: 'json' });
+      if (r?.slides?.length) return json({ prev: { cycleId: id, label: (await loadCycle(id)).label, slides: r.slides } });
+    }
+    return json({ prev: null });
+  }
   if (method === 'GET') return json({ cycle, report: stored, canEdit: canWrite && (isAdmin || (cycle.status === 'abierto' && stored.status !== 'enviado')) });
 
   if (!canWrite) return fail(403, 'Tu usuario es de sólo lectura (Lector).');
@@ -41,6 +51,7 @@ export default handler(async ({ req, url, user }) => {
     r.updatedBy = who;
     if (event) r.history = [...(r.history || []), { version: r.version, at: r.updatedAt, by: who, event }].slice(-MAX_HISTORY);
     await rs.setJSON(reportKey(cycleId, plantId), r);
+    await snapshot(cycleId, plantId, r, event, who);
     return json({ report: r });
   };
 
@@ -58,7 +69,9 @@ export default handler(async ({ req, url, user }) => {
       if (!isAdmin && stored.status === 'enviado') return fail(400, 'Ya está enviado.');
       const miss = missingRequired(stored, cfg.sections);
       if (miss.length) return fail(400, 'Faltan secciones obligatorias: ' + miss.map((s) => s.name).join(', '), { missing: miss.map((s) => s.id) });
-      return save({ ...stored, status: 'enviado', submittedAt: new Date().toISOString() }, 'enviado');
+      const res = await save({ ...stored, status: 'enviado', submittedAt: new Date().toISOString() }, 'enviado');
+      notify('submitted', cycle, { plant: cfg.plants.find((p) => p.id === plantId), who }).catch(() => {}); // aviso al equipo S&OP (si hay correo configurado)
+      return res;
     }
     if (action === 'reopen') return save({ ...stored, status: 'borrador', submittedAt: null }, 'reabierto');
     if (action === 'duplicate') {

@@ -1,4 +1,6 @@
 import { esc } from '../util.js';
+import { KPI_KEYS } from '../model/seed.js';
+import { kpiState, fmtVal, targetOf, STATE_COLOR } from '../model/kpi.js';
 
 const lines = (t) => esc(t).split('\n').join('<br>');
 
@@ -10,6 +12,21 @@ export function buildDeck({ cycle, cfg, reports, layer }) {
   const gen = (key, slide, label) => entries.push({ key, slide: { blocks: [], ...slide, id: key }, label, generated: true });
 
   gen('cover', { kind: 'cover', title: 'Reunión de Suministro S&OP', subtitle: cycle.label }, 'Portada');
+
+  // Resumen comparativo: 7 KPIs x plantas con semáforo contra la meta de cada planta
+  const withKpi = plants.filter((p) => KPI_KEYS.some((k) => reports[p.id]?.kpis?.[k.key] !== null && reports[p.id]?.kpis?.[k.key] !== undefined));
+  if (withKpi.length) {
+    const c = (t, bg = '', al = 'center') => ({ h: esc(t), bg, al });
+    const rows = [[c('Planta'), ...KPI_KEYS.map((k) => c(k.short))]];
+    for (const p of plants) {
+      const kp = reports[p.id]?.kpis || {};
+      rows.push([c(p.shortName, '', 'left'), ...KPI_KEYS.map((k) => { const st = kpiState(k, kp[k.key], targetOf(p, k.key)); return c(fmtVal(kp[k.key]), st ? STATE_COLOR[st] : ''); })]);
+    }
+    gen('kpi-summary', { title: 'Resumen comparativo de KPIs', blocks: [
+      { id: 'ks', type: 'table', x: 3, y: 14, w: 94, h: 62, content: { rows, header: true, fs: 20, colW: [20, 10, 10, 10, 12, 14, 12, 12] } },
+      { id: 'kn', type: 'text', x: 3, y: 79, w: 94, h: 10, content: { html: '<span style="color:#575e69">Verde: cumple la meta de la planta · Amarillo: cerca de la meta · Rojo: fuera de meta · Sin color: sin dato. Metas por planta en Administración &gt; Plantas.</span>', size: 16, align: 'left' } },
+    ] }, 'Resumen comparativo de KPIs');
+  }
 
   const withSlides = plants.filter((p) => (reports[p.id]?.slides || []).some((s) => !s.hidden));
   for (const p of withSlides) {

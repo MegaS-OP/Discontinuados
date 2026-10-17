@@ -1,5 +1,6 @@
 import { json, fail, readJson, store, handler, requireAdmin, loadCycle, CYCLE_ID_RE, STATUSES } from './_lib.js';
 import { archiveCycle, deleteArchive } from './_archive.js';
+import { deleteHistory } from './_history.js';
 
 const clean = (b, old = {}) => ({
   ...old,
@@ -47,6 +48,7 @@ export default handler(async ({ req, url, user }) => {
     for (const b of (await rs.list({ prefix: id + '/' })).blobs) await rs.delete(b.key);
     await (await store('consolidation')).delete(id);
     await deleteArchive(id);
+    await deleteHistory(id);
     await s.delete(id);
     return json({ ok: true });
   }

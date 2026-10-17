@@ -27,13 +27,13 @@ export const PLANTS = [
 ].map((p, i) => ({ ...p, order: i + 1, active: true, kpiTargets: { ...T } }));
 
 export const KPI_KEYS = [
-  { key: 'otif', name: 'OTIF', unit: '%', dir: 'min' },
-  { key: 'bo', name: 'Backorder (BO)', unit: '%', dir: 'max' },
-  { key: 'fo', name: 'Forward Order (FO)', unit: '%', dir: 'max' },
-  { key: 'adhProd', name: 'Adherencia al plan de producción', unit: '%', dir: 'min' },
-  { key: 'adhCap', name: 'Adherencia a la capacidad de producción', unit: '%', dir: 'min' },
-  { key: 'adhSSAA', name: 'Adherencia a la capacidad de servicios analíticos', unit: '%', dir: 'min' },
-  { key: 'faltantePct', name: '% Faltante sobre venta', unit: '%', dir: 'max' },
+  { key: 'otif', short: 'OTIF', name: 'OTIF', unit: '%', dir: 'min' },
+  { key: 'bo', short: 'BO', name: 'Backorder (BO)', unit: '%', dir: 'max' },
+  { key: 'fo', short: 'FO', name: 'Forward Order (FO)', unit: '%', dir: 'max' },
+  { key: 'adhProd', short: 'Adh. plan', name: 'Adherencia al plan de producción', unit: '%', dir: 'min' },
+  { key: 'adhCap', short: 'Adh. capacidad', name: 'Adherencia a la capacidad de producción', unit: '%', dir: 'min' },
+  { key: 'adhSSAA', short: 'Adh. SSAA', name: 'Adherencia a la capacidad de servicios analíticos', unit: '%', dir: 'min' },
+  { key: 'faltantePct', short: '% Faltante', name: '% Faltante sobre venta', unit: '%', dir: 'max' },
 ];
 
 // TEXTO PROVISIONAL: reemplazar con las definiciones oficiales del Back Up (Administración > Contenido).

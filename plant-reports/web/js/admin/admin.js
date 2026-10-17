@@ -64,8 +64,13 @@ function demoBtn() {
   } }, 'Cargar datos de ejemplo');
 }
 
+let MAIL = false; // ¿hay correo configurado en Netlify?
+const sendNotice = async (cycle, type) => { try { const r = await api('/api/notify', { method: 'POST', body: { cycle, type } }); toast(r.skipped ? r.skipped : `Correos enviados: ${r.sent} de ${r.recipients}`, r.skipped ? 'bad' : 'ok', 6000); } catch (e) { toast(e.message, 'bad'); } };
+const mailChk = (label) => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: MAIL, disabled: !MAIL }), ' ' + label + (MAIL ? '' : ' (configurar GMAIL_USER y GMAIL_APP_PASSWORD en Netlify)'));
+
 export async function adminCycles(main) {
-  const { cycles } = await api('/api/cycles');
+  const [{ cycles }, mc] = await Promise.all([api('/api/cycles'), api('/api/notify')]);
+  MAIL = mc.configured;
   const now = new Date();
   const month = h('input', { type: 'month', value: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}` });
   const label = h('input', { type: 'text' });
@@ -85,6 +90,7 @@ export async function adminCycles(main) {
       return h('tr', {}, h('td', {}, h('b', {}, c.label), h('small', {}, ' ' + c.id)), h('td', {}, h('span', { class: 'chip ' + c.status }, c.status)), h('td', {}, fmtDay(c.deadline)),
         h('td', { class: 'acts' },
           c.status === 'borrador' && h('button', { class: 'btn small primary', onclick: () => openCycle(c, prev, set) }, 'Abrir a las plantas'),
+          c.status === 'abierto' && h('button', { class: 'btn small', title: 'Avisa por correo a los editores que todavía no enviaron', onclick: () => sendNotice(c.id, 'reminder') }, '📧 Recordatorio'),
           c.status === 'abierto' && h('button', { class: 'btn small primary', onclick: () => closeCycle(c) }, 'Cerrar y archivar'),
           c.status === 'cerrado' && h('button', { class: 'btn small', onclick: () => set('abierto') }, 'Reabrir ciclo'),
           ['cerrado', 'consolidado'].includes(c.status) && h('a', { class: 'btn small', href: '#/admin/archive' }, 'Ver archivo'),
@@ -100,21 +106,24 @@ export async function adminCycles(main) {
 async function closeCycle(c) {
   const [{ reports }, cfg] = await Promise.all([api(`/api/report?cycle=${c.id}`), getConfig()]);
   const pend = cfg.plants.filter((p) => p.active && reports[p.id].status !== 'enviado').map((p) => p.name + (reports[p.id].slides.length ? ' (borrador)' : ' (sin informe)'));
+  const notice = mailChk('Avisar por correo a los usuarios que el ciclo se cerró');
   modal({ title: 'Cerrar y archivar ' + c.label, wide: true,
     body: h('div', {}, h('p', {}, 'Al cerrar el ciclo, automáticamente:'),
       h('ul', {}, h('li', {}, 'el informe de cada planta se guarda en su historial del mes (las plantas lo ven en su inicio);'), h('li', {}, 'el consolidado del mes (con tu orden y diapositivas ocultas) queda guardado en el Archivo;'), h('li', {}, 'las plantas dejan de poder editar.')),
-      pend.length ? h('p', { class: 'warn' }, 'Todavía no enviaron: ' + pend.join(', ') + '. Se archivan tal como están.') : h('p', { class: 'okmsg' }, 'Todas las plantas enviaron su informe.')),
+      pend.length ? h('p', { class: 'warn' }, 'Todavía no enviaron: ' + pend.join(', ') + '. Se archivan tal como están.') : h('p', { class: 'okmsg' }, 'Todas las plantas enviaron su informe.'), notice),
     buttons: [{ label: 'Cancelar' }, { label: 'Cerrar y archivar', cls: 'primary', onclick: async () => {
-      try { const r = await api(`/api/cycles?id=${c.id}`, { method: 'PATCH', body: { status: 'cerrado' } }); toast(`Archivado ✓ ${r.archived?.consolidatedSlides ?? ''} diapositivas en el consolidado`, 'ok', 5000); location.reload(); } catch (e) { toast(e.message, 'bad', 6000); return false; }
+      try { const r = await api(`/api/cycles?id=${c.id}`, { method: 'PATCH', body: { status: 'cerrado' } }); toast(`Archivado ✓ ${r.archived?.consolidatedSlides ?? ''} diapositivas en el consolidado`, 'ok', 5000); if (notice.querySelector('input').checked) await sendNotice(c.id, 'closed'); setTimeout(() => location.reload(), 800); } catch (e) { toast(e.message, 'bad', 6000); return false; }
     } }] });
 }
 function openCycle(c, prev, set) {
+  const notice = mailChk('Avisar por correo a los usuarios que el ciclo se abrió');
   const chk = h('input', { type: 'checkbox', checked: !!prev, disabled: !prev });
   modal({ title: 'Abrir ' + c.label, body: h('div', {}, h('p', {}, 'Las plantas podrán ver y editar su informe.'),
-    h('label', { class: 'chk' }, chk, prev ? ` Pre-cargar cada informe desde ${prev.label}` : ' (no hay ciclo anterior para pre-cargar)')),
+    h('label', { class: 'chk' }, chk, prev ? ` Pre-cargar cada informe desde ${prev.label}` : ' (no hay ciclo anterior para pre-cargar)'), notice),
   buttons: [{ label: 'Cancelar' }, { label: 'Abrir ciclo', cls: 'primary', onclick: async () => {
     const cfg = await getConfig();
     await set('abierto', async () => {
+      if (notice.querySelector('input').checked) await sendNotice(c.id, 'opened');
       if (!chk.checked) return;
       for (const p of cfg.plants.filter((x) => x.active)) { try { await api(`/api/report?cycle=${c.id}&plant=${p.id}&action=duplicate&from=${prev.id}`, { method: 'POST' }); } catch { /* sin informe previo */ } }
     });
