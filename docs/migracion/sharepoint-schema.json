@@ -1,0 +1,216 @@
+{
+  "version": "1.0",
+  "site": "https://<tenant>.sharepoint.com/sites/discontinuados-corp",
+  "generatedAt": "2026-10-30",
+  "groups": [
+    { "name": "SG-Discontinuados-Owners",  "role": "Propietario del sitio" },
+    { "name": "SG-Discontinuados-Admin",   "role": "Admin de negocio" },
+    { "name": "SG-Discontinuados-Editor",  "role": "Editor" },
+    { "name": "SG-Discontinuados-Planta",  "role": "Planta (grupo base)" },
+    { "name": "SG-Discontinuados-Viewers", "role": "Viewer (solo lectura)" }
+  ],
+  "customPermissionLevels": [
+    {
+      "name": "Contribuir sin eliminar",
+      "clonedFrom": "Contribuir",
+      "exclude": ["DeleteListItems", "DeleteVersions"],
+      "description": "Puede agregar y editar ítems, pero no eliminarlos."
+    },
+    {
+      "name": "Solo agregar",
+      "clonedFrom": "Contribuir",
+      "exclude": ["EditListItems", "DeleteListItems", "DeleteVersions"],
+      "description": "Solo puede agregar ítems nuevos. No puede editar ni eliminar."
+    }
+  ],
+  "lists": [
+    {
+      "title": "Compañías",
+      "internalName": "Cias",
+      "type": "transactional",
+      "subtype": "catalog",
+      "breakInheritance": true,
+      "versioning": false,
+      "attachments": false,
+      "estimatedItems": 13,
+      "permissions": [
+        { "group": "SG-Discontinuados-Admin",   "level": "Control total" },
+        { "group": "SG-Discontinuados-Editor",  "level": "Leer" },
+        { "group": "SG-Discontinuados-Planta",  "level": "Leer" },
+        { "group": "SG-Discontinuados-Viewers", "level": "Leer" }
+      ],
+      "columns": [
+        { "internalName": "Title",        "displayName": "Código Cía",      "type": "Text",    "required": true,  "indexed": true  },
+        { "internalName": "NombreCompleto","displayName": "Nombre completo", "type": "Text",    "required": false, "indexed": false },
+        { "internalName": "Activa",        "displayName": "Activa",          "type": "Boolean", "required": true,  "default": true  }
+      ]
+    },
+    {
+      "title": "Fabricantes",
+      "internalName": "Fabricantes",
+      "type": "transactional",
+      "subtype": "catalog",
+      "breakInheritance": true,
+      "versioning": false,
+      "attachments": false,
+      "estimatedItems": 31,
+      "permissions": [
+        { "group": "SG-Discontinuados-Admin",   "level": "Control total" },
+        { "group": "SG-Discontinuados-Editor",  "level": "Leer" },
+        { "group": "SG-Discontinuados-Planta",  "level": "Leer" },
+        { "group": "SG-Discontinuados-Viewers", "level": "Leer" }
+      ],
+      "columns": [
+        { "internalName": "Title",        "displayName": "Código Fabricante", "type": "Text",    "required": true,  "indexed": true  },
+        { "internalName": "NombreCompleto","displayName": "Nombre completo",   "type": "Text",    "required": false },
+        { "internalName": "Pais",          "displayName": "País",              "type": "Text",    "required": false },
+        { "internalName": "Activo",        "displayName": "Activo",            "type": "Boolean", "required": true, "default": true  }
+      ]
+    },
+    {
+      "title": "Unidades de Negocio",
+      "internalName": "BUs",
+      "type": "transactional",
+      "subtype": "catalog",
+      "breakInheritance": true,
+      "versioning": false,
+      "attachments": false,
+      "estimatedItems": 5,
+      "permissions": [
+        { "group": "SG-Discontinuados-Admin",   "level": "Control total" },
+        { "group": "SG-Discontinuados-Editor",  "level": "Leer" },
+        { "group": "SG-Discontinuados-Planta",  "level": "Leer" },
+        { "group": "SG-Discontinuados-Viewers", "level": "Leer" }
+      ],
+      "columns": [
+        { "internalName": "Title",        "displayName": "Código BU",       "type": "Text",    "required": true, "indexed": true },
+        { "internalName": "NombreCompleto","displayName": "Nombre completo", "type": "Text",    "required": false },
+        { "internalName": "Activa",        "displayName": "Activa",          "type": "Boolean", "required": true, "default": true }
+      ]
+    },
+    {
+      "title": "Plantilla de Hitos",
+      "internalName": "HitosTemplate",
+      "type": "transactional",
+      "subtype": "catalog",
+      "breakInheritance": true,
+      "versioning": false,
+      "attachments": false,
+      "estimatedItems": 16,
+      "permissions": [
+        { "group": "SG-Discontinuados-Admin",   "level": "Control total" },
+        { "group": "SG-Discontinuados-Editor",  "level": "Leer" },
+        { "group": "SG-Discontinuados-Planta",  "level": "Leer" },
+        { "group": "SG-Discontinuados-Viewers", "level": "Leer" }
+      ],
+      "columns": [
+        { "internalName": "Title",              "displayName": "Nombre del hito",           "type": "Text",    "required": true,  "indexed": true  },
+        { "internalName": "Etapa",              "displayName": "Etapa (0/1/2)",             "type": "Number",  "required": true                  },
+        { "internalName": "Orden",              "displayName": "Orden",                     "type": "Number",  "required": true                  },
+        { "internalName": "ResponsableDefault", "displayName": "Responsable por defecto",   "type": "Text",    "required": false                 },
+        { "internalName": "TieneNotas",         "displayName": "Tiene campo Notas",         "type": "Boolean", "default": false                  },
+        { "internalName": "TieneCostos",        "displayName": "Tiene campos de costo",     "type": "Boolean", "default": false                  },
+        { "internalName": "TieneImpactoGranel", "displayName": "Tiene campos de granel",    "type": "Boolean", "default": false                  },
+        { "internalName": "TieneFechaOC",       "displayName": "Tiene fecha de OC",         "type": "Boolean", "default": false                  }
+      ]
+    },
+    {
+      "title": "Discontinuados",
+      "internalName": "Discontinuados",
+      "type": "transactional",
+      "subtype": "master",
+      "breakInheritance": false,
+      "versioning": { "enabled": true, "majorVersionLimit": 500 },
+      "attachments": false,
+      "estimatedItems": 500,
+      "uniqueItemPermissions": "via-flow-for-Planta-group",
+      "permissions": [
+        { "group": "SG-Discontinuados-Admin",   "level": "Control total" },
+        { "group": "SG-Discontinuados-Editor",  "level": "Contribuir sin eliminar" },
+        { "group": "SG-Discontinuados-Planta",  "level": "Contribuir sin eliminar" },
+        { "group": "SG-Discontinuados-Viewers", "level": "Leer" }
+      ],
+      "indexes": ["Title","CodigoSKU","Cia","Fabricante","BU","EtapaActual","FechaInicio"],
+      "columns": [
+        { "internalName": "Title",              "displayName": "ID Proceso",                 "type": "Text",     "required": true,  "unique": true, "indexed": true,  "sourceField": "id" },
+        { "internalName": "CodigoSKU",          "displayName": "Código SKU",                 "type": "Text",     "required": false, "indexed": true, "sourceField": "codigo" },
+        { "internalName": "NombreProducto",     "displayName": "Descripción del producto",   "type": "Text",     "required": true,  "sourceField": "nombre" },
+        { "internalName": "Cia",                "displayName": "Compañía",                   "type": "Lookup",   "required": true,  "indexed": true, "lookupList": "Cias", "sourceField": "paisCompania" },
+        { "internalName": "Fabricante",         "displayName": "Fabricante / Planta",        "type": "Lookup",   "required": true,  "indexed": true, "lookupList": "Fabricantes", "sourceField": "paisPlanta" },
+        { "internalName": "BU",                 "displayName": "Business Unit",              "type": "Lookup",   "required": true,  "indexed": true, "lookupList": "BUs", "sourceField": "bu" },
+        { "internalName": "MPH",                "displayName": "MPH",                        "type": "Text",     "required": false, "sourceField": "mph" },
+        { "internalName": "LevantadoDesdePlanta","displayName": "¿Levantado desde planta?",  "type": "Choice",   "choices": ["Sí","No","No especificado"], "default": "No especificado", "sourceField": "levantadoSOPC" },
+        { "internalName": "Observaciones",      "displayName": "Observaciones",              "type": "Note",     "required": false, "sourceField": "observaciones" },
+        { "internalName": "EtapaActual",        "displayName": "Etapa actual",               "type": "Number",   "required": true,  "default": 0, "indexed": true, "sourceField": "etapaActual", "validation": ">=0 AND <=2" },
+        { "internalName": "EtapaLabel",         "displayName": "Etapa (texto)",              "type": "Calculated", "formula": "=CHOOSE([EtapaActual]+1,\"Detección\",\"Análisis\",\"Confirmación\")", "resultType": "Text" },
+        { "internalName": "Progreso",           "displayName": "Progreso (%)",               "type": "Number",   "required": true,  "default": 0, "validation": ">=0 AND <=100", "sourceField": "progreso" },
+        { "internalName": "UltimoHito",         "displayName": "Último hito completado",     "type": "Text",     "default": "Inicio proceso", "sourceField": "ultimoHito" },
+        { "internalName": "FechaUltimoHito",    "displayName": "Fecha último hito",          "type": "DateTime", "required": false, "sourceField": "fechaUltimoHito" },
+        { "internalName": "FechaInicio",        "displayName": "Fecha de inicio",            "type": "DateTime", "required": true,  "indexed": true, "sourceField": "fechaInicio" }
+      ]
+    },
+    {
+      "title": "Hitos",
+      "internalName": "Hitos",
+      "type": "transactional",
+      "subtype": "detail",
+      "breakInheritance": false,
+      "versioning": { "enabled": true, "majorVersionLimit": 100 },
+      "attachments": false,
+      "estimatedItems": 8000,
+      "permissions": [
+        { "group": "SG-Discontinuados-Admin",   "level": "Control total" },
+        { "group": "SG-Discontinuados-Editor",  "level": "Contribuir sin eliminar" },
+        { "group": "SG-Discontinuados-Planta",  "level": "Contribuir sin eliminar" },
+        { "group": "SG-Discontinuados-Viewers", "level": "Leer" }
+      ],
+      "indexes": ["Producto","Etapa","Label","Done"],
+      "columns": [
+        { "internalName": "Title",              "displayName": "ID Hito",             "type": "Text",     "required": true, "unique": true, "indexed": true, "sourceField": "id" },
+        { "internalName": "Producto",           "displayName": "Producto",            "type": "Lookup",   "required": true, "indexed": true, "lookupList": "Discontinuados" },
+        { "internalName": "Etapa",              "displayName": "Etapa",               "type": "Number",   "required": true, "indexed": true, "sourceField": "etapa" },
+        { "internalName": "Label",              "displayName": "Nombre del hito",     "type": "Choice",   "required": true, "indexed": true, "sourceField": "label",
+          "choices": ["Detección del SKU a discontinuar","Presentación de Presupuesto Anual","Análisis de Template de Discontinuación","Aviso a Supply Corp y S&OP Global","Inventario PT","Notificación a Mkt Corp y Aviso a Planta","Análisis de impacto planta","Costo destrucción PT","Costo destrucción materiales","Costo inventario API","Productos en cola de producción","Última OC","Confirmación con Mkt Corp","Notificación a todos los departamentos","Inactivación del código en sistema","Plan de desagote de inventario"] },
+        { "internalName": "Responsable",        "displayName": "Área responsable",    "type": "Text",     "required": false, "sourceField": "responsable" },
+        { "internalName": "Done",               "displayName": "Completado",          "type": "Boolean",  "default": false, "indexed": true, "sourceField": "done" },
+        { "internalName": "FechaCompromiso",    "displayName": "Fecha compromiso",    "type": "DateTime", "sourceField": "fechaCompromiso" },
+        { "internalName": "FechaReal",          "displayName": "Fecha real",          "type": "DateTime", "sourceField": "fechaReal" },
+        { "internalName": "Notas",              "displayName": "Notas",               "type": "Note",     "sourceField": "notas" },
+        { "internalName": "OfreceUnidades",     "displayName": "Ofrece unidades",     "type": "Text",     "sourceField": "ofreceUnidades" },
+        { "internalName": "ImpactoGranelLleva", "displayName": "¿Lleva granel?",      "type": "Choice",   "choices": ["Sí","No","N/A"], "sourceField": "impactoGranelLleva" },
+        { "internalName": "ImpactoGranelValor", "displayName": "Valor impacto granel","type": "Currency", "sourceField": "impactoGranelValor" },
+        { "internalName": "ResolucionFinal",    "displayName": "Resolución final",    "type": "Note",     "sourceField": "resolucionFinal" },
+        { "internalName": "ValorItem",          "displayName": "Costo unitario",      "type": "Currency", "sourceField": "valorItem" },
+        { "internalName": "ValorInventario",    "displayName": "Valor de inventario", "type": "Currency", "sourceField": "valorInventario" },
+        { "internalName": "FechaUltimaOC",      "displayName": "Fecha última OC",     "type": "DateTime", "sourceField": "fecha" },
+        { "internalName": "Orden",              "displayName": "Orden",               "type": "Number",   "required": true }
+      ]
+    },
+    {
+      "title": "Actividades",
+      "internalName": "Actividades",
+      "type": "transactional",
+      "subtype": "auditLog",
+      "breakInheritance": true,
+      "versioning": { "enabled": true, "majorVersionLimit": 500 },
+      "attachments": false,
+      "appendOnly": true,
+      "estimatedItems": 10000,
+      "permissions": [
+        { "group": "SG-Discontinuados-Admin",   "level": "Control total" },
+        { "group": "SG-Discontinuados-Editor",  "level": "Solo agregar" },
+        { "group": "SG-Discontinuados-Planta",  "level": "Solo agregar" },
+        { "group": "SG-Discontinuados-Viewers", "level": "Leer" }
+      ],
+      "indexes": ["Producto","FechaActividad"],
+      "columns": [
+        { "internalName": "Title",           "displayName": "ID Actividad", "type": "Text",     "required": true, "indexed": true, "sourceField": "id" },
+        { "internalName": "Producto",        "displayName": "Producto",     "type": "Lookup",   "required": true, "indexed": true, "lookupList": "Discontinuados" },
+        { "internalName": "Texto",           "displayName": "Texto",        "type": "Note",     "required": true, "sourceField": "text" },
+        { "internalName": "FechaActividad",  "displayName": "Fecha y hora", "type": "DateTime", "required": true, "indexed": true, "sourceField": "time" },
+        { "internalName": "TipoActividad",   "displayName": "Tipo",         "type": "Choice",   "required": true, "default": "Comentario",
+          "choices": ["Comentario","Avance de etapa","Sistema","Hito completado"] }
+      ]
+    }
+  ]
+}
