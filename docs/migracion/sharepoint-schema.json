@@ -1,216 +1,1664 @@
 {
-  "version": "1.0",
-  "site": "https://<tenant>.sharepoint.com/sites/discontinuados-corp",
-  "generatedAt": "2026-10-30",
-  "groups": [
-    { "name": "SG-Discontinuados-Owners",  "role": "Propietario del sitio" },
-    { "name": "SG-Discontinuados-Admin",   "role": "Admin de negocio" },
-    { "name": "SG-Discontinuados-Editor",  "role": "Editor" },
-    { "name": "SG-Discontinuados-Planta",  "role": "Planta (grupo base)" },
-    { "name": "SG-Discontinuados-Viewers", "role": "Viewer (solo lectura)" }
-  ],
-  "customPermissionLevels": [
+  "version": "2.0",
+  "generado": "2026-11-02",
+  "app": "Discontinuados Corporativos (Megalabs S&OP Global)",
+  "fuente": "docs/migracion/03-modelo-sharepoint.md",
+  "alcance": "plant-reports queda fuera (backlog). Sin Firebase.",
+  "site": {
+    "url": "https://<TENANT>.sharepoint.com/sites/discontinuados-corp",
+    "title": "Discontinuados Corporativos",
+    "template": "Sitio de comunicación o de equipo sin grupo de Microsoft 365",
+    "sharing": "Solo invitados existentes (ExistingExternalUserSharingOnly)",
+    "nota": "⚠️ SUPUESTO: el dueño de negocio no informó un sitio existente; se propone uno dedicado."
+  },
+  "permissionLevels": [
     {
       "name": "Contribuir sin eliminar",
-      "clonedFrom": "Contribuir",
-      "exclude": ["DeleteListItems", "DeleteVersions"],
-      "description": "Puede agregar y editar ítems, pero no eliminarlos."
+      "cloneOf": "Contribute",
+      "exclude": [
+        "DeleteListItems",
+        "DeleteVersions"
+      ],
+      "description": "Crear y editar ítems, sin borrar."
     },
     {
-      "name": "Solo agregar",
-      "clonedFrom": "Contribuir",
-      "exclude": ["EditListItems", "DeleteListItems", "DeleteVersions"],
-      "description": "Solo puede agregar ítems nuevos. No puede editar ni eliminar."
+      "name": "Editar sin crear ni eliminar",
+      "cloneOf": "Contribute",
+      "exclude": [
+        "AddListItems",
+        "DeleteListItems",
+        "DeleteVersions"
+      ],
+      "description": "Solo modificar ítems existentes (hitos que crea el flujo)."
     }
   ],
+  "groups": {
+    "corporativos": [
+      {
+        "role": "Owners",
+        "entraGroup": "SG-Discontinuados-Owners",
+        "spGroup": "SP-Discontinuados-Owners",
+        "description": "IT + S&OP Global (máximo 2-3 personas). Propietarios del sitio y cuenta de servicio de los flujos."
+      },
+      {
+        "role": "Admin",
+        "entraGroup": "SG-Discontinuados-Admin",
+        "spGroup": "SP-Discontinuados-Admin",
+        "description": "Equipo S&OP Global que opera el proceso, administra catálogos y borra datos de prueba."
+      },
+      {
+        "role": "Editor",
+        "entraGroup": "SG-Discontinuados-Editor",
+        "spGroup": "SP-Discontinuados-Editor",
+        "description": "Supply Corp, Mkt Corp, Finanzas, Compliance, AARR: crean productos, completan hitos y avanzan etapas."
+      },
+      {
+        "role": "Viewer",
+        "entraGroup": "SG-Discontinuados-Viewer",
+        "spGroup": "SP-Discontinuados-Viewer",
+        "description": "Lectura de todo el tablero (gerencias, auditoría interna)."
+      }
+    ],
+    "plantas": [
+      {
+        "fabricante": "Andrómaco",
+        "entraGroup": "SG-Discontinuados-Planta-Andromaco"
+      },
+      {
+        "fabricante": "Apiter",
+        "entraGroup": "SG-Discontinuados-Planta-Apiter"
+      },
+      {
+        "fabricante": "Arg-Gem",
+        "entraGroup": "SG-Discontinuados-Planta-Arg-Gem"
+      },
+      {
+        "fabricante": "Arg-Mlb",
+        "entraGroup": "SG-Discontinuados-Planta-Arg-Mlb"
+      },
+      {
+        "fabricante": "Arg-Poe",
+        "entraGroup": "SG-Discontinuados-Planta-Arg-Poe"
+      },
+      {
+        "fabricante": "Atral",
+        "entraGroup": "SG-Discontinuados-Planta-Atral"
+      },
+      {
+        "fabricante": "CSLB Behring",
+        "entraGroup": "SG-Discontinuados-Planta-CSLB-Behring"
+      },
+      {
+        "fabricante": "Camilo",
+        "entraGroup": "SG-Discontinuados-Planta-Camilo"
+      },
+      {
+        "fabricante": "Chemo",
+        "entraGroup": "SG-Discontinuados-Planta-Chemo"
+      },
+      {
+        "fabricante": "Chi-Grh",
+        "entraGroup": "SG-Discontinuados-Planta-Chi-Grh"
+      },
+      {
+        "fabricante": "Col-Mlb",
+        "entraGroup": "SG-Discontinuados-Planta-Col-Mlb"
+      },
+      {
+        "fabricante": "Dom-Row",
+        "entraGroup": "SG-Discontinuados-Planta-Dom-Row"
+      },
+      {
+        "fabricante": "Ecu-Acx",
+        "entraGroup": "SG-Discontinuados-Planta-Ecu-Acx"
+      },
+      {
+        "fabricante": "Ems",
+        "entraGroup": "SG-Discontinuados-Planta-Ems"
+      },
+      {
+        "fabricante": "Herbarium",
+        "entraGroup": "SG-Discontinuados-Planta-Herbarium"
+      },
+      {
+        "fabricante": "Hersil",
+        "entraGroup": "SG-Discontinuados-Planta-Hersil"
+      },
+      {
+        "fabricante": "Ibsa",
+        "entraGroup": "SG-Discontinuados-Planta-Ibsa"
+      },
+      {
+        "fabricante": "IsisPharma",
+        "entraGroup": "SG-Discontinuados-Planta-IsisPharma"
+      },
+      {
+        "fabricante": "Korott",
+        "entraGroup": "SG-Discontinuados-Planta-Korott"
+      },
+      {
+        "fabricante": "Lasca",
+        "entraGroup": "SG-Discontinuados-Planta-Lasca"
+      },
+      {
+        "fabricante": "Local",
+        "entraGroup": "SG-Discontinuados-Planta-Local"
+      },
+      {
+        "fabricante": "Neocosmed",
+        "entraGroup": "SG-Discontinuados-Planta-Neocosmed"
+      },
+      {
+        "fabricante": "Phytopharm",
+        "entraGroup": "SG-Discontinuados-Planta-Phytopharm"
+      },
+      {
+        "fabricante": "Roe-Arg",
+        "entraGroup": "SG-Discontinuados-Planta-Roe-Arg"
+      },
+      {
+        "fabricante": "Uru-Cel",
+        "entraGroup": "SG-Discontinuados-Planta-Uru-Cel"
+      },
+      {
+        "fabricante": "Uru-Hay",
+        "entraGroup": "SG-Discontinuados-Planta-Uru-Hay"
+      },
+      {
+        "fabricante": "Uru-Icl",
+        "entraGroup": "SG-Discontinuados-Planta-Uru-Icl"
+      },
+      {
+        "fabricante": "Uru-Mlb",
+        "entraGroup": "SG-Discontinuados-Planta-Uru-Mlb"
+      },
+      {
+        "fabricante": "Uru-Pdc",
+        "entraGroup": "SG-Discontinuados-Planta-Uru-Pdc"
+      },
+      {
+        "fabricante": "Urufarma",
+        "entraGroup": "SG-Discontinuados-Planta-Urufarma"
+      },
+      {
+        "fabricante": "Usa-Mlb",
+        "entraGroup": "SG-Discontinuados-Planta-Usa-Mlb"
+      }
+    ],
+    "plantasContenedor": {
+      "spGroup": "SP-Discontinuados-Plantas",
+      "descripcion": "Contiene los grupos Entra de todas las plantas; solo da lectura de catálogos."
+    }
+  },
   "lists": [
     {
-      "title": "Compañías",
-      "internalName": "Cias",
-      "type": "transactional",
-      "subtype": "catalog",
-      "breakInheritance": true,
-      "versioning": false,
-      "attachments": false,
-      "estimatedItems": 13,
-      "permissions": [
-        { "group": "SG-Discontinuados-Admin",   "level": "Control total" },
-        { "group": "SG-Discontinuados-Editor",  "level": "Leer" },
-        { "group": "SG-Discontinuados-Planta",  "level": "Leer" },
-        { "group": "SG-Discontinuados-Viewers", "level": "Leer" }
-      ],
+      "name": "Companias",
+      "displayName": "Compañías",
+      "kind": "catalogo",
+      "purpose": "Catálogo CIAS (13 valores).",
       "columns": [
-        { "internalName": "Title",        "displayName": "Código Cía",      "type": "Text",    "required": true,  "indexed": true  },
-        { "internalName": "NombreCompleto","displayName": "Nombre completo", "type": "Text",    "required": false, "indexed": false },
-        { "internalName": "Activa",        "displayName": "Activa",          "type": "Boolean", "required": true,  "default": true  }
+        {
+          "internalName": "Title",
+          "displayName": "Código",
+          "type": "Text",
+          "required": true,
+          "unique": true,
+          "indexed": true,
+          "default": null,
+          "origin": "CIAS (db.js:3-7)",
+          "maxLength": 50
+        },
+        {
+          "internalName": "NombreCompleto",
+          "displayName": "Nombre completo",
+          "type": "Text",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "(no existe en el código)",
+          "maxLength": 255,
+          "description": "Opcional: ⚠️ el dueño de negocio debe completarlo si lo necesita."
+        },
+        {
+          "internalName": "Activa",
+          "displayName": "Activa",
+          "type": "Boolean",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": true,
+          "origin": "(nuevo)"
+        }
+      ],
+      "listValidation": null,
+      "versioning": {
+        "enabled": true,
+        "majorVersions": 10
+      },
+      "attachments": false,
+      "contentApproval": false,
+      "folders": false,
+      "readSecurity": "All",
+      "writeSecurity": "All",
+      "volume": {
+        "actual": 13,
+        "proyeccion": "estable",
+        "riesgoUmbral5000": "Nulo"
+      },
+      "permissions": {
+        "breakInheritance": true,
+        "assignments": {
+          "Owners": "FullControl",
+          "Admin": "Contribute",
+          "Editor": "Reader",
+          "Viewer": "Reader",
+          "Plantas": "Reader"
+        }
+      },
+      "indexedColumns": [
+        "Title"
       ]
     },
     {
-      "title": "Fabricantes",
-      "internalName": "Fabricantes",
-      "type": "transactional",
-      "subtype": "catalog",
-      "breakInheritance": true,
-      "versioning": false,
-      "attachments": false,
-      "estimatedItems": 31,
-      "permissions": [
-        { "group": "SG-Discontinuados-Admin",   "level": "Control total" },
-        { "group": "SG-Discontinuados-Editor",  "level": "Leer" },
-        { "group": "SG-Discontinuados-Planta",  "level": "Leer" },
-        { "group": "SG-Discontinuados-Viewers", "level": "Leer" }
-      ],
+      "name": "Fabricantes",
+      "displayName": "Fabricantes",
+      "kind": "catalogo",
+      "purpose": "Catálogo FABRICANTES (31 valores). Cada fila apunta al grupo de Entra ID que representa a esa planta; de ahí sale quién ve los productos (ver 04-seguridad.md).",
       "columns": [
-        { "internalName": "Title",        "displayName": "Código Fabricante", "type": "Text",    "required": true,  "indexed": true  },
-        { "internalName": "NombreCompleto","displayName": "Nombre completo",   "type": "Text",    "required": false },
-        { "internalName": "Pais",          "displayName": "País",              "type": "Text",    "required": false },
-        { "internalName": "Activo",        "displayName": "Activo",            "type": "Boolean", "required": true, "default": true  }
+        {
+          "internalName": "Title",
+          "displayName": "Fabricante",
+          "type": "Text",
+          "required": true,
+          "unique": true,
+          "indexed": true,
+          "default": null,
+          "origin": "FABRICANTES (db.js:9-15)",
+          "maxLength": 100
+        },
+        {
+          "internalName": "Externo",
+          "displayName": "Es tercero (usuarios invitados)",
+          "type": "Choice",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": "Desconocido",
+          "origin": "(nuevo)",
+          "choices": [
+            "Sí",
+            "No",
+            "Desconocido"
+          ],
+          "description": "⚠️ El código no distingue plantas propias de terceras."
+        },
+        {
+          "internalName": "GrupoEntra",
+          "displayName": "Grupo Entra ID",
+          "type": "Text",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "(nuevo)",
+          "maxLength": 120,
+          "description": "SG-Discontinuados-Planta-<Fabricante>"
+        },
+        {
+          "internalName": "GrupoEntraId",
+          "displayName": "Id de objeto del grupo",
+          "type": "Text",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "(nuevo)",
+          "maxLength": 40,
+          "description": "GUID. Lo completa el script de aprovisionamiento; lo usa el flujo F1."
+        },
+        {
+          "internalName": "Activa",
+          "displayName": "Activa",
+          "type": "Boolean",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": true,
+          "origin": "(nuevo)"
+        }
+      ],
+      "listValidation": null,
+      "versioning": {
+        "enabled": true,
+        "majorVersions": 10
+      },
+      "attachments": false,
+      "contentApproval": false,
+      "folders": false,
+      "readSecurity": "All",
+      "writeSecurity": "All",
+      "volume": {
+        "actual": 31,
+        "proyeccion": "estable",
+        "riesgoUmbral5000": "Nulo"
+      },
+      "permissions": {
+        "breakInheritance": true,
+        "assignments": {
+          "Owners": "FullControl",
+          "Admin": "Contribute",
+          "Editor": "Reader",
+          "Viewer": "Reader",
+          "Plantas": "Reader"
+        }
+      },
+      "indexedColumns": [
+        "Title"
       ]
     },
     {
-      "title": "Unidades de Negocio",
-      "internalName": "BUs",
-      "type": "transactional",
-      "subtype": "catalog",
-      "breakInheritance": true,
-      "versioning": false,
-      "attachments": false,
-      "estimatedItems": 5,
-      "permissions": [
-        { "group": "SG-Discontinuados-Admin",   "level": "Control total" },
-        { "group": "SG-Discontinuados-Editor",  "level": "Leer" },
-        { "group": "SG-Discontinuados-Planta",  "level": "Leer" },
-        { "group": "SG-Discontinuados-Viewers", "level": "Leer" }
-      ],
+      "name": "UnidadesNegocio",
+      "displayName": "Unidades de negocio",
+      "kind": "catalogo",
+      "purpose": "Catálogo BUS (5 valores).",
       "columns": [
-        { "internalName": "Title",        "displayName": "Código BU",       "type": "Text",    "required": true, "indexed": true },
-        { "internalName": "NombreCompleto","displayName": "Nombre completo", "type": "Text",    "required": false },
-        { "internalName": "Activa",        "displayName": "Activa",          "type": "Boolean", "required": true, "default": true }
+        {
+          "internalName": "Title",
+          "displayName": "BU",
+          "type": "Text",
+          "required": true,
+          "unique": true,
+          "indexed": true,
+          "default": null,
+          "origin": "BUS (db.js:17)",
+          "maxLength": 50
+        },
+        {
+          "internalName": "Activa",
+          "displayName": "Activa",
+          "type": "Boolean",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": true,
+          "origin": "(nuevo)"
+        }
+      ],
+      "listValidation": null,
+      "versioning": {
+        "enabled": true,
+        "majorVersions": 10
+      },
+      "attachments": false,
+      "contentApproval": false,
+      "folders": false,
+      "readSecurity": "All",
+      "writeSecurity": "All",
+      "volume": {
+        "actual": 5,
+        "proyeccion": "estable",
+        "riesgoUmbral5000": "Nulo"
+      },
+      "permissions": {
+        "breakInheritance": true,
+        "assignments": {
+          "Owners": "FullControl",
+          "Admin": "Contribute",
+          "Editor": "Reader",
+          "Viewer": "Reader",
+          "Plantas": "Reader"
+        }
+      },
+      "indexedColumns": [
+        "Title"
       ]
     },
     {
-      "title": "Plantilla de Hitos",
-      "internalName": "HitosTemplate",
-      "type": "transactional",
-      "subtype": "catalog",
-      "breakInheritance": true,
-      "versioning": false,
-      "attachments": false,
-      "estimatedItems": 16,
-      "permissions": [
-        { "group": "SG-Discontinuados-Admin",   "level": "Control total" },
-        { "group": "SG-Discontinuados-Editor",  "level": "Leer" },
-        { "group": "SG-Discontinuados-Planta",  "level": "Leer" },
-        { "group": "SG-Discontinuados-Viewers", "level": "Leer" }
-      ],
+      "name": "HitosCatalogo",
+      "displayName": "Catálogo de hitos",
+      "kind": "catalogo",
+      "purpose": "Los 16 hitos estándar. Reemplaza HITOS_TEMPLATE, RESPONSABLES_DEFAULT y HITOS_CON_EXTRAS (db.js:20-73). El flujo F1 lo lee para crear los hitos; cambiar el proceso no requiere redeploy.",
       "columns": [
-        { "internalName": "Title",              "displayName": "Nombre del hito",           "type": "Text",    "required": true,  "indexed": true  },
-        { "internalName": "Etapa",              "displayName": "Etapa (0/1/2)",             "type": "Number",  "required": true                  },
-        { "internalName": "Orden",              "displayName": "Orden",                     "type": "Number",  "required": true                  },
-        { "internalName": "ResponsableDefault", "displayName": "Responsable por defecto",   "type": "Text",    "required": false                 },
-        { "internalName": "TieneNotas",         "displayName": "Tiene campo Notas",         "type": "Boolean", "default": false                  },
-        { "internalName": "TieneCostos",        "displayName": "Tiene campos de costo",     "type": "Boolean", "default": false                  },
-        { "internalName": "TieneImpactoGranel", "displayName": "Tiene campos de granel",    "type": "Boolean", "default": false                  },
-        { "internalName": "TieneFechaOC",       "displayName": "Tiene fecha de OC",         "type": "Boolean", "default": false                  }
+        {
+          "internalName": "Title",
+          "displayName": "Hito",
+          "type": "Text",
+          "required": true,
+          "unique": true,
+          "indexed": true,
+          "default": null,
+          "origin": "label (db.js:20-40)",
+          "maxLength": 255
+        },
+        {
+          "internalName": "ClaveHito",
+          "displayName": "Clave de hito",
+          "type": "Text",
+          "required": true,
+          "unique": true,
+          "indexed": true,
+          "default": null,
+          "origin": "(nuevo)",
+          "maxLength": 50
+        },
+        {
+          "internalName": "Etapa",
+          "displayName": "Etapa",
+          "type": "Number",
+          "required": true,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "etapa (db.js:22)",
+          "min": 0,
+          "max": 2,
+          "decimals": 0
+        },
+        {
+          "internalName": "Orden",
+          "displayName": "Orden",
+          "type": "Number",
+          "required": true,
+          "unique": true,
+          "indexed": true,
+          "default": null,
+          "origin": "índice (db.js:20)",
+          "min": 1,
+          "max": 99,
+          "decimals": 0
+        },
+        {
+          "internalName": "ResponsableDefault",
+          "displayName": "Responsable por defecto",
+          "type": "Text",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "RESPONSABLES_DEFAULT (db.js:56-73)",
+          "maxLength": 255
+        },
+        {
+          "internalName": "EditablePorPlanta",
+          "displayName": "Editable por la planta",
+          "type": "Boolean",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": false,
+          "origin": "responsable == 'Planta' (db.js:63-67)",
+          "description": "Define a qué hitos recibe permiso de edición el grupo de la planta."
+        },
+        {
+          "internalName": "Activa",
+          "displayName": "Activa",
+          "type": "Boolean",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": true,
+          "origin": "(nuevo)"
+        }
+      ],
+      "listValidation": null,
+      "versioning": {
+        "enabled": true,
+        "majorVersions": 10
+      },
+      "attachments": false,
+      "contentApproval": false,
+      "folders": false,
+      "readSecurity": "All",
+      "writeSecurity": "All",
+      "volume": {
+        "actual": 16,
+        "proyeccion": "estable",
+        "riesgoUmbral5000": "Nulo"
+      },
+      "permissions": {
+        "breakInheritance": true,
+        "assignments": {
+          "Owners": "FullControl",
+          "Admin": "Contribute",
+          "Editor": "Reader",
+          "Viewer": "Reader",
+          "Plantas": "Reader"
+        }
+      },
+      "indexedColumns": [
+        "Title",
+        "ClaveHito",
+        "Orden"
       ]
     },
     {
-      "title": "Discontinuados",
-      "internalName": "Discontinuados",
-      "type": "transactional",
-      "subtype": "master",
-      "breakInheritance": false,
-      "versioning": { "enabled": true, "majorVersionLimit": 500 },
-      "attachments": false,
-      "estimatedItems": 500,
-      "uniqueItemPermissions": "via-flow-for-Planta-group",
-      "permissions": [
-        { "group": "SG-Discontinuados-Admin",   "level": "Control total" },
-        { "group": "SG-Discontinuados-Editor",  "level": "Contribuir sin eliminar" },
-        { "group": "SG-Discontinuados-Planta",  "level": "Contribuir sin eliminar" },
-        { "group": "SG-Discontinuados-Viewers", "level": "Leer" }
-      ],
-      "indexes": ["Title","CodigoSKU","Cia","Fabricante","BU","EtapaActual","FechaInicio"],
+      "name": "Productos",
+      "displayName": "Productos",
+      "kind": "transaccional",
+      "purpose": "Un ítem por SKU en proceso de discontinuación. Reemplaza products[] del nodo Firebase /discontinuados. Guarda también los agregados (etapa, progreso, último hito) que mantiene el flujo F2, para que ningún rol necesite leer todos los hitos para mostrar el tablero.",
       "columns": [
-        { "internalName": "Title",              "displayName": "ID Proceso",                 "type": "Text",     "required": true,  "unique": true, "indexed": true,  "sourceField": "id" },
-        { "internalName": "CodigoSKU",          "displayName": "Código SKU",                 "type": "Text",     "required": false, "indexed": true, "sourceField": "codigo" },
-        { "internalName": "NombreProducto",     "displayName": "Descripción del producto",   "type": "Text",     "required": true,  "sourceField": "nombre" },
-        { "internalName": "Cia",                "displayName": "Compañía",                   "type": "Lookup",   "required": true,  "indexed": true, "lookupList": "Cias", "sourceField": "paisCompania" },
-        { "internalName": "Fabricante",         "displayName": "Fabricante / Planta",        "type": "Lookup",   "required": true,  "indexed": true, "lookupList": "Fabricantes", "sourceField": "paisPlanta" },
-        { "internalName": "BU",                 "displayName": "Business Unit",              "type": "Lookup",   "required": true,  "indexed": true, "lookupList": "BUs", "sourceField": "bu" },
-        { "internalName": "MPH",                "displayName": "MPH",                        "type": "Text",     "required": false, "sourceField": "mph" },
-        { "internalName": "LevantadoDesdePlanta","displayName": "¿Levantado desde planta?",  "type": "Choice",   "choices": ["Sí","No","No especificado"], "default": "No especificado", "sourceField": "levantadoSOPC" },
-        { "internalName": "Observaciones",      "displayName": "Observaciones",              "type": "Note",     "required": false, "sourceField": "observaciones" },
-        { "internalName": "EtapaActual",        "displayName": "Etapa actual",               "type": "Number",   "required": true,  "default": 0, "indexed": true, "sourceField": "etapaActual", "validation": ">=0 AND <=2" },
-        { "internalName": "EtapaLabel",         "displayName": "Etapa (texto)",              "type": "Calculated", "formula": "=CHOOSE([EtapaActual]+1,\"Detección\",\"Análisis\",\"Confirmación\")", "resultType": "Text" },
-        { "internalName": "Progreso",           "displayName": "Progreso (%)",               "type": "Number",   "required": true,  "default": 0, "validation": ">=0 AND <=100", "sourceField": "progreso" },
-        { "internalName": "UltimoHito",         "displayName": "Último hito completado",     "type": "Text",     "default": "Inicio proceso", "sourceField": "ultimoHito" },
-        { "internalName": "FechaUltimoHito",    "displayName": "Fecha último hito",          "type": "DateTime", "required": false, "sourceField": "fechaUltimoHito" },
-        { "internalName": "FechaInicio",        "displayName": "Fecha de inicio",            "type": "DateTime", "required": true,  "indexed": true, "sourceField": "fechaInicio" }
+        {
+          "internalName": "Title",
+          "displayName": "Descripción",
+          "type": "Text",
+          "required": true,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "nombre (NuevoProducto.jsx:60)",
+          "maxLength": 255
+        },
+        {
+          "internalName": "CodigoCU",
+          "displayName": "Código CU",
+          "type": "Text",
+          "required": false,
+          "unique": true,
+          "indexed": true,
+          "default": null,
+          "origin": "id (db.js:162; NuevoProducto.jsx:58)",
+          "maxLength": 20,
+          "description": "Lo asigna el flujo F1: CU- + (100000 + ID). No lo escribe el usuario."
+        },
+        {
+          "internalName": "IdLegado",
+          "displayName": "ID legado Firebase",
+          "type": "Text",
+          "required": false,
+          "unique": false,
+          "indexed": true,
+          "default": null,
+          "origin": "id (db.js:162)",
+          "maxLength": 20,
+          "description": "Solo migración. Sirve para re-ejecutar la carga sin duplicar."
+        },
+        {
+          "internalName": "CodigoSAP",
+          "displayName": "Código SAP",
+          "type": "Text",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "codigo (NuevoProducto.jsx:59)",
+          "maxLength": 50
+        },
+        {
+          "internalName": "Compania",
+          "displayName": "Compañía",
+          "type": "Lookup",
+          "required": true,
+          "unique": false,
+          "indexed": true,
+          "default": null,
+          "origin": "paisCompania (db.js:3-7)",
+          "lookup": {
+            "list": "Companias",
+            "showField": "Title",
+            "onDelete": "Restrict"
+          }
+        },
+        {
+          "internalName": "Fabricante",
+          "displayName": "Fabricante",
+          "type": "Lookup",
+          "required": true,
+          "unique": false,
+          "indexed": true,
+          "default": null,
+          "origin": "paisPlanta (db.js:9-15)",
+          "lookup": {
+            "list": "Fabricantes",
+            "showField": "Title",
+            "onDelete": "Restrict"
+          }
+        },
+        {
+          "internalName": "UnidadNegocio",
+          "displayName": "BU",
+          "type": "Lookup",
+          "required": true,
+          "unique": false,
+          "indexed": true,
+          "default": null,
+          "origin": "bu (db.js:17)",
+          "lookup": {
+            "list": "UnidadesNegocio",
+            "showField": "Title",
+            "onDelete": "Restrict"
+          }
+        },
+        {
+          "internalName": "Mph",
+          "displayName": "MPH",
+          "type": "Text",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "mph (NuevoProducto.jsx:64)",
+          "maxLength": 100
+        },
+        {
+          "internalName": "Observaciones",
+          "displayName": "Observaciones",
+          "type": "Note",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "observaciones (NuevoProducto.jsx:65)"
+        },
+        {
+          "internalName": "LevantadoPorPlanta",
+          "displayName": "¿Se levantó desde la planta?",
+          "type": "Choice",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "levantadoSOPC (NuevoProducto.jsx:66,150)",
+          "choices": [
+            "Sí",
+            "No"
+          ],
+          "description": "En el código es 'si'/'no'/vacío."
+        },
+        {
+          "internalName": "EtapaActual",
+          "displayName": "Etapa actual",
+          "type": "Number",
+          "required": true,
+          "unique": false,
+          "indexed": true,
+          "default": 0,
+          "origin": "etapaActual (AppContext.jsx:83)",
+          "min": 0,
+          "max": 2,
+          "decimals": 0,
+          "description": "0=Detección, 1=Análisis, 2=Confirmación (igual que el código)."
+        },
+        {
+          "internalName": "EtapaNombre",
+          "displayName": "Etapa",
+          "type": "Calculated",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "etapas[].nombre (db.js:1)",
+          "formula": "=CHOOSE([EtapaActual]+1,\"Detección\",\"Análisis\",\"Confirmación\")",
+          "resultType": "Text",
+          "fieldRefs": [
+            "EtapaActual"
+          ]
+        },
+        {
+          "internalName": "ProcesoConfirmado",
+          "displayName": "Proceso confirmado",
+          "type": "Boolean",
+          "required": false,
+          "unique": false,
+          "indexed": true,
+          "default": false,
+          "origin": "etapas[2].estado='completado' (AppContext.jsx:107-127)",
+          "description": "Sí cuando todos los hitos de la etapa 2 están completados."
+        },
+        {
+          "internalName": "Progreso",
+          "displayName": "Progreso (%)",
+          "type": "Number",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": 0,
+          "origin": "progreso (AppContext.jsx:79-80)",
+          "min": 0,
+          "max": 100,
+          "decimals": 0,
+          "description": "Lo recalcula el flujo F2."
+        },
+        {
+          "internalName": "UltimoHito",
+          "displayName": "Último hito",
+          "type": "Text",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": "Inicio proceso",
+          "origin": "ultimoHito (AppContext.jsx:81)",
+          "maxLength": 255
+        },
+        {
+          "internalName": "FechaUltimoHito",
+          "displayName": "Fecha último hito",
+          "type": "DateTime",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "fechaUltimoHito (NuevoProducto.jsx:70)",
+          "format": "DateOnly"
+        },
+        {
+          "internalName": "FechaInicio",
+          "displayName": "Fecha de inicio",
+          "type": "DateTime",
+          "required": true,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "fechaInicio (NuevoProducto.jsx:71)",
+          "format": "DateOnly",
+          "defaultFormula": "=[today]"
+        },
+        {
+          "internalName": "EsPrueba",
+          "displayName": "Es dato de prueba",
+          "type": "Boolean",
+          "required": false,
+          "unique": false,
+          "indexed": true,
+          "default": false,
+          "origin": "regex /^CU-000\\d{3}$/ (AppContext.jsx:211)",
+          "description": "Reemplaza el regex de borrado masivo. Los 224 del seed se migran en Sí."
+        },
+        {
+          "internalName": "PermisosAplicados",
+          "displayName": "Permisos de planta aplicados",
+          "type": "Boolean",
+          "required": false,
+          "unique": false,
+          "indexed": true,
+          "default": false,
+          "origin": "(nuevo, técnico)",
+          "description": "Solo lo escriben los flujos F1/F3/F4. Permite a F4 encontrar productos sin permisos asignados."
+        },
+        {
+          "internalName": "FabricantePermisoId",
+          "displayName": "Fabricante con permiso vigente",
+          "type": "Number",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "(nuevo, técnico)",
+          "decimals": 0,
+          "description": "Solo flujos. Id del ítem de Fabricantes cuyo grupo tiene hoy permiso; F3 lo compara para detectar un cambio de fabricante."
+        },
+        {
+          "internalName": "EtapaValidada",
+          "displayName": "Etapa validada",
+          "type": "Number",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": 0,
+          "origin": "(nuevo, técnico)",
+          "min": 0,
+          "max": 2,
+          "decimals": 0,
+          "description": "Solo flujos. Última etapa aceptada; F3 la compara con EtapaActual para revertir saltos inválidos."
+        }
+      ],
+      "listValidation": {
+        "formula": "=OR(ISBLANK([FechaUltimoHito]),[FechaUltimoHito]>=[FechaInicio])",
+        "message": "La fecha del último hito no puede ser anterior a la fecha de inicio."
+      },
+      "versioning": {
+        "enabled": true,
+        "majorVersions": 50
+      },
+      "attachments": false,
+      "contentApproval": false,
+      "folders": false,
+      "readSecurity": "All",
+      "writeSecurity": "All",
+      "volume": {
+        "actual": 224,
+        "proyeccion": "≤ 500 activos por ciclo; ~2.000 acumulados a 4 años",
+        "riesgoUmbral5000": "Bajo"
+      },
+      "permissions": {
+        "breakInheritance": true,
+        "assignments": {
+          "Owners": "FullControl",
+          "Admin": "Contribute",
+          "Editor": "Contribuir sin eliminar",
+          "Viewer": "Reader"
+        }
+      },
+      "itemSecurity": {
+        "mecanismo": "permisos únicos por ítem (flujo F1/F3)",
+        "ruptura": {
+          "copyRoleAssignments": true,
+          "clearSubscopes": true
+        },
+        "otorga": [
+          {
+            "principal": "Fabricantes[Producto.Fabricante].GrupoEntraId",
+            "nivel": "Reader"
+          }
+        ]
+      },
+      "indexedColumns": [
+        "CodigoCU",
+        "IdLegado",
+        "Compania",
+        "Fabricante",
+        "UnidadNegocio",
+        "EtapaActual",
+        "ProcesoConfirmado",
+        "EsPrueba",
+        "PermisosAplicados"
       ]
     },
     {
-      "title": "Hitos",
-      "internalName": "Hitos",
-      "type": "transactional",
-      "subtype": "detail",
-      "breakInheritance": false,
-      "versioning": { "enabled": true, "majorVersionLimit": 100 },
-      "attachments": false,
-      "estimatedItems": 8000,
-      "permissions": [
-        { "group": "SG-Discontinuados-Admin",   "level": "Control total" },
-        { "group": "SG-Discontinuados-Editor",  "level": "Contribuir sin eliminar" },
-        { "group": "SG-Discontinuados-Planta",  "level": "Contribuir sin eliminar" },
-        { "group": "SG-Discontinuados-Viewers", "level": "Leer" }
-      ],
-      "indexes": ["Producto","Etapa","Label","Done"],
+      "name": "Hitos",
+      "displayName": "Hitos",
+      "kind": "transaccional",
+      "purpose": "16 ítems por producto, creados por el flujo F1 a partir de HitosCatalogo. Reemplaza products[].hitos[]. Los campos extra (costos, granel, OC, notas) viven en el hito que corresponde, igual que hoy.",
       "columns": [
-        { "internalName": "Title",              "displayName": "ID Hito",             "type": "Text",     "required": true, "unique": true, "indexed": true, "sourceField": "id" },
-        { "internalName": "Producto",           "displayName": "Producto",            "type": "Lookup",   "required": true, "indexed": true, "lookupList": "Discontinuados" },
-        { "internalName": "Etapa",              "displayName": "Etapa",               "type": "Number",   "required": true, "indexed": true, "sourceField": "etapa" },
-        { "internalName": "Label",              "displayName": "Nombre del hito",     "type": "Choice",   "required": true, "indexed": true, "sourceField": "label",
-          "choices": ["Detección del SKU a discontinuar","Presentación de Presupuesto Anual","Análisis de Template de Discontinuación","Aviso a Supply Corp y S&OP Global","Inventario PT","Notificación a Mkt Corp y Aviso a Planta","Análisis de impacto planta","Costo destrucción PT","Costo destrucción materiales","Costo inventario API","Productos en cola de producción","Última OC","Confirmación con Mkt Corp","Notificación a todos los departamentos","Inactivación del código en sistema","Plan de desagote de inventario"] },
-        { "internalName": "Responsable",        "displayName": "Área responsable",    "type": "Text",     "required": false, "sourceField": "responsable" },
-        { "internalName": "Done",               "displayName": "Completado",          "type": "Boolean",  "default": false, "indexed": true, "sourceField": "done" },
-        { "internalName": "FechaCompromiso",    "displayName": "Fecha compromiso",    "type": "DateTime", "sourceField": "fechaCompromiso" },
-        { "internalName": "FechaReal",          "displayName": "Fecha real",          "type": "DateTime", "sourceField": "fechaReal" },
-        { "internalName": "Notas",              "displayName": "Notas",               "type": "Note",     "sourceField": "notas" },
-        { "internalName": "OfreceUnidades",     "displayName": "Ofrece unidades",     "type": "Text",     "sourceField": "ofreceUnidades" },
-        { "internalName": "ImpactoGranelLleva", "displayName": "¿Lleva granel?",      "type": "Choice",   "choices": ["Sí","No","N/A"], "sourceField": "impactoGranelLleva" },
-        { "internalName": "ImpactoGranelValor", "displayName": "Valor impacto granel","type": "Currency", "sourceField": "impactoGranelValor" },
-        { "internalName": "ResolucionFinal",    "displayName": "Resolución final",    "type": "Note",     "sourceField": "resolucionFinal" },
-        { "internalName": "ValorItem",          "displayName": "Costo unitario",      "type": "Currency", "sourceField": "valorItem" },
-        { "internalName": "ValorInventario",    "displayName": "Valor de inventario", "type": "Currency", "sourceField": "valorInventario" },
-        { "internalName": "FechaUltimaOC",      "displayName": "Fecha última OC",     "type": "DateTime", "sourceField": "fecha" },
-        { "internalName": "Orden",              "displayName": "Orden",               "type": "Number",   "required": true }
+        {
+          "internalName": "Title",
+          "displayName": "Hito",
+          "type": "Text",
+          "required": true,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "label (db.js:20-40)",
+          "maxLength": 255
+        },
+        {
+          "internalName": "Producto",
+          "displayName": "Producto",
+          "type": "Lookup",
+          "required": true,
+          "unique": false,
+          "indexed": true,
+          "default": null,
+          "origin": "products[].hitos[] (anidado)",
+          "lookup": {
+            "list": "Productos",
+            "showField": "Title",
+            "onDelete": "Cascade"
+          }
+        },
+        {
+          "internalName": "ClaveHito",
+          "displayName": "Clave de hito",
+          "type": "Text",
+          "required": true,
+          "unique": false,
+          "indexed": true,
+          "default": null,
+          "origin": "(nuevo) clave estable; el código identifica hitos por label (db.js:113)",
+          "maxLength": 50
+        },
+        {
+          "internalName": "Etapa",
+          "displayName": "Etapa",
+          "type": "Number",
+          "required": true,
+          "unique": false,
+          "indexed": true,
+          "default": null,
+          "origin": "etapa (db.js:22)",
+          "min": 0,
+          "max": 2,
+          "decimals": 0
+        },
+        {
+          "internalName": "Orden",
+          "displayName": "Orden",
+          "type": "Number",
+          "required": true,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "índice en HITOS_TEMPLATE (db.js:20)",
+          "min": 1,
+          "max": 16,
+          "decimals": 0
+        },
+        {
+          "internalName": "Responsable",
+          "displayName": "Responsable",
+          "type": "Text",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "responsable (db.js:56-73)",
+          "maxLength": 255,
+          "description": "Texto libre, igual que hoy (mapeo a usuario Entra ID: backlog por decisión del dueño)."
+        },
+        {
+          "internalName": "Completado",
+          "displayName": "Completado",
+          "type": "Boolean",
+          "required": false,
+          "unique": false,
+          "indexed": true,
+          "default": false,
+          "origin": "done (AppContext.jsx:77)"
+        },
+        {
+          "internalName": "FechaCompromiso",
+          "displayName": "Fecha compromiso",
+          "type": "DateTime",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "fechaCompromiso (db.js:88)",
+          "format": "DateOnly",
+          "description": "'-' en el código = vacío."
+        },
+        {
+          "internalName": "FechaReal",
+          "displayName": "Fecha real",
+          "type": "DateTime",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "fechaReal (AppContext.jsx:77)",
+          "format": "DateOnly",
+          "description": "La completa el flujo F2 al marcar Completado."
+        },
+        {
+          "internalName": "Notas",
+          "displayName": "Notas",
+          "type": "Note",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "notas (db.js:44,49)",
+          "description": "Solo Inventario PT y Productos en cola."
+        },
+        {
+          "internalName": "OfreceUnidades",
+          "displayName": "¿Ofrece unidades a otra compañía?",
+          "type": "Choice",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "ofreceUnidades (db.js:44; ProductDetail.jsx:258-270)",
+          "choices": [
+            "Sí",
+            "No"
+          ],
+          "description": "Solo Inventario PT."
+        },
+        {
+          "internalName": "ImpactoGranelLleva",
+          "displayName": "Impacto sobre granel",
+          "type": "Choice",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "impactoGranelLleva (db.js:45; ProductDetail.jsx:300-318)",
+          "choices": [
+            "Lleva",
+            "No lleva"
+          ],
+          "description": "Solo Análisis de impacto planta."
+        },
+        {
+          "internalName": "ImpactoGranelPct",
+          "displayName": "% impacto granel",
+          "type": "Number",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "impactoGranelValor (ProductDetail.jsx:321-326)",
+          "min": 0,
+          "max": 100,
+          "decimals": 2,
+          "description": "Texto con coma en el código (ej. '0,0')."
+        },
+        {
+          "internalName": "ResolucionFinal",
+          "displayName": "Resolución final de ítems / inventarios",
+          "type": "Note",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "resolucionFinal (ProductDetail.jsx:288-292)",
+          "description": "Solo Análisis de impacto planta."
+        },
+        {
+          "internalName": "CostoItem",
+          "displayName": "Costo ítem",
+          "type": "Number",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "valorItem (ProductDetail.jsx:196-206)",
+          "min": 0,
+          "decimals": 2,
+          "description": "Moneda no definida en el código: ⚠️ SUPUESTO sin símbolo (DashboardView.jsx:17-19)."
+        },
+        {
+          "internalName": "CostoInventario",
+          "displayName": "Costo inventario",
+          "type": "Number",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "valorInventario (ProductDetail.jsx:210-218; DashboardView.jsx:26)",
+          "min": 0,
+          "decimals": 2
+        },
+        {
+          "internalName": "FechaUltimaOC",
+          "displayName": "Fecha última OC (mes)",
+          "type": "DateTime",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "fecha (db.js:50; ProductDetail.jsx:224-230)",
+          "format": "DateOnly",
+          "description": "El código usa <input type=month> ('AAAA-MM'); se guarda el día 1."
+        }
+      ],
+      "listValidation": null,
+      "versioning": {
+        "enabled": true,
+        "majorVersions": 50
+      },
+      "attachments": false,
+      "contentApproval": false,
+      "folders": false,
+      "readSecurity": "All",
+      "writeSecurity": "All",
+      "volume": {
+        "actual": 3584,
+        "proyeccion": "16 × productos: 8.000 a 500 productos; 32.000 a 2.000 acumulados",
+        "riesgoUmbral5000": "ALTO: supera 5.000 desde ~313 productos. Toda consulta debe filtrar por una columna indexada (Producto, ClaveHito, Etapa) o paginar por ID."
+      },
+      "permissions": {
+        "breakInheritance": true,
+        "assignments": {
+          "Owners": "FullControl",
+          "Admin": "Contribute",
+          "Editor": "Editar sin crear ni eliminar",
+          "Viewer": "Reader"
+        }
+      },
+      "itemSecurity": {
+        "mecanismo": "permisos únicos por ítem solo si HitosCatalogo.EditablePorPlanta = Sí (flujo F1/F3)",
+        "ruptura": {
+          "copyRoleAssignments": true,
+          "clearSubscopes": true
+        },
+        "otorga": [
+          {
+            "principal": "Fabricantes[Producto.Fabricante].GrupoEntraId",
+            "nivel": "Editar sin crear ni eliminar"
+          }
+        ]
+      },
+      "indexedColumns": [
+        "Producto",
+        "ClaveHito",
+        "Etapa",
+        "Completado"
       ]
     },
     {
-      "title": "Actividades",
-      "internalName": "Actividades",
-      "type": "transactional",
-      "subtype": "auditLog",
-      "breakInheritance": true,
-      "versioning": { "enabled": true, "majorVersionLimit": 500 },
-      "attachments": false,
-      "appendOnly": true,
-      "estimatedItems": 10000,
-      "permissions": [
-        { "group": "SG-Discontinuados-Admin",   "level": "Control total" },
-        { "group": "SG-Discontinuados-Editor",  "level": "Solo agregar" },
-        { "group": "SG-Discontinuados-Planta",  "level": "Solo agregar" },
-        { "group": "SG-Discontinuados-Viewers", "level": "Leer" }
-      ],
-      "indexes": ["Producto","FechaActividad"],
+      "name": "Actividades",
+      "displayName": "Actividades",
+      "kind": "transaccional",
+      "purpose": "Bitácora y comentarios por producto. Reemplaza products[].actividades[]. El autor es 'Creado por' (hoy el nombre está escrito a mano en el texto: AppContext.jsx:60).",
       "columns": [
-        { "internalName": "Title",           "displayName": "ID Actividad", "type": "Text",     "required": true, "indexed": true, "sourceField": "id" },
-        { "internalName": "Producto",        "displayName": "Producto",     "type": "Lookup",   "required": true, "indexed": true, "lookupList": "Discontinuados" },
-        { "internalName": "Texto",           "displayName": "Texto",        "type": "Note",     "required": true, "sourceField": "text" },
-        { "internalName": "FechaActividad",  "displayName": "Fecha y hora", "type": "DateTime", "required": true, "indexed": true, "sourceField": "time" },
-        { "internalName": "TipoActividad",   "displayName": "Tipo",         "type": "Choice",   "required": true, "default": "Comentario",
-          "choices": ["Comentario","Avance de etapa","Sistema","Hito completado"] }
+        {
+          "internalName": "Title",
+          "displayName": "Resumen",
+          "type": "Text",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "(nuevo) primeros 100 caracteres de Texto; lo completa el flujo",
+          "maxLength": 255
+        },
+        {
+          "internalName": "Producto",
+          "displayName": "Producto",
+          "type": "Lookup",
+          "required": true,
+          "unique": false,
+          "indexed": true,
+          "default": null,
+          "origin": "products[].actividades[]",
+          "lookup": {
+            "list": "Productos",
+            "showField": "Title",
+            "onDelete": "Cascade"
+          }
+        },
+        {
+          "internalName": "Texto",
+          "displayName": "Texto",
+          "type": "Note",
+          "required": true,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "text (AppContext.jsx:60)"
+        },
+        {
+          "internalName": "Tipo",
+          "displayName": "Tipo",
+          "type": "Choice",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": "Comentario",
+          "origin": "(nuevo) se deduce del texto",
+          "choices": [
+            "Comentario",
+            "Observación",
+            "Avance de etapa",
+            "Sistema"
+          ]
+        },
+        {
+          "internalName": "FechaEvento",
+          "displayName": "Fecha del evento",
+          "type": "DateTime",
+          "required": false,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "time 'DD/MM HH:MM' (AppContext.jsx:47-54)",
+          "format": "DateTime",
+          "defaultFormula": "=[today]",
+          "description": "Para ítems migrados conserva la fecha original (el código no guarda el año)."
+        }
+      ],
+      "listValidation": null,
+      "versioning": {
+        "enabled": true,
+        "majorVersions": 10
+      },
+      "attachments": false,
+      "contentApproval": false,
+      "folders": false,
+      "readSecurity": "All",
+      "writeSecurity": "Own",
+      "volume": {
+        "actual": 8,
+        "proyeccion": "≈ 3 a 10 por producto y año: 1.500 a 5.000 por ciclo",
+        "riesgoUmbral5000": "MEDIO: indexada por Producto; consultar siempre filtrando por producto."
+      },
+      "permissions": {
+        "breakInheritance": true,
+        "assignments": {
+          "Owners": "FullControl",
+          "Admin": "Contribute",
+          "Editor": "Contribuir sin eliminar",
+          "Viewer": "Reader"
+        }
+      },
+      "itemSecurity": {
+        "mecanismo": "sin acceso para plantas en v1; edición limitada a ítems propios (WriteSecurity=Own)"
+      },
+      "indexedColumns": [
+        "Producto"
+      ]
+    },
+    {
+      "name": "ComparativaHistorica",
+      "displayName": "Comparativa histórica",
+      "kind": "parametria",
+      "purpose": "Cantidad de discontinuados de años anteriores por compañía, que hoy se tipea a mano y vive en el localStorage de cada navegador (Comparativa.jsx:12,23-31,118).",
+      "columns": [
+        {
+          "internalName": "Title",
+          "displayName": "Clave",
+          "type": "Text",
+          "required": true,
+          "unique": true,
+          "indexed": true,
+          "default": null,
+          "origin": "(nuevo) '<Compañía>|<Año>', evita duplicados",
+          "maxLength": 50
+        },
+        {
+          "internalName": "Compania",
+          "displayName": "Compañía",
+          "type": "Lookup",
+          "required": true,
+          "unique": false,
+          "indexed": true,
+          "default": null,
+          "origin": "hist[cia] (Comparativa.jsx:28)",
+          "lookup": {
+            "list": "Companias",
+            "showField": "Title",
+            "onDelete": "Restrict"
+          }
+        },
+        {
+          "internalName": "Anio",
+          "displayName": "Año",
+          "type": "Number",
+          "required": true,
+          "unique": false,
+          "indexed": true,
+          "default": null,
+          "origin": "y2024 / y2025 (Comparativa.jsx:28)",
+          "min": 2000,
+          "max": 2100,
+          "decimals": 0
+        },
+        {
+          "internalName": "Cantidad",
+          "displayName": "Cantidad",
+          "type": "Number",
+          "required": true,
+          "unique": false,
+          "indexed": false,
+          "default": null,
+          "origin": "valor tipeado (Comparativa.jsx:73-98)",
+          "min": 0,
+          "decimals": 0
+        }
+      ],
+      "listValidation": null,
+      "versioning": {
+        "enabled": true,
+        "majorVersions": 20
+      },
+      "attachments": false,
+      "contentApproval": false,
+      "folders": false,
+      "readSecurity": "All",
+      "writeSecurity": "All",
+      "volume": {
+        "actual": 0,
+        "proyeccion": "13 compañías × años",
+        "riesgoUmbral5000": "Nulo"
+      },
+      "permissions": {
+        "breakInheritance": true,
+        "assignments": {
+          "Owners": "FullControl",
+          "Admin": "Contribute",
+          "Editor": "Contribuir sin eliminar",
+          "Viewer": "Reader"
+        }
+      },
+      "indexedColumns": [
+        "Title",
+        "Compania",
+        "Anio"
       ]
     }
-  ]
+  ],
+  "flows": [
+    {
+      "id": "F1",
+      "nombre": "Producto-Alta",
+      "disparador": "SharePoint: al crear un ítem en Productos",
+      "conexion": "Cuenta de servicio (miembro de SG-Discontinuados-Owners)",
+      "resumen": "Asigna CodigoCU; crea los 16 hitos desde HitosCatalogo; crea la actividad inicial; rompe herencia y concede Read al grupo de la planta en el producto y Edit en sus hitos de planta."
+    },
+    {
+      "id": "F2",
+      "nombre": "Hito-Modificado",
+      "disparador": "SharePoint: al modificar un ítem en Hitos (condición: editor ≠ cuenta de servicio)",
+      "conexion": "Cuenta de servicio",
+      "resumen": "Fecha real; recalcula Progreso/UltimoHito/FechaUltimoHito; avance automático 0→1; ProcesoConfirmado; actividades de sistema; restituye columnas estructurales (Producto, ClaveHito, Etapa, Orden, Title)."
+    },
+    {
+      "id": "F3",
+      "nombre": "Producto-Modificado",
+      "disparador": "SharePoint: al modificar un ítem en Productos (condición: editor ≠ cuenta de servicio)",
+      "conexion": "Cuenta de servicio",
+      "resumen": "Valida transición de EtapaActual (revierte si inválida); si cambió Fabricante, quita el grupo anterior y otorga el nuevo (producto y hitos); si ProcesoConfirmado, retira permisos únicos de los hitos de planta."
+    },
+    {
+      "id": "F4",
+      "nombre": "Permisos-Reconciliacion",
+      "disparador": "Programado: diario 02:00",
+      "conexion": "Cuenta de servicio",
+      "resumen": "Recorre productos activos, compara permisos esperados vs reales, repara y notifica a S&OP Global; propaga cambios de permisos a nivel lista hacia los ítems con permisos únicos."
+    }
+  ],
+  "seed": {
+    "Companias": [
+      {
+        "Title": "Arg-Mlb"
+      },
+      {
+        "Title": "Bol-Mlb"
+      },
+      {
+        "Title": "Cea-Mlb"
+      },
+      {
+        "Title": "Chi-Mlb"
+      },
+      {
+        "Title": "Col-Mlb"
+      },
+      {
+        "Title": "Dom-Mlb"
+      },
+      {
+        "Title": "Dom-Row"
+      },
+      {
+        "Title": "Ecu-Mlb"
+      },
+      {
+        "Title": "Mex-Mlb"
+      },
+      {
+        "Title": "Par-Mlb"
+      },
+      {
+        "Title": "Per-Mlb"
+      },
+      {
+        "Title": "Uru-Mlb"
+      },
+      {
+        "Title": "Ven-Mlb"
+      }
+    ],
+    "UnidadesNegocio": [
+      {
+        "Title": "Primary"
+      },
+      {
+        "Title": "Consumer"
+      },
+      {
+        "Title": "Divise"
+      },
+      {
+        "Title": "Hi-Tech"
+      },
+      {
+        "Title": "Nutraceutical"
+      }
+    ],
+    "Fabricantes": [
+      {
+        "Title": "Andrómaco",
+        "GrupoEntra": "SG-Discontinuados-Planta-Andromaco"
+      },
+      {
+        "Title": "Apiter",
+        "GrupoEntra": "SG-Discontinuados-Planta-Apiter"
+      },
+      {
+        "Title": "Arg-Gem",
+        "GrupoEntra": "SG-Discontinuados-Planta-Arg-Gem"
+      },
+      {
+        "Title": "Arg-Mlb",
+        "GrupoEntra": "SG-Discontinuados-Planta-Arg-Mlb"
+      },
+      {
+        "Title": "Arg-Poe",
+        "GrupoEntra": "SG-Discontinuados-Planta-Arg-Poe"
+      },
+      {
+        "Title": "Atral",
+        "GrupoEntra": "SG-Discontinuados-Planta-Atral"
+      },
+      {
+        "Title": "CSLB Behring",
+        "GrupoEntra": "SG-Discontinuados-Planta-CSLB-Behring"
+      },
+      {
+        "Title": "Camilo",
+        "GrupoEntra": "SG-Discontinuados-Planta-Camilo"
+      },
+      {
+        "Title": "Chemo",
+        "GrupoEntra": "SG-Discontinuados-Planta-Chemo"
+      },
+      {
+        "Title": "Chi-Grh",
+        "GrupoEntra": "SG-Discontinuados-Planta-Chi-Grh"
+      },
+      {
+        "Title": "Col-Mlb",
+        "GrupoEntra": "SG-Discontinuados-Planta-Col-Mlb"
+      },
+      {
+        "Title": "Dom-Row",
+        "GrupoEntra": "SG-Discontinuados-Planta-Dom-Row"
+      },
+      {
+        "Title": "Ecu-Acx",
+        "GrupoEntra": "SG-Discontinuados-Planta-Ecu-Acx"
+      },
+      {
+        "Title": "Ems",
+        "GrupoEntra": "SG-Discontinuados-Planta-Ems"
+      },
+      {
+        "Title": "Herbarium",
+        "GrupoEntra": "SG-Discontinuados-Planta-Herbarium"
+      },
+      {
+        "Title": "Hersil",
+        "GrupoEntra": "SG-Discontinuados-Planta-Hersil"
+      },
+      {
+        "Title": "Ibsa",
+        "GrupoEntra": "SG-Discontinuados-Planta-Ibsa"
+      },
+      {
+        "Title": "IsisPharma",
+        "GrupoEntra": "SG-Discontinuados-Planta-IsisPharma"
+      },
+      {
+        "Title": "Korott",
+        "GrupoEntra": "SG-Discontinuados-Planta-Korott"
+      },
+      {
+        "Title": "Lasca",
+        "GrupoEntra": "SG-Discontinuados-Planta-Lasca"
+      },
+      {
+        "Title": "Local",
+        "GrupoEntra": "SG-Discontinuados-Planta-Local"
+      },
+      {
+        "Title": "Neocosmed",
+        "GrupoEntra": "SG-Discontinuados-Planta-Neocosmed"
+      },
+      {
+        "Title": "Phytopharm",
+        "GrupoEntra": "SG-Discontinuados-Planta-Phytopharm"
+      },
+      {
+        "Title": "Roe-Arg",
+        "GrupoEntra": "SG-Discontinuados-Planta-Roe-Arg"
+      },
+      {
+        "Title": "Uru-Cel",
+        "GrupoEntra": "SG-Discontinuados-Planta-Uru-Cel"
+      },
+      {
+        "Title": "Uru-Hay",
+        "GrupoEntra": "SG-Discontinuados-Planta-Uru-Hay"
+      },
+      {
+        "Title": "Uru-Icl",
+        "GrupoEntra": "SG-Discontinuados-Planta-Uru-Icl"
+      },
+      {
+        "Title": "Uru-Mlb",
+        "GrupoEntra": "SG-Discontinuados-Planta-Uru-Mlb"
+      },
+      {
+        "Title": "Uru-Pdc",
+        "GrupoEntra": "SG-Discontinuados-Planta-Uru-Pdc"
+      },
+      {
+        "Title": "Urufarma",
+        "GrupoEntra": "SG-Discontinuados-Planta-Urufarma"
+      },
+      {
+        "Title": "Usa-Mlb",
+        "GrupoEntra": "SG-Discontinuados-Planta-Usa-Mlb"
+      }
+    ],
+    "HitosCatalogo": [
+      {
+        "Title": "Detección del SKU a discontinuar",
+        "ClaveHito": "DETECCION_SKU",
+        "Etapa": 0,
+        "Orden": 1,
+        "ResponsableDefault": "Cualquier área",
+        "EditablePorPlanta": false
+      },
+      {
+        "Title": "Presentación de Presupuesto Anual",
+        "ClaveHito": "PRESUPUESTO_ANUAL",
+        "Etapa": 0,
+        "Orden": 2,
+        "ResponsableDefault": "Mkt Corp",
+        "EditablePorPlanta": false
+      },
+      {
+        "Title": "Análisis de Template de Discontinuación",
+        "ClaveHito": "TEMPLATE_DISCONTINUACION",
+        "Etapa": 0,
+        "Orden": 3,
+        "ResponsableDefault": "Mkt Corp",
+        "EditablePorPlanta": false
+      },
+      {
+        "Title": "Aviso a Supply Corp y S&OP Global",
+        "ClaveHito": "AVISO_SUPPLY_SOP",
+        "Etapa": 0,
+        "Orden": 4,
+        "ResponsableDefault": "Área detectante",
+        "EditablePorPlanta": false
+      },
+      {
+        "Title": "Inventario PT",
+        "ClaveHito": "INVENTARIO_PT",
+        "Etapa": 1,
+        "Orden": 5,
+        "ResponsableDefault": "Supply Chain Corp",
+        "EditablePorPlanta": false
+      },
+      {
+        "Title": "Notificación a Mkt Corp y Aviso a Planta",
+        "ClaveHito": "NOTIF_MKT_PLANTA",
+        "Etapa": 1,
+        "Orden": 6,
+        "ResponsableDefault": "Supply Chain Corp",
+        "EditablePorPlanta": false
+      },
+      {
+        "Title": "Análisis de impacto planta",
+        "ClaveHito": "IMPACTO_PLANTA",
+        "Etapa": 1,
+        "Orden": 7,
+        "ResponsableDefault": "Planta",
+        "EditablePorPlanta": true
+      },
+      {
+        "Title": "Costo destrucción PT",
+        "ClaveHito": "COSTO_DEST_PT",
+        "Etapa": 1,
+        "Orden": 8,
+        "ResponsableDefault": "Planta",
+        "EditablePorPlanta": true
+      },
+      {
+        "Title": "Costo destrucción materiales",
+        "ClaveHito": "COSTO_DEST_MAT",
+        "Etapa": 1,
+        "Orden": 9,
+        "ResponsableDefault": "Planta",
+        "EditablePorPlanta": true
+      },
+      {
+        "Title": "Costo inventario API",
+        "ClaveHito": "COSTO_INV_API",
+        "Etapa": 1,
+        "Orden": 10,
+        "ResponsableDefault": "Planta",
+        "EditablePorPlanta": true
+      },
+      {
+        "Title": "Productos en cola de producción",
+        "ClaveHito": "COLA_PRODUCCION",
+        "Etapa": 1,
+        "Orden": 11,
+        "ResponsableDefault": "Planta",
+        "EditablePorPlanta": true
+      },
+      {
+        "Title": "Última OC",
+        "ClaveHito": "ULTIMA_OC",
+        "Etapa": 1,
+        "Orden": 12,
+        "ResponsableDefault": "Supply Corp",
+        "EditablePorPlanta": false
+      },
+      {
+        "Title": "Confirmación con Mkt Corp",
+        "ClaveHito": "CONFIRMACION_MKT",
+        "Etapa": 2,
+        "Orden": 13,
+        "ResponsableDefault": "Supply Corp + S&OP Global",
+        "EditablePorPlanta": false
+      },
+      {
+        "Title": "Notificación a todos los departamentos",
+        "ClaveHito": "NOTIF_DEPARTAMENTOS",
+        "Etapa": 2,
+        "Orden": 14,
+        "ResponsableDefault": "S&OP Global",
+        "EditablePorPlanta": false
+      },
+      {
+        "Title": "Inactivación del código en sistema",
+        "ClaveHito": "INACTIVACION_CODIGO",
+        "Etapa": 2,
+        "Orden": 15,
+        "ResponsableDefault": "Supply Chain Corp",
+        "EditablePorPlanta": false
+      },
+      {
+        "Title": "Plan de desagote de inventario",
+        "ClaveHito": "PLAN_DESAGOTE",
+        "Etapa": 2,
+        "Orden": 16,
+        "ResponsableDefault": "Mkt Local & Cía",
+        "EditablePorPlanta": false
+      }
+    ]
+  },
+  "limites": {
+    "umbralVista": 5000,
+    "maxIndicesPorLista": 20,
+    "maxLookupsPorConsulta": 12,
+    "permisosUnicosRecomendados": 5000
+  }
 }

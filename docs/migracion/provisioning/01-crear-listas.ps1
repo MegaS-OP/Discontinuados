@@ -1,421 +1,339 @@
-# =============================================================================
-# 01-crear-listas.ps1
-# Provisioning idempotente del sitio SharePoint para "Discontinuados Corporativos"
-#
-# Prereqs:
-#   - PnP.PowerShell >= 2.x instalado: Install-Module PnP.PowerShell
-#   - Cuenta con permisos de Administrador de Sitio sobre $SiteUrl
-#   - Los grupos Entra ID SG-Discontinuados-* deben existir previamente
-#
-# Uso:
-#   .\01-crear-listas.ps1 -SiteUrl "https://<tenant>.sharepoint.com/sites/discontinuados-corp"
-#
-# El script es idempotente: si una lista o columna ya existe, no la recrea.
-# =============================================================================
+#Requires -Version 7.2
+<#
+.SYNOPSIS
+    Aprovisiona de forma idempotente las listas de SharePoint de "Discontinuados Corporativos".
 
+.DESCRIPTION
+    Lee ../sharepoint-schema.json (fuente única del modelo) y crea, solo si faltan:
+      - niveles de permiso personalizados
+      - grupos de SharePoint que contienen a los grupos de Entra ID
+      - listas, columnas, índices, validaciones y configuración (versiones, adjuntos, seguridad de ítems propios)
+      - ruptura de herencia y asignación de grupos por lista
+      - (opcional) filas de los catálogos, y el Id de objeto de cada grupo de planta en Fabricantes
+
+    Es seguro volver a ejecutarlo: no rompe la herencia de una lista que ya es única (hacerlo con
+    ClearSubscopes borraría los permisos por ítem que asignan los flujos).
+
+    NO crea los grupos de Entra ID (los gestiona IT): ver 00-crear-grupos-entra.ps1.
+    NO crea el sitio ni cambia su política de uso compartido: ver docs/migracion/04-seguridad.md.
+
+    ⚠️ ESTADO: escrito contra PnP.PowerShell 2.x, NO ejecutado ni probado contra un tenant.
+    Probar primero con -WhatIf y luego en un sitio de desarrollo.
+
+.PARAMETER SiteUrl
+    Sitio destino, p. ej. https://contoso.sharepoint.com/sites/discontinuados-corp
+
+.PARAMETER ClientId
+    Id de la app registrada en Entra ID para PnP.PowerShell (obligatorio desde PnP.PowerShell 2.x).
+
+.PARAMETER SeedCatalogs
+    Carga las filas de Companias, Fabricantes, UnidadesNegocio y HitosCatalogo desde el bloque "seed" del esquema.
+
+.PARAMETER SkipPermissions
+    Crea listas y columnas pero no toca permisos (útil para un primer ensayo).
+
+.EXAMPLE
+    ./01-crear-listas.ps1 -SiteUrl https://contoso.sharepoint.com/sites/discontinuados-corp -ClientId <guid> -WhatIf
+
+.EXAMPLE
+    ./01-crear-listas.ps1 -SiteUrl https://contoso.sharepoint.com/sites/discontinuados-corp -ClientId <guid> -SeedCatalogs
+#>
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$SiteUrl,
-
-    [string]$GroupPrefix = "SG-Discontinuados"
+    [Parameter(Mandatory = $true)][string]$SiteUrl,
+    [Parameter(Mandatory = $true)][string]$ClientId,
+    [string]$SchemaPath = (Join-Path $PSScriptRoot '..' 'sharepoint-schema.json'),
+    [switch]$SeedCatalogs,
+    [switch]$SkipPermissions
 )
 
-Set-StrictMode -Version Latest
-$ErrorActionPreference = "Stop"
+Set-StrictMode -Version 2.0
+$ErrorActionPreference = 'Stop'
 
-# ---------------------------------------------------------------------------
-# 0. Conexión
-# ---------------------------------------------------------------------------
-Write-Host "Conectando a $SiteUrl ..." -ForegroundColor Cyan
-Connect-PnPOnline -Url $SiteUrl -Interactive
+# ───────────────────────── utilidades ─────────────────────────
+function Write-Step([string]$Message) { Write-Host "==> $Message" -ForegroundColor Cyan }
+function Write-Skip([string]$Message) { Write-Host "    = $Message (ya existe)" -ForegroundColor DarkGray }
 
-# ---------------------------------------------------------------------------
-# Helper: crear columna solo si no existe
-# ---------------------------------------------------------------------------
-function Add-ColumnIfNotExists {
-    param(
-        [string]$ListName,
-        [string]$InternalName,
-        [string]$DisplayName,
-        [string]$Type,           # Text | Note | Number | Boolean | DateTime | Choice | Lookup | User | Currency
-        [bool]  $Required = $false,
-        [string]$DefaultValue = $null,
-        [string[]]$Choices = @(),
-        [string]$LookupList = $null,
-        [string]$LookupField = "Title",
-        [bool]  $AddToDefaultView = $true
-    )
+function Get-Prop {
+    param($Object, [string]$Name)
+    $p = $Object.PSObject.Properties[$Name]
+    if ($null -eq $p) { return $null }
+    return $p.Value
+}
 
-    $existing = Get-PnPField -List $ListName -Identity $InternalName -ErrorAction SilentlyContinue
-    if ($existing) {
-        Write-Host "  [OK] Columna '$InternalName' ya existe en '$ListName'" -ForegroundColor DarkGray
-        return
+function Invoke-Change {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param([string]$Target, [string]$Action, [scriptblock]$Script)
+    if ($PSCmdlet.ShouldProcess($Target, $Action)) { & $Script }
+}
+
+function ConvertTo-XmlText([string]$Text) { return [System.Security.SecurityElement]::Escape($Text) }
+
+function Get-EntraGroupObjectId {
+    param([string]$DisplayName)
+    $g = $null
+    if (Get-Command Get-PnPEntraIDGroup -ErrorAction SilentlyContinue) {
+        $g = Get-PnPEntraIDGroup -Identity $DisplayName -ErrorAction SilentlyContinue
+    }
+    elseif (Get-Command Get-PnPAzureADGroup -ErrorAction SilentlyContinue) {
+        $g = Get-PnPAzureADGroup -Identity $DisplayName -ErrorAction SilentlyContinue
+    }
+    if ($null -eq $g) { return $null }
+    return [string]$g.Id
+}
+
+# ───────────────────────── XML de columnas ─────────────────────────
+function New-FieldXml {
+    param($Column, [hashtable]$ListIds)
+
+    $name = $Column.internalName
+    $attr = [System.Collections.Generic.List[string]]::new()
+    $attr.Add("Name=`"$name`"")
+    $attr.Add("StaticName=`"$name`"")
+    $attr.Add("DisplayName=`"$(ConvertTo-XmlText $Column.displayName)`"")
+    if ($Column.required) { $attr.Add('Required="TRUE"') }
+    if ($Column.indexed) { $attr.Add('Indexed="TRUE"') }
+    if ($Column.unique) { $attr.Add('EnforceUniqueValues="TRUE"') }
+    $description = Get-Prop $Column 'description'
+    if ($description) { $attr.Add("Description=`"$(ConvertTo-XmlText $description)`"") }
+
+    $inner = ''
+    $default = $Column.default
+    $defaultFormula = Get-Prop $Column 'defaultFormula'
+
+    switch ($Column.type) {
+        'Text' {
+            $attr.Add('Type="Text"')
+            $max = Get-Prop $Column 'maxLength'
+            if ($max) { $attr.Add("MaxLength=`"$max`"") }
+            if ($null -ne $default) { $inner += "<Default>$(ConvertTo-XmlText ([string]$default))</Default>" }
+        }
+        'Note' {
+            $attr.Add('Type="Note"'); $attr.Add('NumLines="6"'); $attr.Add('RichText="FALSE"')
+        }
+        'Number' {
+            $attr.Add('Type="Number"')
+            $min = Get-Prop $Column 'min'; $max = Get-Prop $Column 'max'; $dec = Get-Prop $Column 'decimals'
+            if ($null -ne $min) { $attr.Add("Min=`"$min`"") }
+            if ($null -ne $max) { $attr.Add("Max=`"$max`"") }
+            if ($null -ne $dec) { $attr.Add("Decimals=`"$dec`"") }
+            if ($null -ne $default) { $inner += "<Default>$default</Default>" }
+        }
+        'Boolean' {
+            $attr.Add('Type="Boolean"')
+            $bool = if ($default -eq $true) { 1 } else { 0 }
+            $inner += "<Default>$bool</Default>"
+        }
+        'Choice' {
+            $attr.Add('Type="Choice"'); $attr.Add('Format="Dropdown"')
+            $choices = (Get-Prop $Column 'choices') | ForEach-Object { "<CHOICE>$(ConvertTo-XmlText $_)</CHOICE>" }
+            $inner += "<CHOICES>$($choices -join '')</CHOICES>"
+            if ($null -ne $default) { $inner += "<Default>$(ConvertTo-XmlText ([string]$default))</Default>" }
+        }
+        'DateTime' {
+            $attr.Add('Type="DateTime"')
+            $attr.Add("Format=`"$(Get-Prop $Column 'format')`"")
+            if ($defaultFormula) { $inner += "<DefaultFormula>$(ConvertTo-XmlText $defaultFormula)</DefaultFormula>" }
+        }
+        'Lookup' {
+            $target = $Column.lookup.list
+            if (-not $ListIds.ContainsKey($target)) { throw "La lista destino '$target' de '$name' no existe todavía." }
+            $attr.Add('Type="Lookup"')
+            $attr.Add("List=`"{$($ListIds[$target])}`"")
+            $attr.Add("ShowField=`"$($Column.lookup.showField)`"")
+            $attr.Add("RelationshipDeleteBehavior=`"$($Column.lookup.onDelete)`"")
+        }
+        'Calculated' {
+            $attr.Add('Type="Calculated"'); $attr.Add("ResultType=`"$(Get-Prop $Column 'resultType')`"")
+            $attr.Add('ReadOnly="TRUE"')
+            $refs = (Get-Prop $Column 'fieldRefs') | ForEach-Object { "<FieldRef Name=`"$_`"/>" }
+            $inner += "<Formula>$(ConvertTo-XmlText (Get-Prop $Column 'formula'))</Formula><FieldRefs>$($refs -join '')</FieldRefs>"
+        }
+        default { throw "Tipo de columna no soportado: $($Column.type) ($name)" }
+    }
+    return "<Field $($attr -join ' ')>$inner</Field>"
+}
+
+# ───────────────────────── inicio ─────────────────────────
+if (-not (Test-Path $SchemaPath)) { throw "No se encuentra el esquema: $SchemaPath" }
+$schema = Get-Content -Raw -Encoding utf8 $SchemaPath | ConvertFrom-Json -Depth 20
+
+Write-Step "Conectando a $SiteUrl"
+Connect-PnPOnline -Url $SiteUrl -Interactive -ClientId $ClientId
+
+$spGroupByRole = @{}
+$missingEntra = [System.Collections.Generic.List[string]]::new()
+
+# Nombres de nivel de permiso integrados: dependen del idioma del sitio, se resuelven por tipo.
+$builtIn = @{}
+foreach ($def in (Get-PnPRoleDefinition)) {
+    switch ($def.RoleTypeKind.ToString()) {
+        'Reader' { $builtIn['Reader'] = $def.Name }
+        'Contributor' { $builtIn['Contribute'] = $def.Name }
+        'Administrator' { $builtIn['FullControl'] = $def.Name }
+    }
+}
+function Resolve-RoleName([string]$Level) {
+    if ($builtIn.ContainsKey($Level)) { return $builtIn[$Level] }
+    return $Level
+}
+
+# ───────────────────────── 1. niveles de permiso ─────────────────────────
+if (-not $SkipPermissions) {
+    Write-Step 'Niveles de permiso personalizados'
+    foreach ($pl in $schema.permissionLevels) {
+        $existing = Get-PnPRoleDefinition -Identity $pl.name -ErrorAction SilentlyContinue
+        if ($existing) { Write-Skip $pl.name; continue }
+        Invoke-Change -Target $pl.name -Action 'Crear nivel de permiso' -Script {
+            Add-PnPRoleDefinition -RoleName $pl.name -Clone (Resolve-RoleName $pl.cloneOf) `
+                -Exclude ([string[]]$pl.exclude) -Description $pl.description | Out-Null
+        }
     }
 
-    $params = @{
-        List        = $ListName
-        InternalName= $InternalName
-        DisplayName = $DisplayName
-        Type        = $Type
-        Required    = $Required
-        AddToDefaultView = $AddToDefaultView
+    # ───────────────────────── 2. grupos de SharePoint ─────────────────────────
+    Write-Step 'Grupos de SharePoint (contenedores de los grupos de Entra ID)'
+    function Ensure-SpGroup([string]$Title, [string]$Description) {
+        if (Get-PnPGroup -Identity $Title -ErrorAction SilentlyContinue) { Write-Skip $Title; return }
+        Invoke-Change -Target $Title -Action 'Crear grupo de SharePoint' -Script {
+            New-PnPGroup -Title $Title -Description $Description | Out-Null
+        }
     }
-    if ($DefaultValue)      { $params['DefaultValue'] = $DefaultValue }
-    if ($Choices.Count -gt 0) { $params['Choices'] = $Choices }
-    if ($LookupList) {
-        $params['LookupList'] = $LookupList
-        $params['LookupField'] = $LookupField
+    function Ensure-GroupMember([string]$SpGroup, [string]$EntraGroupName) {
+        $oid = Get-EntraGroupObjectId -DisplayName $EntraGroupName
+        if (-not $oid) { $missingEntra.Add($EntraGroupName); return }
+        $login = "c:0t.c|tenant|$oid"
+        $members = @(Get-PnPGroupMember -Group $SpGroup -ErrorAction SilentlyContinue | ForEach-Object { $_.LoginName })
+        if ($members -contains $login) { return }
+        Invoke-Change -Target "$EntraGroupName -> $SpGroup" -Action 'Agregar miembro' -Script {
+            Add-PnPGroupMember -LoginName $login -Group $SpGroup
+        }
     }
 
-    Add-PnPField @params | Out-Null
-    Write-Host "  [+] Columna '$InternalName' creada en '$ListName'" -ForegroundColor Green
-}
-
-# ---------------------------------------------------------------------------
-# Helper: crear índice si no existe
-# ---------------------------------------------------------------------------
-function Add-IndexIfNotExists {
-    param(
-        [string]$ListName,
-        [string]$FieldName
-    )
-    $list   = Get-PnPList -Identity $ListName
-    $field  = Get-PnPField -List $ListName -Identity $FieldName -ErrorAction SilentlyContinue
-    if (-not $field) { Write-Warning "Campo '$FieldName' no encontrado en '$ListName'"; return }
-    if ($field.Indexed) {
-        Write-Host "  [OK] Índice '$FieldName' ya existe en '$ListName'" -ForegroundColor DarkGray
-        return
+    foreach ($g in $schema.groups.corporativos) {
+        $spGroupByRole[$g.role] = $g.spGroup
+        Ensure-SpGroup $g.spGroup $g.description
+        Ensure-GroupMember $g.spGroup $g.entraGroup
     }
-    $field.Indexed = $true
-    $field.Update()
-    Invoke-PnPQuery
-    Write-Host "  [+] Índice '$FieldName' creado en '$ListName'" -ForegroundColor Green
+    $plantas = $schema.groups.plantasContenedor
+    $spGroupByRole['Plantas'] = $plantas.spGroup
+    Ensure-SpGroup $plantas.spGroup $plantas.descripcion
+    foreach ($p in $schema.groups.plantas) { Ensure-GroupMember $plantas.spGroup $p.entraGroup }
+
+    # Los propietarios del sitio son los del grupo SG-Discontinuados-Owners.
+    $ownersGroup = Get-PnPGroup -AssociatedOwnerGroup
+    $ownersEntra = ($schema.groups.corporativos | Where-Object { $_.role -eq 'Owners' }).entraGroup
+    Ensure-GroupMember $ownersGroup.Title $ownersEntra
 }
 
-# ---------------------------------------------------------------------------
-# Helper: crear lista si no existe
-# ---------------------------------------------------------------------------
-function New-ListIfNotExists {
-    param(
-        [string]$InternalName,
-        [string]$Title,
-        [string]$Template = "GenericList"
-    )
-    $existing = Get-PnPList -Identity $InternalName -ErrorAction SilentlyContinue
-    if ($existing) {
-        Write-Host "[OK] Lista '$InternalName' ya existe" -ForegroundColor DarkGray
-        return $existing
+# ───────────────────────── 3. listas ─────────────────────────
+$listIds = @{}
+foreach ($l in $schema.lists) {
+    Write-Step "Lista $($l.name)"
+    $existingList = Get-PnPList -Identity $l.name -ErrorAction SilentlyContinue
+    if ($existingList) { Write-Skip $l.name }
+    else {
+        Invoke-Change -Target $l.name -Action 'Crear lista' -Script {
+            New-PnPList -Title $l.name -Template GenericList -OnQuickLaunch:$true | Out-Null
+        }
     }
-    $list = New-PnPList -Title $Title -Url "lists/$InternalName" -Template $Template
-    Write-Host "[+] Lista '$InternalName' creada" -ForegroundColor Green
-    return $list
-}
+    $spList = Get-PnPList -Identity $l.name -Includes Id, HasUniqueRoleAssignments -ErrorAction SilentlyContinue
+    if ($null -eq $spList) { Write-Warning "Simulación (-WhatIf): se omiten columnas de $($l.name)"; continue }
+    $listIds[$l.name] = $spList.Id
 
-# ---------------------------------------------------------------------------
-# Helper: asignar nivel de permiso a un grupo en una lista
-# ---------------------------------------------------------------------------
-function Set-ListPermission {
-    param(
-        [string]$ListName,
-        [string]$GroupName,
-        [string]$PermissionLevel
-    )
-    try {
-        Set-PnPListPermission -Identity $ListName -Group $GroupName -AddRole $PermissionLevel
-        Write-Host "  [+] Permiso '$PermissionLevel' asignado a '$GroupName' en '$ListName'" -ForegroundColor Green
+    # Columnas
+    foreach ($c in $l.columns) {
+        $name = $c.internalName
+        $field = Get-PnPField -List $l.name -Identity $name -ErrorAction SilentlyContinue
+        if ($name -eq 'Title') {
+            Invoke-Change -Target "$($l.name).Title" -Action 'Ajustar columna Title' -Script {
+                Set-PnPField -List $l.name -Identity 'Title' -Values @{ Title = $c.displayName; Required = [bool]$c.required }
+                if ($c.indexed) { Set-PnPField -List $l.name -Identity 'Title' -Values @{ Indexed = $true } }
+                if ($c.unique) { Set-PnPField -List $l.name -Identity 'Title' -Values @{ EnforceUniqueValues = $true } }
+            }
+            continue
+        }
+        if ($field) {
+            if ($c.indexed -and -not $field.Indexed) {
+                Invoke-Change -Target "$($l.name).$name" -Action 'Indexar columna' -Script {
+                    Set-PnPField -List $l.name -Identity $name -Values @{ Indexed = $true }
+                }
+            }
+            else { Write-Skip "$($l.name).$name" }
+            continue
+        }
+        $xml = New-FieldXml -Column $c -ListIds $listIds
+        Invoke-Change -Target "$($l.name).$name" -Action 'Crear columna' -Script {
+            Add-PnPFieldFromXml -List $l.name -FieldXml $xml | Out-Null
+        }
     }
-    catch {
-        Write-Warning "  Error asignando permiso a $GroupName en $ListName : $_"
+
+    # Configuración de la lista (CSOM: versiones, adjuntos, carpetas, seguridad de ítems propios, validación)
+    $readSec = if ((Get-Prop $l 'readSecurity') -eq 'Own') { 2 } else { 1 }
+    $writeSec = switch (Get-Prop $l 'writeSecurity') { 'Own' { 2 } 'None' { 4 } default { 1 } }
+    Invoke-Change -Target $l.name -Action 'Configurar lista' -Script {
+        $ctxList = Get-PnPList -Identity $l.name
+        $ctxList.Description = $l.purpose
+        $ctxList.EnableVersioning = [bool]$l.versioning.enabled
+        if ($l.versioning.enabled) { $ctxList.MajorVersionLimit = [int]$l.versioning.majorVersions }
+        $ctxList.EnableAttachments = [bool]$l.attachments
+        $ctxList.EnableFolderCreation = [bool]$l.folders
+        $ctxList.EnableModeration = [bool]$l.contentApproval
+        $ctxList.ReadSecurity = $readSec
+        $ctxList.WriteSecurity = $writeSec
+        $lv = Get-Prop $l 'listValidation'
+        if ($lv) { $ctxList.ValidationFormula = $lv.formula; $ctxList.ValidationMessage = $lv.message }
+        $ctxList.Update()
+        Invoke-PnPQuery
+    }
+
+    # Permisos de lista
+    if (-not $SkipPermissions) {
+        if (-not $spList.HasUniqueRoleAssignments) {
+            Invoke-Change -Target $l.name -Action 'Romper herencia (primera vez)' -Script {
+                Set-PnPList -Identity $l.name -BreakRoleInheritance -CopyRoleAssignments:$false -ClearSubscopes
+            }
+        }
+        else { Write-Skip "Herencia rota en $($l.name)" }
+        foreach ($a in $l.permissions.assignments.PSObject.Properties) {
+            $spGroup = $spGroupByRole[$a.Name]
+            $role = Resolve-RoleName $a.Value
+            Invoke-Change -Target "$($l.name): $spGroup = $role" -Action 'Asignar permiso' -Script {
+                Set-PnPListPermission -Identity $l.name -Group $spGroup -AddRole $role
+            }
+        }
     }
 }
 
-# ---------------------------------------------------------------------------
-# 1. Niveles de permiso personalizados
-# ---------------------------------------------------------------------------
-Write-Host "`n=== 1. Niveles de permiso personalizados ===" -ForegroundColor Yellow
+# ───────────────────────── 4. catálogos ─────────────────────────
+if ($SeedCatalogs) {
+    Write-Step 'Carga de catálogos'
+    foreach ($entry in $schema.seed.PSObject.Properties) {
+        $listName = $entry.Name
+        $present = @(Get-PnPListItem -List $listName -Fields 'Title' -PageSize 500 | ForEach-Object { $_['Title'] })
+        foreach ($row in $entry.Value) {
+            if ($present -contains $row.Title) { continue }
+            $values = @{}
+            foreach ($p in $row.PSObject.Properties) { $values[$p.Name] = $p.Value }
+            Invoke-Change -Target "$listName / $($row.Title)" -Action 'Agregar fila de catálogo' -Script {
+                Add-PnPListItem -List $listName -Values $values | Out-Null
+            }
+        }
+    }
 
-# "Contribuir sin eliminar"
-$contribSinElim = Get-PnPRoleDefinition -Identity "Contribuir sin eliminar" -ErrorAction SilentlyContinue
-if (-not $contribSinElim) {
-    # Copiar definición "Contribuir" y quitar DeleteListItems + DeleteVersions
-    Add-PnPRoleDefinition `
-        -RoleName "Contribuir sin eliminar" `
-        -Description "Puede agregar y editar ítems, pero no eliminarlos." `
-        -Clone "Contribuir" `
-        -Exclude DeleteListItems,DeleteVersions
-    Write-Host "[+] Nivel 'Contribuir sin eliminar' creado" -ForegroundColor Green
-}
-else {
-    Write-Host "[OK] Nivel 'Contribuir sin eliminar' ya existe" -ForegroundColor DarkGray
-}
-
-# "Solo agregar" (append-only, para lista Actividades)
-$soloAgregar = Get-PnPRoleDefinition -Identity "Solo agregar" -ErrorAction SilentlyContinue
-if (-not $soloAgregar) {
-    Add-PnPRoleDefinition `
-        -RoleName "Solo agregar" `
-        -Description "Solo puede agregar ítems nuevos. No puede editar ni eliminar." `
-        -Clone "Contribuir" `
-        -Exclude EditListItems,DeleteListItems,DeleteVersions
-    Write-Host "[+] Nivel 'Solo agregar' creado" -ForegroundColor Green
-}
-else {
-    Write-Host "[OK] Nivel 'Solo agregar' ya existe" -ForegroundColor DarkGray
+    Write-Step 'Id de objeto de los grupos de planta en Fabricantes'
+    foreach ($item in (Get-PnPListItem -List 'Fabricantes' -PageSize 500)) {
+        $grupo = $item['GrupoEntra']
+        if (-not $grupo -or $item['GrupoEntraId']) { continue }
+        $oid = Get-EntraGroupObjectId -DisplayName $grupo
+        if (-not $oid) { Write-Warning "Grupo Entra inexistente: $grupo"; continue }
+        Invoke-Change -Target $grupo -Action 'Guardar GrupoEntraId' -Script {
+            Set-PnPListItem -List 'Fabricantes' -Identity $item.Id -Values @{ GrupoEntraId = $oid } | Out-Null
+        }
+    }
 }
 
-# ---------------------------------------------------------------------------
-# 2. Listas de catálogo
-# ---------------------------------------------------------------------------
-Write-Host "`n=== 2. Catálogo: Cias ===" -ForegroundColor Yellow
-
-New-ListIfNotExists -InternalName "Cias" -Title "Compañías"
-# Title ya existe como columna por defecto en GenericList
-Set-PnPField -List "Cias" -Identity "Title" -Values @{ Title = "Código Cía" } | Out-Null
-
-Add-ColumnIfNotExists -ListName "Cias" -InternalName "NombreCompleto" -DisplayName "Nombre completo" -Type "Text"
-Add-ColumnIfNotExists -ListName "Cias" -InternalName "Activa" -DisplayName "Activa" -Type "Boolean" -DefaultValue "1"
-
-# Catálogo: rompe herencia y asigna lectura a todos
-$ctx = Get-PnPContext
-$list = Get-PnPList -Identity "Cias"
-$list.BreakRoleInheritance($true, $false)
-$list.Update()
-Invoke-PnPQuery
-Write-Host "[+] Herencia rota en lista Cias" -ForegroundColor Green
-
-Set-ListPermission -ListName "Cias" -GroupName "$GroupPrefix-Admin"   -PermissionLevel "Control total"
-Set-ListPermission -ListName "Cias" -GroupName "$GroupPrefix-Editor"  -PermissionLevel "Leer"
-Set-ListPermission -ListName "Cias" -GroupName "$GroupPrefix-Planta"  -PermissionLevel "Leer"
-Set-ListPermission -ListName "Cias" -GroupName "$GroupPrefix-Viewers" -PermissionLevel "Leer"
-
-Write-Host "`n=== 2b. Catálogo: Fabricantes ===" -ForegroundColor Yellow
-New-ListIfNotExists -InternalName "Fabricantes" -Title "Fabricantes"
-Set-PnPField -List "Fabricantes" -Identity "Title" -Values @{ Title = "Código Fabricante" } | Out-Null
-Add-ColumnIfNotExists -ListName "Fabricantes" -InternalName "NombreCompleto" -DisplayName "Nombre completo" -Type "Text"
-Add-ColumnIfNotExists -ListName "Fabricantes" -InternalName "Pais" -DisplayName "País" -Type "Text"
-Add-ColumnIfNotExists -ListName "Fabricantes" -InternalName "Activo" -DisplayName "Activo" -Type "Boolean" -DefaultValue "1"
-
-$list = Get-PnPList -Identity "Fabricantes"
-$list.BreakRoleInheritance($true, $false)
-$list.Update()
-Invoke-PnPQuery
-Set-ListPermission -ListName "Fabricantes" -GroupName "$GroupPrefix-Admin"   -PermissionLevel "Control total"
-Set-ListPermission -ListName "Fabricantes" -GroupName "$GroupPrefix-Editor"  -PermissionLevel "Leer"
-Set-ListPermission -ListName "Fabricantes" -GroupName "$GroupPrefix-Planta"  -PermissionLevel "Leer"
-Set-ListPermission -ListName "Fabricantes" -GroupName "$GroupPrefix-Viewers" -PermissionLevel "Leer"
-
-Write-Host "`n=== 2c. Catálogo: BUs ===" -ForegroundColor Yellow
-New-ListIfNotExists -InternalName "BUs" -Title "Unidades de Negocio"
-Set-PnPField -List "BUs" -Identity "Title" -Values @{ Title = "Código BU" } | Out-Null
-Add-ColumnIfNotExists -ListName "BUs" -InternalName "NombreCompleto" -DisplayName "Nombre completo" -Type "Text"
-Add-ColumnIfNotExists -ListName "BUs" -InternalName "Activa" -DisplayName "Activa" -Type "Boolean" -DefaultValue "1"
-
-$list = Get-PnPList -Identity "BUs"
-$list.BreakRoleInheritance($true, $false)
-$list.Update()
-Invoke-PnPQuery
-Set-ListPermission -ListName "BUs" -GroupName "$GroupPrefix-Admin"   -PermissionLevel "Control total"
-Set-ListPermission -ListName "BUs" -GroupName "$GroupPrefix-Editor"  -PermissionLevel "Leer"
-Set-ListPermission -ListName "BUs" -GroupName "$GroupPrefix-Planta"  -PermissionLevel "Leer"
-Set-ListPermission -ListName "BUs" -GroupName "$GroupPrefix-Viewers" -PermissionLevel "Leer"
-
-# ---------------------------------------------------------------------------
-# 3. HitosTemplate
-# ---------------------------------------------------------------------------
-Write-Host "`n=== 3. Catálogo: HitosTemplate ===" -ForegroundColor Yellow
-New-ListIfNotExists -InternalName "HitosTemplate" -Title "Plantilla de Hitos"
-Set-PnPField -List "HitosTemplate" -Identity "Title" -Values @{ Title = "Nombre del hito" } | Out-Null
-
-Add-ColumnIfNotExists -ListName "HitosTemplate" -InternalName "Etapa" -DisplayName "Etapa" -Type "Number" -Required $true
-Add-ColumnIfNotExists -ListName "HitosTemplate" -InternalName "Orden" -DisplayName "Orden" -Type "Number" -Required $true
-Add-ColumnIfNotExists -ListName "HitosTemplate" -InternalName "ResponsableDefault" -DisplayName "Responsable por defecto" -Type "Text"
-Add-ColumnIfNotExists -ListName "HitosTemplate" -InternalName "TieneNotas" -DisplayName "Tiene campo Notas" -Type "Boolean" -DefaultValue "0"
-Add-ColumnIfNotExists -ListName "HitosTemplate" -InternalName "TieneCostos" -DisplayName "Tiene campos de costo" -Type "Boolean" -DefaultValue "0"
-Add-ColumnIfNotExists -ListName "HitosTemplate" -InternalName "TieneImpactoGranel" -DisplayName "Tiene campos de granel" -Type "Boolean" -DefaultValue "0"
-Add-ColumnIfNotExists -ListName "HitosTemplate" -InternalName "TieneFechaOC" -DisplayName "Tiene fecha de OC" -Type "Boolean" -DefaultValue "0"
-
-$list = Get-PnPList -Identity "HitosTemplate"
-$list.BreakRoleInheritance($true, $false)
-$list.Update()
-Invoke-PnPQuery
-Set-ListPermission -ListName "HitosTemplate" -GroupName "$GroupPrefix-Admin"   -PermissionLevel "Control total"
-Set-ListPermission -ListName "HitosTemplate" -GroupName "$GroupPrefix-Editor"  -PermissionLevel "Leer"
-Set-ListPermission -ListName "HitosTemplate" -GroupName "$GroupPrefix-Planta"  -PermissionLevel "Leer"
-Set-ListPermission -ListName "HitosTemplate" -GroupName "$GroupPrefix-Viewers" -PermissionLevel "Leer"
-
-# ---------------------------------------------------------------------------
-# 4. Lista: Discontinuados (transaccional)
-# ---------------------------------------------------------------------------
-Write-Host "`n=== 4. Lista transaccional: Discontinuados ===" -ForegroundColor Yellow
-New-ListIfNotExists -InternalName "Discontinuados" -Title "Discontinuados"
-Set-PnPField -List "Discontinuados" -Identity "Title" -Values @{ Title = "ID Proceso" } | Out-Null
-
-Add-ColumnIfNotExists -ListName "Discontinuados" -InternalName "CodigoSKU"      -DisplayName "Código SKU"            -Type "Text"
-Add-ColumnIfNotExists -ListName "Discontinuados" -InternalName "NombreProducto" -DisplayName "Descripción del producto" -Type "Text"    -Required $true
-Add-ColumnIfNotExists -ListName "Discontinuados" -InternalName "Cia"            -DisplayName "Compañía"              -Type "Lookup"  -Required $true -LookupList "Cias"
-Add-ColumnIfNotExists -ListName "Discontinuados" -InternalName "Fabricante"     -DisplayName "Fabricante / Planta"   -Type "Lookup"  -Required $true -LookupList "Fabricantes"
-Add-ColumnIfNotExists -ListName "Discontinuados" -InternalName "BU"             -DisplayName "Business Unit"         -Type "Lookup"  -Required $true -LookupList "BUs"
-Add-ColumnIfNotExists -ListName "Discontinuados" -InternalName "MPH"            -DisplayName "MPH"                   -Type "Text"
-Add-ColumnIfNotExists -ListName "Discontinuados" -InternalName "LevantadoDesdePlanta" -DisplayName "¿Levantado desde planta?" -Type "Choice" `
-    -Choices @("Sí", "No", "No especificado") -DefaultValue "No especificado"
-Add-ColumnIfNotExists -ListName "Discontinuados" -InternalName "Observaciones"  -DisplayName "Observaciones"         -Type "Note"
-Add-ColumnIfNotExists -ListName "Discontinuados" -InternalName "EtapaActual"    -DisplayName "Etapa actual"          -Type "Number"  -Required $true -DefaultValue "0"
-Add-ColumnIfNotExists -ListName "Discontinuados" -InternalName "Progreso"       -DisplayName "Progreso (%)"          -Type "Number"  -DefaultValue "0"
-Add-ColumnIfNotExists -ListName "Discontinuados" -InternalName "UltimoHito"     -DisplayName "Último hito completado" -Type "Text"   -DefaultValue "Inicio proceso"
-Add-ColumnIfNotExists -ListName "Discontinuados" -InternalName "FechaUltimoHito" -DisplayName "Fecha último hito"   -Type "DateTime"
-Add-ColumnIfNotExists -ListName "Discontinuados" -InternalName "FechaInicio"    -DisplayName "Fecha de inicio"       -Type "DateTime" -Required $true
-
-# Columna calculada EtapaLabel
-$etapaLabelExists = Get-PnPField -List "Discontinuados" -Identity "EtapaLabel" -ErrorAction SilentlyContinue
-if (-not $etapaLabelExists) {
-    Add-PnPField -List "Discontinuados" -InternalName "EtapaLabel" -DisplayName "Etapa (texto)" `
-        -Type "Calculated" -Formula '=CHOOSE([EtapaActual]+1,"Detección","Análisis","Confirmación")' `
-        -ResultType "Text" | Out-Null
-    Write-Host "  [+] Columna calculada 'EtapaLabel' creada" -ForegroundColor Green
+if ($missingEntra.Count -gt 0) {
+    Write-Warning ("Faltan grupos de Entra ID (créelos con 00-crear-grupos-entra.ps1 y vuelva a ejecutar): " +
+        (($missingEntra | Sort-Object -Unique) -join ', '))
 }
-
-# Índices
-Write-Host "  Creando índices en Discontinuados..." -ForegroundColor Cyan
-Add-IndexIfNotExists -ListName "Discontinuados" -FieldName "Title"
-Add-IndexIfNotExists -ListName "Discontinuados" -FieldName "CodigoSKU"
-Add-IndexIfNotExists -ListName "Discontinuados" -FieldName "Cia"
-Add-IndexIfNotExists -ListName "Discontinuados" -FieldName "Fabricante"
-Add-IndexIfNotExists -ListName "Discontinuados" -FieldName "BU"
-Add-IndexIfNotExists -ListName "Discontinuados" -FieldName "EtapaActual"
-Add-IndexIfNotExists -ListName "Discontinuados" -FieldName "FechaInicio"
-
-# Versiones
-$list = Get-PnPList -Identity "Discontinuados"
-$list.EnableVersioning = $true
-$list.MajorVersionLimit = 500
-$list.EnableAttachments = $false
-$list.Update()
-Invoke-PnPQuery
-Write-Host "  [+] Versiones habilitadas en Discontinuados (máx. 500)" -ForegroundColor Green
-
-# Validaciones de columna (EtapaActual y Progreso)
-# Se aplican via REST ya que PnP no tiene cmdlet directo para column validation
-$headers = @{
-    "Accept" = "application/json;odata=verbose"
-    "Content-Type" = "application/json;odata=verbose"
-    "X-RequestDigest" = (Get-PnPRequestDigest)
-}
-
-# ---------------------------------------------------------------------------
-# 5. Lista: Hitos (transaccional)
-# ---------------------------------------------------------------------------
-Write-Host "`n=== 5. Lista transaccional: Hitos ===" -ForegroundColor Yellow
-New-ListIfNotExists -InternalName "Hitos" -Title "Hitos"
-Set-PnPField -List "Hitos" -Identity "Title" -Values @{ Title = "ID Hito" } | Out-Null
-
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "Producto"         -DisplayName "Producto"              -Type "Lookup"  -Required $true -LookupList "Discontinuados"
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "Etapa"            -DisplayName "Etapa"                 -Type "Number"  -Required $true
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "Label"            -DisplayName "Nombre del hito"       -Type "Choice"  -Required $true `
-    -Choices @(
-        "Detección del SKU a discontinuar",
-        "Presentación de Presupuesto Anual",
-        "Análisis de Template de Discontinuación",
-        "Aviso a Supply Corp y S&OP Global",
-        "Inventario PT",
-        "Notificación a Mkt Corp y Aviso a Planta",
-        "Análisis de impacto planta",
-        "Costo destrucción PT",
-        "Costo destrucción materiales",
-        "Costo inventario API",
-        "Productos en cola de producción",
-        "Última OC",
-        "Confirmación con Mkt Corp",
-        "Notificación a todos los departamentos",
-        "Inactivación del código en sistema",
-        "Plan de desagote de inventario"
-    )
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "Responsable"      -DisplayName "Área responsable"      -Type "Text"
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "Done"             -DisplayName "Completado"            -Type "Boolean" -DefaultValue "0"
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "FechaCompromiso"  -DisplayName "Fecha compromiso"      -Type "DateTime"
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "FechaReal"        -DisplayName "Fecha real"            -Type "DateTime"
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "Notas"            -DisplayName "Notas"                 -Type "Note"
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "OfreceUnidades"   -DisplayName "Ofrece unidades"       -Type "Text"
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "ImpactoGranelLleva" -DisplayName "¿Lleva granel?"     -Type "Choice" -Choices @("Sí","No","N/A")
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "ImpactoGranelValor" -DisplayName "Valor impacto granel" -Type "Currency"
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "ResolucionFinal"  -DisplayName "Resolución final"      -Type "Note"
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "ValorItem"        -DisplayName "Costo unitario"        -Type "Currency"
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "ValorInventario"  -DisplayName "Valor de inventario"   -Type "Currency"
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "FechaUltimaOC"   -DisplayName "Fecha última OC"        -Type "DateTime"
-Add-ColumnIfNotExists -ListName "Hitos" -InternalName "Orden"            -DisplayName "Orden"                 -Type "Number"  -Required $true
-
-# Índices
-Add-IndexIfNotExists -ListName "Hitos" -FieldName "Producto"
-Add-IndexIfNotExists -ListName "Hitos" -FieldName "Etapa"
-Add-IndexIfNotExists -ListName "Hitos" -FieldName "Label"
-Add-IndexIfNotExists -ListName "Hitos" -FieldName "Done"
-
-# Versiones
-$list = Get-PnPList -Identity "Hitos"
-$list.EnableVersioning = $true
-$list.MajorVersionLimit = 100
-$list.EnableAttachments = $false
-$list.Update()
-Invoke-PnPQuery
-
-# ---------------------------------------------------------------------------
-# 6. Lista: Actividades (log append-only)
-# ---------------------------------------------------------------------------
-Write-Host "`n=== 6. Lista transaccional: Actividades ===" -ForegroundColor Yellow
-New-ListIfNotExists -InternalName "Actividades" -Title "Actividades"
-Set-PnPField -List "Actividades" -Identity "Title" -Values @{ Title = "ID Actividad" } | Out-Null
-
-Add-ColumnIfNotExists -ListName "Actividades" -InternalName "Producto"        -DisplayName "Producto"         -Type "Lookup"  -Required $true -LookupList "Discontinuados"
-Add-ColumnIfNotExists -ListName "Actividades" -InternalName "Texto"           -DisplayName "Texto"            -Type "Note"    -Required $true
-Add-ColumnIfNotExists -ListName "Actividades" -InternalName "FechaActividad"  -DisplayName "Fecha y hora"     -Type "DateTime" -Required $true
-Add-ColumnIfNotExists -ListName "Actividades" -InternalName "TipoActividad"   -DisplayName "Tipo"             -Type "Choice" `
-    -Choices @("Comentario","Avance de etapa","Sistema","Hito completado") -DefaultValue "Comentario"
-
-# Índices
-Add-IndexIfNotExists -ListName "Actividades" -FieldName "Producto"
-Add-IndexIfNotExists -ListName "Actividades" -FieldName "FechaActividad"
-
-# Romper herencia y asignar nivel "Solo agregar" a Editors y Planta
-$list = Get-PnPList -Identity "Actividades"
-$list.BreakRoleInheritance($true, $false)
-$list.Update()
-Invoke-PnPQuery
-Write-Host "[+] Herencia rota en lista Actividades" -ForegroundColor Green
-
-Set-ListPermission -ListName "Actividades" -GroupName "$GroupPrefix-Admin"   -PermissionLevel "Control total"
-Set-ListPermission -ListName "Actividades" -GroupName "$GroupPrefix-Editor"  -PermissionLevel "Solo agregar"
-Set-ListPermission -ListName "Actividades" -GroupName "$GroupPrefix-Planta"  -PermissionLevel "Solo agregar"
-Set-ListPermission -ListName "Actividades" -GroupName "$GroupPrefix-Viewers" -PermissionLevel "Leer"
-
-# Versiones — importante para log de auditoría
-$list = Get-PnPList -Identity "Actividades"
-$list.EnableVersioning = $true
-$list.MajorVersionLimit = 500
-$list.EnableAttachments = $false
-$list.Update()
-Invoke-PnPQuery
-
-# ---------------------------------------------------------------------------
-# 7. Resumen final
-# ---------------------------------------------------------------------------
-Write-Host "`n=== Provisioning completado ===" -ForegroundColor Green
-Write-Host @"
-Listas creadas/verificadas:
-  - Cias
-  - Fabricantes
-  - BUs
-  - HitosTemplate
-  - Discontinuados
-  - Hitos
-  - Actividades
-
-Niveles de permiso personalizados:
-  - Contribuir sin eliminar
-  - Solo agregar
-
-Próximos pasos:
-  1. Poblar los catálogos (Cias, Fabricantes, BUs, HitosTemplate) con datos del seed.
-  2. Ejecutar scripts de migración de datos (02-cargar-*.ps1).
-  3. Crear los grupos Entra ID SG-Discontinuados-Planta-{Fabricante} para cada planta.
-  4. Configurar flujos Power Automate (PA-Discontinuados-*).
-  5. Ejecutar script de verificación (05-verificar.ps1).
-"@
+Write-Step 'Listo.'

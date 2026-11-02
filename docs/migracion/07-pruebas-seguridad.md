@@ -1,220 +1,141 @@
-# Pruebas de seguridad — Casos por rol
+# 07 — Plan de pruebas de seguridad (Fase 8)
 
-## Configuración de cuentas de prueba
+> **Cómo leer este plan.** Cada caso se ejecuta con **cuentas reales de prueba del tenant** y, salvo que se indique lo contrario,
+> **por fuera de la app**: lista abierta en SharePoint, exportación a Excel, `Connect-PnPOnline`/Graph/REST. Si un control solo
+> funciona por la interfaz de la app, no es un control. Un caso **pasa** solo si el resultado coincide con la columna
+> "Esperado"; cualquier desvío se registra en §9 y bloquea el pase a producción si afecta a un caso marcado **(Crítico)**.
 
-Crear las siguientes cuentas en el tenant antes de ejecutar las pruebas:
+## 1. Preparación
 
-| Cuenta de prueba | Grupo Entra ID | Descripción |
+**Cuentas** (una persona por cuenta; sin compartir contraseñas):
+
+| Cuenta | Pertenece a | Uso |
 |---|---|---|
-| `test-admin@<tenant>.onmicrosoft.com` | `SG-Discontinuados-Admin` | Pruebas de rol Admin |
-| `test-editor@<tenant>.onmicrosoft.com` | `SG-Discontinuados-Editor` | Pruebas de rol Editor |
-| `test-planta-arg@<tenant>.onmicrosoft.com` | `SG-Discontinuados-Planta-Arg-Mlb` | Pruebas de acceso restringido a planta Arg-Mlb |
-| `test-planta-bol@<tenant>.onmicrosoft.com` | `SG-Discontinuados-Planta-Bol-Mlb` | Pruebas de acceso a planta diferente |
-| `test-viewer@<tenant>.onmicrosoft.com` | `SG-Discontinuados-Viewers` | Pruebas de solo lectura |
-| `test-externo@external.com` | Ninguno | Pruebas de acceso no autorizado |
+| `t.owner` | `SG-Discontinuados-Owners` | Referencia de acceso total |
+| `t.admin` | `SG-Discontinuados-Admin` | Rol Admin |
+| `t.editor` | `SG-Discontinuados-Editor` | Rol Editor |
+| `t.viewer` | `SG-Discontinuados-Viewer` | Rol Viewer |
+| `t.plantaA` | `SG-Discontinuados-Planta-Ems` | Planta A |
+| `t.plantaB` | `SG-Discontinuados-Planta-Ibsa` | Planta B |
+| `t.plantaAB` | Ambos grupos de planta | Suma de permisos |
+| `t.guestA` | Invitado B2B en `SG-Discontinuados-Planta-Ems` | Planta externa |
+| `t.nadie` | Ningún grupo de Discontinuados | Control negativo |
 
----
+**Datos**: 3 productos de prueba de `Ems` (A1, A2, A3), 2 de `Ibsa` (B1, B2) y 1 de `Chemo` (C1) cuyo `GrupoEntraId` se deja **vacío a propósito**, todos
+con `EsPrueba = Sí`, creados por `t.editor` para que pasen por F1. Anotar sus `ID`.
 
-## TC-01: Viewer no puede crear productos (desde la app)
+**Herramientas**: navegador (lista nativa de SharePoint), Excel (*Exportar a Excel*), PnP PowerShell
+(`Connect-PnPOnline -Url <sitio> -Interactive -ClientId <id>`; `Get-PnPListItem -List Productos`) y una llamada REST con el token de
+la cuenta (`GET <sitio>/_api/web/lists/getbytitle('Productos')/items?$select=ID,Title`).
 
-**Rol probado**: Viewer  
-**Precondición**: `test-viewer` autenticado en la app. Lista Discontinuados tiene al menos 1 ítem.
+## 2. Acceso por fuera de la app (todos los roles) — **(Crítico)**
 
-**Pasos**:
-1. Abrir la app con `test-viewer`.
-2. Verificar que el botón "Nuevo producto" no sea visible en el dashboard.
-3. Intentar mediante llamada REST directa: `POST https://<tenant>.sharepoint.com/sites/discontinuados-corp/_api/web/lists/getbytitle('Discontinuados')/items` con cuerpo JSON de ítem nuevo.
+| Id | Cuenta | Acción | Esperado |
+|---|---|---|---|
+| X-1 | cada una | Abrir `<sitio>/Lists/Productos` en el navegador | Owners/Admin/Editor/Viewer ven los ítems; `t.plantaA` solo A1–A3; `t.nadie`: "Acceso denegado" |
+| X-2 | cada una | *Exportar a Excel* de `Productos` y de `Hitos` | El archivo contiene **solo** lo que la cuenta puede leer (planta A: 3 productos y 15 hitos) |
+| X-3 | cada una | Abrir la lista en *Power Automate* o *Power Apps* con su cuenta y listar ítems | Mismo conjunto que X-1 |
+| X-4 | `t.plantaA` | REST: `GET …/items?$select=ID,Title` en `Productos` | 200 con solo A1–A3 |
+| X-5 | `t.plantaA` | REST: `GET …/items(<ID de B1>)` | 403 o 404, **nunca** el ítem |
+| X-6 | `t.plantaA` | Buscar el nombre de B1 con la búsqueda de SharePoint / Microsoft Search | Sin resultados (la búsqueda respeta permisos) |
 
-**Resultado esperado**:
-- Paso 2: el botón no aparece (UX).
-- Paso 3: respuesta HTTP 403 Forbidden.
+## 3. Admin (`t.admin`)
 
----
+| Id | Acción | Esperado |
+|---|---|---|
+| A-1 | Crear un producto desde la app | Se crea; en ≤ 2 min tiene `CodigoCU`, 16 hitos y 1 actividad inicial (2 si se cargó Observaciones) (F1) |
+| A-2 | Borrar un producto de prueba por la lista nativa | Se borra; **sus hitos y actividades desaparecen** (cascada) |
+| A-3 | Editar una fila de `Fabricantes` o `HitosCatalogo` | Permitido |
+| A-4 | Borrar un fabricante que tiene productos | **Rechazado** (restricción de relación) |
+| A-5 | Editar una actividad creada por otra persona | **Rechazado** (solo ítems propios) |
+| A-6 | Abrir *Configuración de la lista → Permisos* de `Productos` | No puede cambiar permisos (no tiene *Administrar listas*) |
 
-## TC-02: Editor no puede eliminar productos (desde la app)
+## 4. Editor (`t.editor`)
 
-**Rol probado**: Editor  
-**Precondición**: `test-editor` autenticado. Existe el producto `CU-000001`.
+| Id | Acción | Esperado |
+|---|---|---|
+| E-1 | Crear producto; importar 3 productos desde Excel | Permitido |
+| E-2 | Marcar un hito `Completado` | `FechaReal` = hoy y `Progreso` actualizado en ≤ 1 min (F2) |
+| E-3 | **Borrar** un producto, un hito o una actividad | **403** en los tres casos **(Crítico)** |
+| E-4 | **Crear** un ítem en `Hitos` por la lista nativa | **403** |
+| E-5 | Editar un ítem de `Companias`, `Fabricantes`, `UnidadesNegocio` o `HitosCatalogo` | **403** |
+| E-6 | Poner `EtapaActual = 2` en un producto en etapa 0 (por la lista nativa) | En ≤ 1 min F3 **revierte** a 0 y registra *"Cambio de etapa rechazado"* **(Crítico)** |
+| E-7 | Con la regla cumplida (hito de etapa 0 completado), subir `EtapaActual` de 0 a 1 | Se acepta; `EtapaValidada = 1` y actividad *"Avance de etapa: Detección → Análisis"* |
+| E-8 | Cambiar `ClaveHito`, `Etapa` o `Producto` de un hito | F2 los restituye en ≤ 1 min |
+| E-9 | Cambiar `CodigoCU` a un valor existente / a otro | Existente: **rechazado** (único). Otro: F3 lo restituye |
+| E-10 | Poner `Progreso = 100` a mano | F2/F3 lo recalculan |
+| E-11 | Editar una actividad propia / ajena; borrar una propia | Propia: permitido. Ajena: rechazado. Borrar: **403** |
+| E-12 | Cambiar el `Fabricante` de A1 a `Ibsa` | Ver P-8 |
+| E-13 | Crear producto con compañía/fabricante/BU vacíos (por la lista nativa o por REST) | **Rechazado** (obligatorios) |
+| E-14 | Editar `FechaUltimoHito` a una fecha anterior a `FechaInicio` | **Rechazado** (validación de lista) |
+| E-15 | Marcar `EsPrueba = Sí` en un producto real | Permitido (riesgo R-05): queda en versiones; verificar que el historial muestra a `t.editor` |
 
-**Pasos**:
-1. Abrir la app con `test-editor`, navegar al detalle de `CU-000001`.
-2. Verificar que no haya botón "Eliminar producto".
-3. Intentar REST: `DELETE https://<tenant>.sharepoint.com/sites/discontinuados-corp/_api/web/lists/getbytitle('Discontinuados')/items(1)` con header `X-HTTP-Method: DELETE`.
+## 5. Viewer (`t.viewer`)
 
-**Resultado esperado**:
-- Paso 2: no hay botón (UX).
-- Paso 3: HTTP 403 Forbidden (nivel "Contribuir sin eliminar" no incluye `DeleteListItems`).
+| Id | Acción | Esperado |
+|---|---|---|
+| V-1 | Leer `Productos`, `Hitos`, `Actividades`, `ComparativaHistorica` y catálogos | Permitido |
+| V-2 | Crear, editar o borrar en **cualquier** lista, por la lista nativa, por Excel (*Exportar → editar → publicar*) y por REST | **403 / solo lectura** en todos **(Crítico)** (hoy un Viewer edita todo: S-03) |
+| V-3 | Exportar a Excel | Permitido (se documenta: no es prevenible, R-08) |
 
----
+## 6. Planta (`t.plantaA`, `t.plantaB`, `t.plantaAB`, `t.guestA`)
 
-## TC-03: Viewer no puede editar hitos (acceso directo SharePoint)
+| Id | Cuenta | Acción | Esperado |
+|---|---|---|---|
+| **P-1** (T-P1) | `t.plantaA` | Abrir la app | Ve **exactamente** A1–A3; el tablero cuenta 3 productos **(Crítico)** |
+| **P-2** (T-P2) | `t.plantaA` | REST `GET …/Productos/items` y `GET …/items(<ID de B1>)` | Lista: solo A. B1: 403/404 **(Crítico)** |
+| **P-3** (T-P3) | `t.plantaA` | Abrir la lista `Productos` desde SharePoint (vista nativa y `…/AllItems.aspx`) | Solo A1–A3 o acceso denegado; **nunca** B1/B2/C1. Registrar cuál de los dos ocurre |
+| **P-4** (T-P4) | `t.plantaA` | Leer `Hitos`; editar `CostoInventario` en *Costo destrucción PT* de A1; editar *Confirmación con Mkt Corp* de A1 | Ve **solo 5** hitos por producto (los de planta); la edición de costo se guarda; el hito no-planta no es visible / **403** **(Crítico)** |
+| **P-5** (T-P5) | `t.plantaA` | Cambiar `Fabricante` de A1 a `Ibsa`; crear un producto; crear/borrar un hito; borrar A1 | **403** en todos **(Crítico)** |
+| **P-6** (T-P6) | `t.plantaA` | Leer `Actividades` y `ComparativaHistorica`; leer y editar un catálogo; cambiar `GrupoEntraId` | Actividades y Comparativa: sin acceso. Catálogos: lectura sí, edición **403** **(Crítico)** |
+| **P-7** (T-P7) | `t.plantaB` + `t.editor` | `t.editor` crea un producto de `Ibsa`; **inmediatamente** `t.plantaB` y `t.plantaA` consultan; repetir a los 2 min | A los 0 s: ninguna planta lo ve. A los ≤ 2 min: `t.plantaB` sí, `t.plantaA` **nunca** (falla cerrada, R-01) **(Crítico)** |
+| P-8 | `t.plantaA`, `t.plantaB` | `t.editor` cambia el fabricante de A1 a `Ibsa` | En pocos minutos (F3): `t.plantaA` pierde A1 y sus hitos; `t.plantaB` los gana. `FabricantePermisoId` se actualiza |
+| P-9 | `t.plantaA` | Confirmar A2 (`ProcesoConfirmado = Sí`) | `t.plantaA` sigue **leyendo** A2 pero ya **no edita** sus hitos (F3 retiró esos permisos) |
+| P-10 | `t.plantaAB` | Abrir la app | Ve A1–A3, B1, B2 (suma de permisos) |
+| P-11 | `t.guestA` | Repetir P-1 a P-6 | Mismos resultados que `t.plantaA`; además no puede compartir el sitio ni abrir otros sitios del inquilino **(Crítico)** |
+| P-12 | `t.nadie` | Abrir la app y el sitio | Sin acceso; la app muestra el mensaje de sin permiso, **no** un error genérico |
 
-**Rol probado**: Viewer  
-**Precondición**: Existe un hito con ID conocido.
+## 7. Flujos y consistencia de permisos
 
-**Pasos**:
-1. Abrir SharePoint directamente: `https://<tenant>.sharepoint.com/sites/discontinuados-corp/lists/Hitos`.
-2. Intentar editar el campo "Completado" de cualquier hito desde la vista de lista (edición en línea o formulario).
-3. Intentar REST PATCH con `test-viewer`.
+| Id | Acción | Esperado |
+|---|---|---|
+| F-1 | Alta de producto A1 (como `t.editor`) | `CodigoCU = CU-` + (100000 + ID); 16 hitos con `ClaveHito` distintas; 1 actividad inicial; `roleassignments` de A1 incluye al grupo de `Ems` (Leer) y a Admin/Editor/Viewer/Owners; 5 hitos incluyen al grupo (editar) y los otros 11 **no**; `PermisosAplicados = Sí` |
+| F-2 | Alta del producto C1 (`Chemo`, fabricante sin `GrupoEntraId`) | F1 crea todo salvo permisos; `PermisosAplicados = No`; actividad de error; correo a Owners. Tras corregir `GrupoEntraId`, F4 repara esa noche |
+| F-3 | Quitar a mano el permiso del grupo `Ems` en A1 | F4 lo restituye en la corrida diaria |
+| F-4 | Agregar un grupo nuevo (p. ej. gerencia) a nivel **lista** en `Productos` | No llega a los ítems con permisos únicos hasta correr F4 (riesgo R-06); tras F4, sí. Verificar |
+| F-5 | Importar 100 productos de prueba | Sin errores 429 persistentes; los 100 terminan con 16 hitos y permisos en < 30 min; ningún duplicado al reintentar |
+| F-6 | Dos usuarios marcan hitos **distintos** del mismo producto casi a la vez | `Progreso` final correcto (recalculado, no sumado) |
+| F-7 | Contar ítems con permisos únicos tras F-5 | F4 informa el total; alerta si ≥ 3.500 |
 
-**Resultado esperado**:
-- Paso 2: SharePoint muestra el ítem en solo lectura, sin posibilidad de editar.
-- Paso 3: HTTP 403 Forbidden.
+## 8. Integridad, auditoría y frontend
 
----
+| Id | Acción | Esperado |
+|---|---|---|
+| I-1 | Crear un ítem en `Hitos`/`Actividades` con `Producto` vacío | **Rechazado** (obligatorio) |
+| I-2 | Poner `EtapaActual = 3` o `Progreso = 120` | **Rechazado** (rango de la columna) |
+| I-3 | Crear una fila duplicada en `Companias`, `Fabricantes` o `HitosCatalogo` | **Rechazado** (único) |
+| I-4 | Una consulta sobre `Hitos` filtrando por `Title` (no indexada) cuando la lista supera 5.000 | Falla por umbral → la app **solo** usa `Producto`, `ClaveHito` o `ID` (ver 03 §7) |
+| U-1 | Abrir el historial de versiones de un producto modificado por `t.editor` | Muestra quién y cuándo cambió cada columna (reemplaza el autor fijo: S-07) |
+| U-2 | Buscar en el registro de auditoría de Microsoft Purview las acciones de `t.editor` | Aparecen las lecturas y escrituras (la retención depende de la licencia; ⚠️ dato de IT) |
+| N-1 | Buscar en el paquete publicado (`dist/` y el sitio desplegado) la clave de Firebase y el paquete `firebase` | **Cero** coincidencias **(Crítico)** |
+| N-2 | Con las herramientas del navegador, listar las llamadas de red | Solo SharePoint/Graph de Microsoft; ninguna a `firebaseio.com` |
+| N-3 | Modificar a mano el rol en el almacenamiento local o en la memoria de la app | No cambia lo que SharePoint permite (los pasos de V-2 siguen dando 403) **(Crítico)** |
+| N-4 | Quitar a `t.editor` del grupo y reintentar una escritura | **403** al renovar el token (anotar el tiempo real de revocación) |
 
-## TC-04: Planta-Arg solo ve sus productos (desde SharePoint directo)
+## 9. Registro de resultados
 
-**Rol probado**: Planta (Arg-Mlb)  
-**Precondición**: Existen productos de `Fabricante=Arg-Mlb` y de `Fabricante=Bol-Mlb`. El flujo de permisos se ejecutó correctamente.
+| Id | Fecha | Ejecutó | Resultado (OK / Falla) | Evidencia (captura / salida) | Observaciones |
+|---|---|---|---|---|---|
+| | | | | | |
 
-**Pasos**:
-1. Abrir `https://<tenant>.sharepoint.com/sites/discontinuados-corp/lists/Discontinuados` con `test-planta-arg`.
-2. Verificar qué ítems son visibles.
-3. Intentar REST GET del ítem de un producto con `Fabricante=Bol-Mlb` (ID conocido).
+**Criterio de salida.** Todos los casos **(Crítico)** en OK; ningún caso de lectura de otra planta (X-5, P-2, P-3, P-7, P-11) con
+fuga; cualquier "Falla" con plan de corrección aprobado por el dueño de negocio e IT.
 
-**Resultado esperado**:
-- Paso 2: Solo aparecen productos cuyo `Fabricante=Arg-Mlb`.
-- Paso 3: HTTP 403 Forbidden o ítem no encontrado (no visible para este usuario).
+## 10. Si un control no se puede garantizar
 
----
-
-## TC-05: Planta-Arg puede editar hito de su producto
-
-**Rol probado**: Planta (Arg-Mlb)  
-**Precondición**: Existe producto de `Fabricante=Arg-Mlb` con hito "Análisis de impacto planta" en `Done=false`.
-
-**Pasos**:
-1. Autenticar como `test-planta-arg`.
-2. Navegar al hito correspondiente y marcar `Done=true` con `ImpactoGranelLleva=Sí` y `ImpactoGranelValor=1500`.
-3. Verificar que el ítem se guardó.
-
-**Resultado esperado**:
-- El hito se actualiza correctamente.
-- El campo `FechaReal` se actualiza (vía flujo Power Automate).
-- Se crea una entrada en lista Actividades con `TipoActividad=Hito completado`.
-
----
-
-## TC-06: Planta-Arg no puede editar hito de producto de otra planta
-
-**Rol probado**: Planta (Arg-Mlb)  
-**Precondición**: Existe producto de `Fabricante=Bol-Mlb` con hito conocido.
-
-**Pasos**:
-1. Autenticar como `test-planta-arg`.
-2. Intentar PATCH REST sobre un hito del producto de `Fabricante=Bol-Mlb`.
-
-**Resultado esperado**: HTTP 403 Forbidden.
-
----
-
-## TC-07: Editor no puede editar catálogo Cias (SharePoint directo)
-
-**Rol probado**: Editor  
-**Precondición**: Lista Cias existe con al menos 1 ítem.
-
-**Pasos**:
-1. Autenticar como `test-editor`.
-2. Abrir `https://<tenant>.sharepoint.com/sites/discontinuados-corp/lists/Cias`.
-3. Intentar editar el `NombreCompleto` de una compañía.
-4. Intentar REST PATCH con `test-editor`.
-
-**Resultado esperado**: Pasos 3 y 4 → HTTP 403 Forbidden.
-
----
-
-## TC-08: Log de actividades es inalterable para Editors
-
-**Rol probado**: Editor  
-**Precondición**: Existe al menos 1 ítem en lista Actividades creado por `test-editor`.
-
-**Pasos**:
-1. Autenticar como `test-editor`.
-2. Intentar editar el campo `Texto` de la actividad propia desde la vista de lista SharePoint.
-3. Intentar REST PATCH sobre el ítem de Actividades.
-4. Intentar REST DELETE sobre el ítem de Actividades.
-
-**Resultado esperado**: Los 3 intentos retornan HTTP 403 Forbidden. El ítem permanece intacto.
-
----
-
-## TC-09: Acceso de Power Automate respeta permisos (Graph API)
-
-**Precondición**: Flujo `PA-Discontinuados-ToggleHito` configurado con identidad de `test-editor`.
-
-**Pasos**:
-1. Disparar el flujo para marcar un hito de un producto asignado a `Fabricante=Arg-Mlb` desde la cuenta `test-editor`.
-2. Verificar el historial de ejecución del flujo.
-3. Intentar disparar el mismo flujo sobre un producto de `Fabricante=Bol-Mlb` desde la misma cuenta.
-
-**Resultado esperado**:
-- Paso 2: flujo completado con éxito, hito actualizado.
-- Paso 3: flujo falla con error de permiso (si el flujo usa identidad delegada del usuario que disparó; ⚠️ SUPUESTO si el flujo usa identidad de aplicación, este control debe implementarse explícitamente en la lógica del flujo).
-
----
-
-## TC-10: Usuario sin grupo no tiene acceso al sitio
-
-**Rol probado**: Sin grupo  
-**Precondición**: `test-externo` no pertenece a ningún grupo de la app.
-
-**Pasos**:
-1. Intentar navegar a `https://<tenant>.sharepoint.com/sites/discontinuados-corp`.
-2. Intentar GET REST de la lista Discontinuados con token del usuario externo.
-
-**Resultado esperado**:
-- Paso 1: SharePoint muestra "Acceso denegado" o redirige al administrador.
-- Paso 2: HTTP 403 Forbidden.
-
----
-
-## TC-11: Acceso desde Excel (Power Query)
-
-**Rol probado**: Editor  
-**Precondición**: `test-editor` tiene Excel instalado con acceso al tenant.
-
-**Pasos**:
-1. En Excel: Datos → Obtener datos → SharePoint Online List.
-2. Conectarse a `https://<tenant>.sharepoint.com/sites/discontinuados-corp`.
-3. Seleccionar lista Discontinuados.
-4. Verificar qué ítems se retornan.
-5. Intentar modificar un valor en el Excel conectado y sincronizar.
-
-**Resultado esperado**:
-- Paso 4: Solo los ítems que el Editor puede ver (todos, dado que Editor tiene acceso al sitio sin restricción por ítem).
-- Paso 5: Si el valor modificado es de un campo con "Contribuir sin eliminar", el cambio se guarda. Si se intenta un DELETE desde Power Query, falla con 403.
-
----
-
-## TC-12: Admin puede eliminar producto (única cuenta con ese permiso)
-
-**Rol probado**: Admin  
-**Precondición**: Existe producto de prueba `CU-TEST-001`.
-
-**Pasos**:
-1. Autenticar como `test-admin`.
-2. Desde la app, ejecutar la función de eliminar producto (si existe en UI).
-3. Verificar que el flujo `PA-Discontinuados-EliminarProducto` se ejecutó: los 16 hitos del producto también fueron eliminados.
-4. Verificar que el ítem ya no aparece en la lista.
-
-**Resultado esperado**: Producto e hitos eliminados. Actividades previas conservadas (como historial).
-
----
-
-## Registro de ejecución de pruebas
-
-| Test | Fecha | Ejecutado por | Resultado | Observaciones |
-|---|---|---|---|---|
-| TC-01 | | | | |
-| TC-02 | | | | |
-| TC-03 | | | | |
-| TC-04 | | | | |
-| TC-05 | | | | |
-| TC-06 | | | | |
-| TC-07 | | | | |
-| TC-08 | | | | |
-| TC-09 | | | | |
-| TC-10 | | | | |
-| TC-11 | | | | |
-| TC-12 | | | | |
+| Caso que falla | Qué significa | Camino |
+|---|---|---|
+| P-3 muestra ítems de otras plantas | La lista no filtra por permisos de ítem como se espera | **Detener**: no pasar a producción. Revisar herencia y el grupo "acceso limitado"; si persiste, pasar a **Dataverse** (seguridad por fila nativa) o a **listas por planta** |
+| P-7 muestra el producto a la planta equivocada | F1 asignó el grupo incorrecto o la lista hereda permisos de más | Corregir `GrupoEntraId`; revisar herencia de `Productos` |
+| E-6 no se revierte | F3 no está disparando (condición de disparo o cuenta de servicio) | Revisar la ejecución del flujo y el filtro `Modificado por` |
+| V-2 permite escribir | El Viewer tiene un nivel mayor al previsto en la lista o en un ítem con permisos únicos | Reaplicar `01-crear-listas.ps1` y correr F4 |

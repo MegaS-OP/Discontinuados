@@ -1,113 +1,90 @@
-# Diseño de migración — Discontinuados Corporativos a Microsoft 365
+# Migración de Discontinuados Corporativos a Microsoft Managed Apps — Resumen ejecutivo
 
-**Fecha**: 30 de octubre de 2026  
-**Preparado por**: Arquitectura de Soluciones Microsoft 365  
-**Versión**: 1.0
+**Qué se diseñó.** El backend de la app (hoy Firebase + `localStorage`, con toda la lógica y los permisos en el navegador) sobre
+**listas de SharePoint Online**, con seguridad aplicada en SharePoint y la lógica de servidor reubicada en 4 flujos de Power
+Automate. El frontend se reconstruye aparte a partir del código fuente. **Fuera de alcance** (backlog por decisión del dueño):
+`plant-reports` y el mapeo de `Responsable` a usuarios de Entra ID.
 
----
+## Decisiones clave
 
-## Qué es la app y qué hace
-
-**Discontinuados Corporativos** es una herramienta de gestión de procesos del área S&OP Global de Megalabs. Permite hacer seguimiento de la discontinuación de SKUs farmacéuticos a través de 13 compañías del grupo y múltiples plantas fabricantes.
-
-El proceso tiene 3 etapas: **Detección → Análisis → Confirmación**. Cada producto en proceso de discontinuación atraviesa 16 hitos estándar con responsables definidos por área (Mkt Corp, Supply Chain Corp, Planta, Compliance, etc.). Actualmente hay **224 productos registrados** en el seed de datos, con proyección de crecimiento a ~500 activos por ciclo anual.
-
-La app es React + Vite con Firebase Realtime Database como backend. Tiene un sub-módulo separado (`plant-reports`) para informes de planta, con su propio backend en Netlify.
-
----
-
-## Decisiones de arquitectura clave
-
-### 1. SharePoint alcanza — se recomienda SharePoint Online (no Dataverse)
-
-Con 224 productos × 16 hitos = ~3.584 ítems en la lista Hitos, y una proyección de crecimiento que no superará los 5.000 productos en el horizonte de 5 años, el modelo cabe perfectamente en SharePoint Online con los índices adecuados. No se identificaron requisitos de transacciones ACID, relaciones complejas de muchos-a-muchos, ni >100.000 registros que justifiquen el costo y complejidad de Dataverse.
-
-**Condición**: si en el futuro se necesitan permisos únicos por ítem para más de 5.000 ítems simultáneamente, re-evaluar Dataverse.
-
-### 2. Los datos se aplanan — los hitos salen del objeto del producto
-
-El modelo actual de Firebase guarda todos los hitos embebidos dentro del objeto del producto (JSON anidado). En SharePoint, los hitos se almacenan en una lista separada con lookup al producto. Esto habilita filtros, consultas por hito y auditoría individual.
-
-### 3. La seguridad se mueve al servidor
-
-El principal hallazgo de seguridad es que **toda la autorización actual vive en el frontend** (localStorage, comprobaciones de rol en React). En SharePoint, los permisos son server-side: el servidor rechaza la operación con 403 sin importar si el usuario manipuló la UI o usó Excel/REST directamente.
-
-### 4. El login custom se elimina — Entra ID toma el control
-
-El sistema de "elegir quién sos" sin contraseña se reemplaza con autenticación MSAL/Entra ID estándar. Los roles se mapean a grupos de seguridad `SG-Discontinuados-{Rol}`.
-
-### 5. La lógica de servidor va a Power Automate
-
-La máquina de estados (avance de etapas, cálculo de progreso, creación de hitos, notificaciones) se implementa en 6 flujos Power Automate. No hay código de servidor propio ni secretos en el frontend.
-
-### 6. Se crea un grupo Entra ID por planta fabricante
-
-Para restringir el acceso de los usuarios de planta a sus propios productos (~31 grupos `SG-Discontinuados-Planta-{Fabricante}`), se usan permisos únicos por ítem asignados por flujo al crear cada producto. Dentro del límite de 500 ítems activos, el impacto de rendimiento es mínimo.
-
----
+1. **8 listas**: `Productos`, `Hitos` (16 por producto), `Actividades`, `ComparativaHistorica` y 4 catálogos
+   (`Companias`, `Fabricantes`, `UnidadesNegocio`, `HitosCatalogo`). El proceso (los 16 hitos) vive en un catálogo editable.
+2. **Seguridad en SharePoint, no en la interfaz.** Hoy un *Viewer* edita todo y cualquiera se hace *Admin* desde el navegador
+   (hallazgos S-01 a S-03). Ahora el rol sale de grupos de Entra ID y lo hace cumplir SharePoint: el Viewer no puede escribir, el
+   Editor no puede borrar y las listas de catálogo son de solo lectura salvo Admin.
+3. **"La planta ve solo lo suyo"** = un permiso único por producto y por cada uno de sus 5 hitos de planta, asignado por el flujo F1
+   al grupo `SG-Discontinuados-Planta-<Fabricante>` (31 grupos). Falla cerrada: sin permiso, no se ve.
+4. **Sin Firebase y sin secretos en el frontend.** Se elimina la configuración de Firebase del paquete; el acceso a datos es por
+   el conector de SharePoint con la identidad del usuario.
+5. **Reglas de negocio** (avance de etapa, progreso, fecha real, confirmación) pasan a los flujos F2/F3; la etapa se **valida y revierte**,
+   no se impide (SharePoint no puede comparar el valor anterior).
+6. **Sin GxP / 21 CFR Part 11 y sin política de retención** (respuestas del dueño): versionado activado y auditoría automática, sin
+   etiquetas de retención.
 
 ## ¿SharePoint alcanza?
 
-**Sí, con las condiciones documentadas.**
+**Sí, con dos puntos débiles reconocidos.** Se evaluó contra los criterios del pedido:
 
-| Criterio | Estado |
+| Criterio | Resultado |
 |---|---|
-| Volumen < 5.000 ítems por lista con índices | OK (Hitos ~8.000 → indexados, manejable) |
-| Sin transacciones ACID requeridas | OK |
-| Sin campos sensibles que requieran seguridad por columna | OK (costos visibles para todos los Editors) |
-| Permisos únicos por ítem < 5.000 | OK (~500 productos activos) |
-| Sin integraciones con APIs externas que requieran secretos | OK (solo email via Office 365 Outlook) |
+| Más de ~5.000 ítems con permisos únicos | **No hoy**: 6 por producto activo = 1.344 (224 productos) a 3.000 (500). El techo recomendado se alcanza en ~833 productos activos simultáneos; los productos confirmados bajan a 1 |
+| Seguridad por columna extensa | **No hoy**: los costos son visibles para todo el equipo corporativo (⚠️ supuesto a confirmar). Si el negocio los restringe, se mueven a una lista aparte |
+| Transacciones entre varias entidades | **Punto débil #1**: crear un producto = producto + 16 hitos + permisos, sin atomicidad. Mitigado con falla cerrada y reconciliación nocturna (F4) |
+| Reglas de edición muy granulares | **Punto débil #2**: SharePoint no impide que un Editor escriba `EtapaActual`; el flujo F3 lo revierte en segundos y queda en versiones (control correctivo, no preventivo) |
+| Más de 100.000 registros | No (≈ 3.800 ítems hoy; `Hitos` es el mayor: 3.584) |
 
-Si se necesitara **seguridad por columna extensiva** (ej. costos visibles solo para Finanzas) o **transacciones multi-ítem garantizadas**, se recomendaría Dataverse.
+**Dataverse sería la alternativa más sólida** si, al desplegar, se cumple alguna de estas condiciones concretas: (a) más de ~800 productos
+activos simultáneos; (b) el negocio exige que el avance de etapa sea **preventivo**; (c) se necesita restringir costos por columna;
+(d) se suma `plant-reports`, que repetiría el esquema de permisos por planta. Con Dataverse, la propiedad por equipo de planta, la
+relación *Parental* (el permiso del producto alcanza a sus hitos), la seguridad por columna y las reglas de negocio reemplazan a la
+mayoría de los flujos de permisos (mapeo en `03-modelo-sharepoint.md` §8). **Decisión pendiente al desplegar**: depende de si el tenant ya
+tiene Dataverse y licencias para todos los usuarios, **incluidos los invitados externos**.
 
----
+## Entregables
 
-## Preguntas abiertas para negocio
+| Archivo | Contenido |
+|---|---|
+| `01-relevamiento.md` | Backend actual, entidades, operaciones, roles, lógica y 14 hallazgos con `archivo:línea` |
+| `02-roles-y-permisos.md` | 4 roles + propietarios, 35 grupos, matriz rol × lista con el mecanismo de cada celda |
+| `03-modelo-sharepoint.md` | Columnas, índices, relaciones, validaciones, diagrama ER, límites |
+| `04-seguridad.md` | Sitio, lista, ítem (flujo F1 paso a paso), columna, transiciones, cumplimiento, 13 riesgos residuales |
+| `05-logica-e-integraciones.md` | Dónde vive cada pieza de lógica, flujos F1–F4, resolución del rol en el frontend |
+| `06-migracion-datos.md` | Mapeo campo a campo, orden de carga, validación (con ensayo en seco sobre el seed) |
+| `07-pruebas-seguridad.md` | 59 casos por rol, incluidos accesos por fuera de la app |
+| `sharepoint-schema.json` | Esquema legible por máquina (fuente única de las tablas del doc 03 y del script) |
+| `provisioning/` | `00-crear-grupos-entra.ps1` y `01-crear-listas.ps1` (idempotentes) |
 
-1. **¿Aplica 21 CFR Part 11 o GxP?** Los productos farmacéuticos discontinuados pueden requerir firma electrónica para la etapa de Confirmación y registros inalterables. ¿El equipo regulatorio debe revisar este diseño?
+> ⚠️ **Los scripts de `provisioning/` no se ejecutaron ni se probaron contra un tenant** (no hay PowerShell en el entorno de trabajo; solo se
+> verificó el balance de llaves). Probar con `-WhatIf` en un sitio de desarrollo. Los flujos están **especificados**, no construidos.
+> Este paquete **reemplaza** los archivos de igual nombre generados en una pasada anterior (siguen en el historial de Git).
 
-2. **¿Los usuarios de planta deben ver solo sus productos, o también pueden ver los de otras plantas para coordinación?** El diseño actual restringe a planta propia; si se necesita visibilidad cruzada, el modelo de permisos cambia.
+## Preguntas abiertas para el dueño de negocio
 
-3. **¿El sub-módulo `plant-reports` (informes de planta por ciclo) se migra junto con Discontinuados o en una segunda fase?** Tiene su propio modelo de datos (ciclos, informes, slides) que no está incluido en este diseño.
-
-4. **¿Cuál es la política de retención de datos?** ¿Cuántos años deben conservarse los registros de discontinuación? ¿Hay requisitos regulatorios de retención por país?
-
-5. **¿Quiénes son los responsables de aprobar el avance de etapa?** ¿Es suficiente con que cualquier Admin lo apruebe, o debe ser una persona específica? Esto define si se necesita un flujo de aprobación formal.
-
-6. **¿Se necesita notificación automática a los responsables de cada hito?** El campo `Responsable` en los hitos es texto libre (no una persona de Entra ID). Para enviar notificaciones por email, ¿debe mapearse a usuarios reales del directorio?
-
-7. **¿Qué pasa con los productos del seed `CU-000001` al `CU-000224` que están todos en etapa 0 (Detección)?** ¿Son datos reales o datos de prueba? ¿Se migran todos o solo los que tienen actividad real en Firebase?
-
----
+1. ¿La planta solo completa hitos o también **crea** productos? (se asumió que no; si crea, hace falta una lista de solicitudes)
+2. ¿La planta debe **ver o comentar** la bitácora (`Actividades`)? (se asumió que no)
+3. ¿Qué fabricantes son **terceros** y tendrán usuarios invitados? (columna `Fabricantes.Externo`)
+4. ¿Los **costos** de destrucción los ve todo el equipo corporativo o solo algunas áreas? ¿En qué **moneda**?
+5. `FechaUltimoHito`: hoy nunca se actualiza tras el alta. ¿Se mantiene así o pasa a ser la fecha real del último hito?
+6. Responsable de los 16 hitos al migrar: ¿el **del catálogo** (propuesto) o el del origen (el seed trae `Planta` en dos hitos)?
+7. ¿Alguien cargó valores 2024/2025 en la **Comparativa** de su navegador que haya que rescatar?
+8. ¿El estado vivo de Firebase difiere del seed? ¿Quién exporta el nodo antes de apagarlo?
+9. Nombre y ubicación del **sitio** (se propuso `discontinuados-corp`) y si hay **otros datos sensibles** (el campo quedó vacío en el pedido).
 
 ## Preguntas abiertas para IT
 
-1. **Reglas de seguridad de Firebase actuales**: ¿son `".read": true, ".write": true`? Esto es un riesgo crítico activo que debe cerrarse independientemente de la migración.
+1. ¿Se pueden crear los **35 grupos** de Entra ID (4 + 31) sin proceso de aprobación especial? *(sin respuesta)*
+2. **Licencias**: ¿Managed Apps / Power Platform para usuarios internos **e invitados**? ¿Hay Dataverse disponible?
+3. Alta de la **cuenta de servicio** `svc-discontinuados-flows` (acceso condicional, MFA, propietaria de las conexiones).
+4. ¿El conector de SharePoint de la Managed App incluye *Enviar una solicitud HTTP a SharePoint* y permite **descargar archivos** generados en el navegador?
+5. Retención del **registro de auditoría de Purview** según la licencia, y etiqueta de confidencialidad para el sitio.
+6. ¿Está activo **GitHub Pages** en el repositorio (S-08)? Si es así, desactivarlo y dar de baja/rotar el proyecto Firebase.
+7. App registrada y permisos para **PnP.PowerShell** (`-ClientId`) y Microsoft Graph (grupos).
 
-2. **¿El tenant Microsoft 365 de Megalabs tiene PnP.PowerShell habilitado** y acceso de administrador para ejecutar los scripts de provisioning? ¿Hay políticas de acceso condicional que afecten al sitio?
+## Respuestas ya recibidas (registro)
 
-3. **¿Se puede crear un sitio SharePoint nuevo** `discontinuados-corp` sin restricciones de naming/aprobación interna?
+GxP/Part 11: **no** · Planta ve solo lo suyo · `plant-reports`: backlog · Retención: **sin política** · Aprobador de etapa: **los usuarios** ·
+`Responsable` → usuario: backlog · Seed de 224: **datos de prueba, se migran** · `PROC-SC-DISC-001`: **no existe** · Firebase: **no se usa** ·
+Power Automate Premium: **sí** (no hace falta: F1–F4 usan solo conectores estándar) · CI/CD de flujos: **no** (usar solución de Power Platform) ·
+Ventana de migración: **sí** · Invitados externos: **habilitados** · PnP/Admin: **se resuelve al desplegar**.
 
-4. **¿Los grupos Entra ID `SG-Discontinuados-*` pueden ser creados por el equipo de IT** o requieren aprobación especial? ¿Hay un proceso de onboarding de usuarios a grupos de seguridad?
-
-5. **¿Power Automate Premium está disponible** en las licencias actuales? Los flujos con HTTP trigger y acciones de permisos de SharePoint requieren conectores premium en algunos planes.
-
-6. **Throttling de SharePoint durante la migración masiva**: ¿se puede coordinar una ventana de mantenimiento para cargar ~3.600 ítems sin afectar otros sitios del tenant?
-
-7. **¿Hay un proceso de CI/CD** para flujos de Power Automate (export/import entre ambientes DEV → PROD)?
-
----
-
-## Entregables de este documento
-
-| Archivo | Descripción |
-|---|---|
-| `01-relevamiento.md` | Análisis completo del código fuente actual con citas de archivo:línea |
-| `02-roles-y-permisos.md` | Roles de negocio, grupos Entra ID, matriz CRUD completa |
-| `03-modelo-sharepoint.md` | 7 listas con columnas, tipos, índices, validaciones y diagrama Mermaid |
-| `04-seguridad.md` | Seguridad por capas: sitio, lista, ítem, columna, transiciones, cumplimiento |
-| `05-logica-e-integraciones.md` | Tabla de reubicación de lógica, 6 flujos Power Automate, resolución de rol en frontend |
-| `06-migracion-datos.md` | Mapeo campo a campo, orden de carga, transformaciones, validación post-migración |
-| `provisioning/01-crear-listas.ps1` | Script PnP PowerShell idempotente para crear todas las listas |
-| `sharepoint-schema.json` | Esquema legible por máquina de todas las listas y permisos |
-| `07-pruebas-seguridad.md` | 12 casos de prueba por rol incluyendo acceso directo a SharePoint/Excel/REST |
+**Nota.** `CLAUDE.md` describe un modelo de datos que no coincide con el código (01 §7). No se modificó; conviene corregirlo al terminar.

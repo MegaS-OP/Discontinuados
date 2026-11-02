@@ -1,97 +1,150 @@
-# Lógica e integraciones — Reubicación para SharePoint
+# 05 — Lógica e integraciones (Fase 5)
 
-## 1. Tabla de reubicación de lógica
+> Hoy **toda** la lógica corre en el navegador (01-relevamiento.md §5). Al migrar no hay servidor propio ni cuenta de servicio
+> detrás de la app: lo que sea de **seguridad o integridad** debe vivir en SharePoint o en Power Automate; el frontend
+> conserva solo lo que es experiencia (UX).
 
-| Lógica actual | Archivo:línea | Destino en M365 | Mecanismo | Notas |
-|---|---|---|---|---|
-| **Avance automático Detección→Análisis** al completar hito "Aviso a Supply Corp" | `AppContext.jsx:86-106` | Power Automate | Flujo disparado por cambio en lista Hitos (`Done=true` AND `Label="Aviso a Supply Corp y S&OP Global"`). Actualiza `EtapaActual` del producto padre. | |
-| **Avance Análisis→Confirmación** (manual) | `AppContext.jsx:156-191` | Power Automate + frontend | Botón en frontend llama a flujo via HTTP trigger. Flujo valida que todos los hitos de etapa 1 estén completos antes de avanzar. | |
-| **Cierre automático Confirmación** al completar todos los hitos de etapa 2 | `AppContext.jsx:108-128` | Power Automate | Igual al avance automático: disparado por cambio en Hitos, verifica que todos los de `Etapa=2` estén `Done`. | |
-| **Cálculo de progreso** (`done/total*100`) | `AppContext.jsx:79` | Power Automate | Flujo recalcula y actualiza `Progreso` en el producto al cambiar cualquier hito. Alternativa: columna calculada (no puede referenciar lista externa en SP). | |
-| **Creación de 16 hitos al crear producto** | `src/data/db.js:79-95` (makeHitos) | Power Automate | Flujo `PA-Discontinuados-CrearHitos` disparado al crear ítem en Discontinuados. Lee `HitosTemplate`, crea 16 ítems en lista Hitos. | |
-| **Migración de hitos legados** (renombres, campos nuevos) | `src/data/db.js:99-147` | Power Automate (one-time) | Script de migración de datos (PnP PowerShell o flujo manual) durante la carga inicial. No aplica en régimen permanente. | |
-| **Actualización de `UltimoHito`** y `FechaUltimoHito` | `AppContext.jsx:130-133` | Power Automate | Parte del flujo de toggle de hito: actualiza campos derivados en el producto padre. | |
-| **Eliminación masiva de productos seed** | `AppContext.jsx:208-213` | No migrar | Esta es una función de setup/dev. No tiene equivalente de negocio. Si se necesita un borrado masivo puntual, usar PnP PowerShell. | |
-| **Importación desde Excel** | `src/components/ImportModal.jsx` | Frontend + Power Automate | Frontend parsea el Excel y llama al flujo de creación para cada fila. O bien: Power Automate con conector Excel Online. | |
-| **Login y gestión de usuarios** (localStorage) | `src/data/users.js` | Reemplazado por Entra ID | La identidad viene de la sesión MSAL del usuario en la app Copilot Runtime. No hay login custom. | |
-| **Verificación de rol (isAdmin)** | `src/pages/Configuracion.jsx:18` | Frontend UX + SharePoint | Ver sección 3 abajo. | |
-| **Registro de actividades de sistema** (avance de etapa, etc.) | `AppContext.jsx:102-105, 121-124` | Power Automate | El flujo de avance de etapa crea el ítem en lista Actividades con `TipoActividad=Sistema`. | |
-| **Hardcode de nombre en comentario** | `AppContext.jsx:58` | Eliminado | En SharePoint, `CreadoPor` es automático y corresponde a la identidad Entra ID real del usuario. | |
+## 1. Dónde vive ahora cada pieza
 
----
-
-## 2. Flujos Power Automate — resumen
-
-| Nombre del flujo | Disparador | Propósito |
-|---|---|---|
-| `PA-Discontinuados-CrearHitos` | Nuevo ítem en lista Discontinuados | Crea los 16 hitos estándar leyendo HitosTemplate |
-| `PA-Discontinuados-AsignarPermisosPlanta` | Nuevo ítem en lista Discontinuados | Rompe herencia y asigna grupo de planta al ítem (ver Fase 4) |
-| `PA-Discontinuados-ToggleHito` | Modificación de ítem en Hitos (`Done` cambia) | Recalcula progreso, actualiza UltimoHito, avanza etapa si corresponde, registra actividad |
-| `PA-Discontinuados-ValidarTransicionEtapa` | Modificación de ítem en Discontinuados (`EtapaActual` cambia) | Valida que la transición sea válida (solo +1, hitos previos completos) |
-| `PA-Discontinuados-NotificarEtapa` | Avance de etapa confirmado | Envía email/Teams a los responsables de la nueva etapa |
-| `PA-Discontinuados-EliminarProducto` | HTTP trigger (llamado desde frontend, solo Admin) | Elimina hitos relacionados, luego el producto (cascade manual) |
-
----
-
-## 3. Resolución de rol del usuario en el frontend (solo UX)
-
-**Problema**: el frontend necesita saber si el usuario es Admin/Editor/Viewer para mostrar u ocultar controles (esto es puramente UX; la seguridad real está en SharePoint).
-
-**Mecanismo recomendado**: intentar leer un ítem de una lista restringida.
-
-```javascript
-// En el contexto de autenticación de la app (al iniciar)
-async function resolverRol(spClient) {
-  // Intenta leer la lista HitosTemplate con acceso de Admin.
-  // Si tiene permiso de escritura, es Admin o Editor.
-  // Si falla con 403, es Viewer.
-  try {
-    const perms = await spClient.getListPermissions('HitosTemplate');
-    const puedeEditar = perms.includes('EditListItems');
-    const puedeBorrar = perms.includes('DeleteListItems');
-    if (puedeBorrar) return 'Admin';
-    if (puedeEditar) return 'Editor';
-    return 'Viewer';
-  } catch {
-    return 'Viewer';
-  }
-}
-```
-
-Alternativa más directa y recomendada: consultar la membresía de grupos via **Microsoft Graph API** (conector Office 365 Users o llamada directa desde MSAL):
-
-```javascript
-// Graph: GET /me/memberOf
-const grupos = await graphClient.api('/me/memberOf').get();
-const esAdmin = grupos.value.some(g => g.displayName === 'SG-Discontinuados-Admin');
-const esEditor = grupos.value.some(g => g.displayName === 'SG-Discontinuados-Editor');
-```
-
-> **Importante**: esta información se usa **solo para mostrar/ocultar elementos de UI**. Las operaciones reales están protegidas por los permisos SharePoint del servidor.
-
----
-
-## 4. Integraciones externas
-
-La app actual **no tiene integraciones externas** a servicios de terceros aparte de Firebase.
-
-El sub-módulo `plant-reports` tiene:
-
-| Integración | Servicio | Secreto requerido | Migración a M365 |
+| # | Lógica actual (origen) | Dónde vive ahora | Por qué |
 |---|---|---|---|
-| **Email (notificaciones)** | SMTP / Sendgrid (⚠️ SUPUESTO: `_mail.js` referencia env vars de email) | Sí — connection string en Netlify env | Conector **Office 365 Outlook** en Power Automate. Sin secretos en el frontend. |
-| **Almacenamiento de informes** | Netlify Blobs | Token de deploy (Netlify) | Reemplazado por listas SharePoint o biblioteca de documentos. |
-| **Autenticación de planta** | Custom HMAC | `SESSION_SECRET`, `ADMIN_PASSWORD` en Netlify env | Reemplazado por Entra ID + grupos `SG-Discontinuados-Planta-{X}`. No hay secretos. |
+| 1 | Campos obligatorios del alta: nombre, compañía, fabricante, BU (`NuevoProducto.jsx:35-42`) | **Validación de SharePoint**: columnas obligatorias (`Title`, 3 búsquedas) + **UX** (mensajes en el formulario) | El alta manual lo exigía solo en el cliente; la importación no (S-10). Ahora lo rechaza el servidor para todos los caminos |
+| 2 | Generar el id `CU-` + hora (`NuevoProducto.jsx:58`, `ImportModal.jsx:72`) | **Power Automate F1** (`CodigoCU`) + índice único | Evita colisiones (S-09) |
+| 3 | Crear los 16 hitos con responsable por defecto (`db.js:79-95`) | **F1** leyendo `HitosCatalogo` | Cambiar el proceso = editar el catálogo, sin redeploy |
+| 4 | Actividades iniciales (`NuevoProducto.jsx:46-51`) | **F1** | Autor y fecha reales |
+| 5 | Marcar hito: `done`, `fechaReal` (`AppContext.jsx:69-77`) | Frontend escribe `Completado`; **F2** fija/limpia `FechaReal` | La fecha no debe depender del reloj del cliente |
+| 6 | Progreso y último hito (`AppContext.jsx:79-81`) | **F2** (subflujo `Recalcular-Producto`) | Los usuarios de planta no leen todos los hitos |
+| 7 | Avance automático 0→1 al completar *Aviso a Supply Corp y S&OP Global* (`AppContext.jsx:86-106`) | **F2** | Regla de negocio |
+| 8 | Confirmación de la etapa 3 (`AppContext.jsx:107-128`) | **F2** (`ProcesoConfirmado` + actividad) | Idem |
+| 9 | Avance manual y su regla (`ProductDetail.jsx:89-99`; `AppContext.jsx:156-191`) | **UX**: el botón aparece si se cumple la regla. **Control**: **F3** valida y revierte | La interfaz no es control (04 §5) |
+| 10 | Comentarios (`AppContext.jsx:44-67`) | Frontend crea un ítem en `Actividades`; autor = `Creado por` | Corrige S-07 |
+| 11 | Datos extra del hito (`AppContext.jsx:143-154`) | Frontend actualiza columnas de `Hitos` | Hoy escribe **en cada tecla**: debe guardar al salir del campo (ver §5) |
+| 12 | `migrateHitos()` y reposición de `initialData` (`db.js:99-147`; `AppContext.jsx:19-29`) | **Se elimina del runtime**; se aplica una sola vez en la migración (06) | Es la causa de S-06 |
+| 13 | Parseo y suma de costos (`DashboardView.jsx:11-31`) | Columnas `Number`; **UX** suma en el cliente | Elimina Q-02 |
+| 14 | Filtros y orden del dashboard (`Dashboard.jsx:174-190`) | **UX** con `$filter` OData sobre columnas indexadas | `Productos` < 5.000 ítems: se puede traer completo y paginado |
+| 15 | Borrado masivo de datos de prueba (`AppContext.jsx:208-213`; `Configuracion.jsx:207-224`) | Admin borra productos con `EsPrueba = Sí`; los hitos y actividades caen en **cascada** | Reemplaza el regex (S-09) |
+| 16 | Login "¿Quién sos?" y gestión de usuarios (`LoginScreen.jsx`; `Configuracion.jsx`) | **Entra ID**: la Managed App ya autentica; roles = grupos | Corrige S-01, S-02, S-03 |
+| 17 | Historial 2024/2025 en `localStorage` (`Comparativa.jsx:23-31,118`) | Lista `ComparativaHistorica` | Dato compartido (Q-03) |
+| 18 | Tiempo real (`onValue`, `AppContext.jsx:15`) | **UX**: recarga al abrir, botón *Actualizar* y refresco cada 30–60 s | El conector no empuja cambios |
+| 19 | Exportar a Excel (`Reportes.jsx`) | **UX** con SheetJS; exporta solo lo que el usuario puede leer. Corregir campos (Q-01) | La seguridad la impone la lectura de SharePoint |
+| 20 | Importar desde Excel (`ImportModal.jsx`) | **UX** parsea y valida contra catálogos; crea ítems en lotes; F1 completa cada uno | El servidor rechaza compañías/fabricantes/BU inexistentes |
+| 21 | Notificaciones, tareas programadas | **No existen hoy**. Se agrega solo F4 (seguridad). Avisos a áreas: backlog | No inventar alcance |
+| 22 | Integraciones externas | **Ninguna** en la app principal. `plant-reports` (backlog) usa Gmail y Netlify con secretos que **no migran** tal cual (ver §6) | — |
 
----
+## 2. Flujos de Power Automate
 
-## 5. Secretos y su manejo
+Todos usan conectores **estándar** (SharePoint, Office 365 Outlook para avisos de error). No usan disparador HTTP, por lo
+que **no requieren licencia Premium** aunque el dueño informó que está disponible.
 
-En la app migrada **no hay secretos en el frontend**. Todos los secretos se eliminan o mueven:
+| Id | Nombre | Disparador | Qué hace | Detalle |
+|---|---|---|---|---|
+| F1 | `Producto-Alta` | Al crearse un elemento en `Productos` (si `IdLegado` está vacío) | Código, 16 hitos, actividades, permisos de planta | 04 §3.4 |
+| F2 | `Hito-Modificado` | Al modificarse un elemento en `Hitos` (si no lo modificó la cuenta de servicio) | Fecha real, recálculo del producto, avance automático, restitución de columnas estructurales | §2.1 |
+| F3 | `Producto-Modificado` | Al modificarse un elemento en `Productos` (si no lo modificó la cuenta de servicio) | Valida etapa, reasigna permisos si cambia el fabricante, retira permisos al confirmar | 04 §3.5 y §5 |
+| F4 | `Permisos-Reconciliacion` | Programado, diario | Repara permisos, cuenta permisos únicos, alerta | 04 §3.6 |
+| — | `Recalcular-Producto` (flujo secundario) | Llamado por F2 y F3 | Recalcula los campos derivados de un producto | §2.1 |
 
-| Secreto actual | Dónde está hoy | Destino |
+**Conexión.** Los cuatro flujos corren con la **cuenta de servicio** `svc-discontinuados-flows` (04 §1). Cada acción se
+ejecuta con sus permisos, no con los del usuario que disparó el cambio.
+
+### 2.1 F2 `Hito-Modificado` y `Recalcular-Producto`
+
+**F2** — disparador *Al crearse o modificarse un elemento* en `Hitos`, concurrencia **1**, condición
+`@not(equals(toLower(triggerOutputs()?['body/Editor/Email']), 'svc-discontinuados-flows@<dominio>'))`.
+
+1. **Restituir columnas estructurales.** Leer la **versión 1.0** del ítem
+   (`GET _api/web/lists/getbytitle('Hitos')/items(<ID>)/versions?$filter=VersionLabel eq '1.0'`) y, si `Title`, `Producto`,
+   `ClaveHito`, `Etapa` u `Orden` difieren, volver a escribirlos.
+2. **Fecha real.** Si `Completado = Sí` y `FechaReal` está vacía → `FechaReal = hoy`. Si `Completado = No` y `FechaReal` tiene valor → vaciarla.
+   (Equivale a `AppContext.jsx:75-77`.)
+3. Llamar a **`Recalcular-Producto`** con `Producto/Id`.
+
+**`Recalcular-Producto(productoId)`**
+
+1. Leer los 16 hitos del producto (`$filter=Producto eq <id>`).
+2. `Progreso = round(completados / total × 100)`; `UltimoHito` = título del último hito completado en orden
+   (`AppContext.jsx:79-81`).
+3. `ProcesoConfirmado` = todos los hitos de etapa 2 completados (`AppContext.jsx:107-128`).
+4. **Avance automático**: si `EtapaActual = 0` y el hito `AVISO_SUPPLY_SOP` está completado → `EtapaActual = 1`,
+   `EtapaValidada = 1` y actividad *"Avance de etapa: Detección → Análisis"* (`AppContext.jsx:86-106`).
+5. Si `ProcesoConfirmado` pasó a Sí → actividad *"Producto confirmado como discontinuado: Confirmación"*
+   (`AppContext.jsx:121-123`).
+6. Un único `Update item` sobre `Productos` con solo las columnas que cambiaron.
+
+> **Cambio de comportamiento a confirmar.** El código actual **nunca actualiza `fechaUltimoHito`** después del alta
+> (`AppContext.jsx:129-137` no la incluye). En el nuevo modelo, `FechaUltimoHito` se fija a la fecha real del último hito
+> completado; si negocio prefiere conservar el comportamiento anterior, se omite ese campo del paso 6.
+
+Como `Recalcular-Producto` recalcula **desde los datos** y no suma deltas, dos ediciones simultáneas convergen al mismo
+resultado: esto reemplaza el "gana el último" que pierde datos de hoy (S-05).
+
+## 3. Operaciones que el frontend debe usar para no chocar con los límites
+
+| Necesidad | Consulta recomendada | Motivo |
 |---|---|---|
-| Firebase API key | `src/firebase.js:4` (bundle público) | **Eliminado** — reemplazado por MSAL + SharePoint REST API |
-| `ADMIN_PASSWORD` (plant-reports) | Variable de entorno Netlify | Eliminado — reemplazado por Entra ID |
-| `SESSION_SECRET` (plant-reports) | Variable de entorno Netlify | Eliminado — tokens gestionados por Entra ID |
-| Credenciales de email (plant-reports) | Variable de entorno Netlify | Conector Office 365 Outlook (sin secretos explícitos) |
+| Tablero / lista de productos | `Productos` completa, paginada de a 500–5.000, con las columnas del tablero | < 5.000 ítems; `Progreso` y `EtapaActual` ya vienen calculados |
+| Detalle de un producto | `Hitos` con `$filter=Producto eq <id>` + `Actividades` con `$filter=Producto eq <id>` | Columna indexada; 16 filas |
+| Costo en riesgo (`DashboardView.jsx:141`) | `Hitos` con `$filter=ClaveHito eq 'COSTO_DEST_PT'` (y `COSTO_DEST_MAT`, `COSTO_INV_API`) | ≤ N filas por consulta, indexada |
+| Exportación completa | Paginar `Hitos` por rango de `ID` (`ID gt <último>`, `$top=5000`) | El índice de `ID` evita el umbral |
+| Escritura de datos extra | Guardar **al salir del campo** (no en cada tecla) y enviar solo las columnas modificadas | Hoy se escribe por pulsación (`ProductDetail.jsx:204,216,228,253,291,324`): con ~600 solicitudes/min por usuario y un flujo F2 por cada una, se saturaría |
+| Importación masiva | Lotes de ≤ 20 productos con pausa; mostrar progreso | F1 hace ≈ 24 operaciones por producto |
+
+**Concurrencia.** El frontend debe enviar **solo las columnas modificadas** (⚠️ verificar este comportamiento del conector en la Managed App) y
+no hay control optimista (ETag): dos usuarios que editan la **misma columna** del mismo ítem siguen pisándose (gana el último),
+pero ya no se pisa el resto de la base (S-05).
+
+## 4. Cómo resuelve la app el rol del usuario (solo UX)
+
+**Principio**: la autorización real es la de SharePoint. El rol que muestra la interfaz solo decide qué botones dibujar.
+
+**Mecanismo propuesto** (SharePoint, acción *Enviar una solicitud HTTP a SharePoint*, conector estándar):
+
+1. Al iniciar: `GET _api/web/lists/getbytitle('Productos')/EffectiveBasePermissions` → `{High, Low}`.
+2. Con la máscara baja (`Low`): *Ver elementos* = `0x1`, *Agregar* = `0x2`, *Editar* = `0x4`, *Eliminar* = `0x8`.
+
+| Máscara sobre `Productos` | Rol que muestra la UI |
+|---|---|
+| Eliminar activo | Admin |
+| Agregar + Editar, sin Eliminar | Editor |
+| Solo Ver | Viewer |
+| Sin permiso de lista, pero la consulta devuelve productos | **Planta** (el/los fabricante(s) salen de los productos devueltos) |
+| Sin permiso y sin productos | Sin acceso (mensaje con el contacto de IT) |
+
+3. Lo mismo sobre `Hitos` para saber si se pueden editar los hitos de planta.
+
+**Alternativa / complemento** (⚠️ a validar con IT): consultar pertenencia a grupos con el conector de Microsoft Entra ID o con
+Graph `checkMemberGroups` sobre los 4 grupos corporativos; requiere consentimiento de administrador del permiso de lectura de
+grupos. Se prefiere la consulta de permisos efectivos porque **refleja lo que SharePoint realmente va a permitir**.
+
+Si la interfaz mostrara un botón de más, la llamada devolvería **403** y la app debe mostrar *"No tenés permiso para esta
+acción"*, no un error genérico.
+
+## 5. Pantallas que cambian
+
+| Pantalla | Cambio |
+|---|---|
+| Login (`LoginScreen.jsx`) | Se elimina. La identidad es la de Entra ID |
+| Configuración (`Configuracion.jsx`) | La gestión de usuarios desaparece (se hace en Entra). Queda: descripción de roles (informativa), catálogos (solo Admin) y "Zona de riesgo" |
+| Reportes (`Reportes.jsx`) | Corregir campos inexistentes (Q-01) |
+| Comparativa (`Comparativa.jsx`) | Lee y escribe `ComparativaHistorica` |
+| Detalle (`ProductDetail.jsx`) | Guardar datos extra al salir del campo; el comentario usa el usuario real |
+| Descargas de archivos (`file-saver`, `xlsx`) | ⚠️ Verificar si el entorno de ejecución de la Managed App permite descargas generadas en el navegador. Si no, generar el archivo con un flujo y devolver un enlace de OneDrive/SharePoint |
+
+## 6. Integraciones y secretos
+
+| Integración | Hoy | Después | ¿Secretos? |
+|---|---|---|---|
+| Base de datos | Firebase con configuración en el código (`firebase.js:4-12`) | Conector de **SharePoint** (identidad delegada) | **No**. Se elimina el paquete `firebase` |
+| Correo de error de los flujos | — | Conector **Office 365 Outlook** | No (conexión propia del flujo) |
+| Usuarios | `localStorage` | Entra ID | No |
+| Excel / descargas | SheetJS y `file-saver` en el navegador | Igual (UX), sujeto al §5 | No |
+| `plant-reports` (**backlog**) | Netlify Blobs + Gmail (`ADMIN_PASSWORD`, `SESSION_SECRET`, `GMAIL_APP_PASSWORD`) | Fuera de alcance. Al migrarlo: listas de SharePoint y **Outlook** en lugar de Gmail; los secretos actuales **no se trasladan** | Sí hoy; no después |
+
+**No hay lugar para secretos en el frontend.** Antes de publicar la nueva app, rotar o dar de baja el proyecto Firebase
+(la clave de API de `src/firebase.js` está en el historial de Git y en cualquier copia pública del sitio).
+
+## 7. Empaquetado de los flujos (sin CI/CD)
+
+Respuesta de IT: no hay CI/CD. Recomendación mínima: crear los flujos **dentro de una solución de Power Platform** con
+*referencias de conexión* y *variables de entorno* (URL del sitio, correo de la cuenta de servicio), y exportarla a mano de
+DEV a PROD. Así el cambio de ambiente no obliga a editar flujo por flujo.
